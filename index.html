@@ -1259,7 +1259,10 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 
               <div class="form-group">
                 <label class="form-label">OKR / KPI a revisar <span class="required-star">*</span></label>
-                <textarea class="form-textarea okr-field" id="reqOkr" placeholder="Ej. Incrementar ROAS Mercado Libre a 4.5x en Q2"></textarea>
+                <select class="form-select" id="reqOkrSelect" onchange="onReqOkrSelectChange()" style="margin-bottom:6px">
+                  <option value="">— Seleccionar del catálogo —</option>
+                </select>
+                <textarea class="form-textarea okr-field" id="reqOkr" placeholder="O escribe libremente el OKR/KPI a revisar"></textarea>
                 <div class="okr-hint"><i class="ti ti-info-circle"></i> Sin este dato no se puede enviar la solicitud</div>
               </div>
 
@@ -1287,6 +1290,9 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           </button>
           <button class="admin-tab" data-admin-tab="meetings" onclick="switchAdminTab('meetings', this)">
             <i class="ti ti-calendar-cog"></i> Tipos de reunión
+          </button>
+          <button class="admin-tab" data-admin-tab="okrs" onclick="switchAdminTab('okrs', this)">
+            <i class="ti ti-target"></i> Catálogo OKR
           </button>
           <button class="admin-tab" data-admin-tab="permissions" onclick="switchAdminTab('permissions', this)">
             <i class="ti ti-shield-lock"></i> Roles & permisos
@@ -1358,6 +1364,33 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
               </tr>
             </thead>
             <tbody id="meetingTypesTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- OKRs CATALOG -->
+        <div class="admin-panel" id="admin-okrs">
+          <div class="admin-header">
+            <div>
+              <div class="admin-header-title">Catálogo de OKR / KPI</div>
+              <div class="admin-header-sub">Define los objetivos clave del negocio. Aparecerán como sugerencias al crear tareas y reuniones.</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openOkrModal()"><i class="ti ti-plus"></i> Nuevo OKR</button>
+          </div>
+
+          <div class="kanban-filter" style="margin-bottom:14px" id="okrFilters"></div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width:32%">Objetivo</th>
+                <th>Workspace</th>
+                <th>Categoría</th>
+                <th>Avance</th>
+                <th>Estado</th>
+                <th style="text-align:right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="okrsTableBody"></tbody>
           </table>
         </div>
 
@@ -1489,7 +1522,11 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
     </div>
     <div class="form-group">
       <label class="form-label">OKR/KPI relacionado</label>
-      <input type="text" class="form-input" id="taskOkr" placeholder="Ej. ROAS 4.5x / Reducir CAC 20%">
+      <select class="form-select" id="taskOkrSelect" onchange="onTaskOkrSelectChange()">
+        <option value="">— Seleccionar del catálogo —</option>
+      </select>
+      <input type="text" class="form-input" id="taskOkr" placeholder="O escribe uno libre / personalizado" style="margin-top:6px">
+      <div style="font-size:10px;color:var(--muted);margin-top:4px"><i class="ti ti-info-circle" style="font-size:11px"></i> Si seleccionas del catálogo, ese texto se usará. Edita el campo libre para sobrescribir.</div>
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('taskModal')">Cancelar</button>
@@ -1727,6 +1764,71 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
   </div>
 </div>
 
+<!-- OKR MODAL -->
+<div class="modal-overlay" id="okrModal">
+  <div class="modal">
+    <div class="modal-title" id="okrModalTitle">Nuevo OKR</div>
+    <div class="modal-sub">Define un objetivo medible y vinculable a tareas y reuniones</div>
+    <input type="hidden" id="okrId">
+    <div class="form-group">
+      <label class="form-label">Objetivo <span class="required-star">*</span></label>
+      <textarea class="form-textarea okr-field" id="okrName" placeholder="Ej. Incrementar ROAS Mercado Libre a 4.5x en Q2"></textarea>
+      <div class="okr-hint"><i class="ti ti-info-circle"></i> Sé específico y cuantificable (meta + plazo)</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="form-group">
+        <label class="form-label">Workspace <span class="required-star">*</span></label>
+        <select class="form-select" id="okrWs"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Categoría</label>
+        <select class="form-select" id="okrCategory">
+          <option value="sales">Ventas</option>
+          <option value="marketing">Marketing</option>
+          <option value="operations">Operaciones</option>
+          <option value="growth">Crecimiento</option>
+          <option value="finance">Finanzas</option>
+          <option value="quality">Calidad / NPS</option>
+          <option value="other">Otro</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="form-group">
+        <label class="form-label">Plazo</label>
+        <select class="form-select" id="okrQuarter">
+          <option value="">Sin definir</option>
+          <option value="Q1">Q1</option>
+          <option value="Q2">Q2</option>
+          <option value="Q3">Q3</option>
+          <option value="Q4">Q4</option>
+          <option value="annual">Anual</option>
+          <option value="ongoing">Continuo</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Avance actual (%)</label>
+        <input type="number" class="form-input" id="okrProgress" min="0" max="100" value="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Responsable</label>
+      <select class="form-select" id="okrOwner">
+        <option value="">— Sin asignar —</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notas / contexto</label>
+      <textarea class="form-textarea" id="okrNotes" placeholder="Información adicional, baseline, fuente del dato, etc." style="min-height:60px"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="okrDeleteBtn" onclick="deleteOkr()" style="margin-right:auto;display:none"><i class="ti ti-trash"></i> Eliminar</button>
+      <button class="btn" onclick="closeModal('okrModal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveOkr()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"><i class="ti ti-check"></i><span id="toastMsg"></span></div>
 
 <script>
@@ -1742,15 +1844,17 @@ const STORAGE_KEYS = {
   USERS: 'directoros:users:v2',
   WORKSPACES: 'directoros:workspaces:v2',
   MEETING_TYPES: 'directoros:meetingtypes:v2',
+  OKRS: 'directoros:okrs:v2',
   CURRENT_USER: 'directoros:currentuser:v2'
 };
 
 let state = {
   tasks: [], events: [], requests: [], settings: {}, activity: [],
-  users: [], workspaces: [], meetingTypes: [],
+  users: [], workspaces: [], meetingTypes: [], okrs: [],
   currentUser: null,
   currentWeek: 0,
   activeFilter: 'all',
+  activeOkrFilter: 'all',
   selectedTask: null,
   selectedSlot: null
 };
@@ -1910,6 +2014,23 @@ function getSeedMeetingTypes() {
     { id: 2, name: 'Estrategia de campaña', duration: 30, color: 'texas', okr: 'Crecimiento de canal', icon: 'ti-speakerphone', active: true },
     { id: 3, name: 'Sync logístico', duration: 20, color: 'amber', okr: 'Eficiencia operativa', icon: 'ti-truck-delivery', active: true },
     { id: 4, name: 'Revisión OKR semanal', duration: 45, color: 'consul', okr: 'Avance trimestral', icon: 'ti-target', active: true }
+  ];
+}
+
+function getSeedOkrs() {
+  return [
+    { id: 1, name: 'Incrementar venta mensual Maraga a $10M MXN', ws: 'maraga', category: 'sales', quarter: 'Q2', progress: 74, ownerId: 1, notes: 'Meta principal del negocio. Baseline: $7.4M en mes anterior.', active: true },
+    { id: 2, name: 'ROAS Amazon Prime Day ≥ 4.5x', ws: 'maraga', category: 'marketing', quarter: 'Q2', progress: 60, ownerId: 2, notes: 'Optimización de listings y bid strategy para Prime Day julio.', active: true },
+    { id: 3, name: 'Incrementar ventas Mercado Libre +25%', ws: 'maraga', category: 'sales', quarter: 'Q2', progress: 45, ownerId: 2, notes: 'Foco en SKUs top y campañas Brand Ads.', active: true },
+    { id: 4, name: 'Conversión sitio propio +10%', ws: 'maraga', category: 'growth', quarter: 'Q2', progress: 30, ownerId: 7, notes: 'A/B testing en home y checkout, optimización de banners.', active: true },
+    { id: 5, name: 'ROAS Meta Ads ≥ 3.8x sostenido', ws: 'maraga', category: 'marketing', quarter: 'ongoing', progress: 85, ownerId: 2, notes: 'Revisión semanal en daily MKT.', active: true },
+    { id: 6, name: 'Walmart sell-out +20% Spring Campaign', ws: 'maraga', category: 'sales', quarter: 'Q2', progress: 95, ownerId: 4, notes: 'Campaña ejecutada, pendiente cierre de reporte.', active: true },
+    { id: 7, name: 'Reducir merma de inventario 15%', ws: 'texas', category: 'operations', quarter: 'Q2', progress: 40, ownerId: 9, notes: 'Auditoría mensual + nuevo flujo de recepción.', active: true },
+    { id: 8, name: 'Tiempo de entrega < 48h en San Antonio', ws: 'texas', category: 'operations', quarter: 'ongoing', progress: 78, ownerId: 10, notes: 'Optimización de rutas locales.', active: true },
+    { id: 9, name: 'Reducir errores de conciliación QuickBooks-SAP 80%', ws: 'texas', category: 'finance', quarter: 'Q2', progress: 25, ownerId: 9, notes: 'Integración técnica pendiente.', active: true },
+    { id: 10, name: 'Cierre Q2 de nuevo cliente consultoría', ws: 'consul', category: 'sales', quarter: 'Q2', progress: 50, ownerId: 8, notes: 'Pipeline: 3 leads calificados.', active: true },
+    { id: 11, name: 'NPS clientes consultoría > 8', ws: 'consul', category: 'quality', quarter: 'ongoing', progress: 70, ownerId: 8, notes: 'Encuesta trimestral.', active: true },
+    { id: 12, name: 'Reducir CAC global 20%', ws: 'maraga', category: 'marketing', quarter: 'Q3', progress: 15, ownerId: 2, notes: 'Mix de canales orgánicos vs paid.', active: true }
   ];
 }
 
@@ -2134,6 +2255,7 @@ async function init() {
   state.users = await storageGet(STORAGE_KEYS.USERS) || getSeedUsers();
   state.workspaces = await storageGet(STORAGE_KEYS.WORKSPACES) || getSeedWorkspaces();
   state.meetingTypes = await storageGet(STORAGE_KEYS.MEETING_TYPES) || getSeedMeetingTypes();
+  state.okrs = await storageGet(STORAGE_KEYS.OKRS) || getSeedOkrs();
   state.tasks = await storageGet(STORAGE_KEYS.TASKS) || getSeedTasks();
   state.events = await storageGet(STORAGE_KEYS.EVENTS) || getSeedEvents();
   state.requests = await storageGet(STORAGE_KEYS.REQUESTS) || getSeedRequests();
@@ -2152,6 +2274,7 @@ async function init() {
     storageSet(STORAGE_KEYS.USERS, state.users),
     storageSet(STORAGE_KEYS.WORKSPACES, state.workspaces),
     storageSet(STORAGE_KEYS.MEETING_TYPES, state.meetingTypes),
+    storageSet(STORAGE_KEYS.OKRS, state.okrs),
     storageSet(STORAGE_KEYS.TASKS, state.tasks),
     storageSet(STORAGE_KEYS.EVENTS, state.events),
     storageSet(STORAGE_KEYS.REQUESTS, state.requests),
@@ -2214,6 +2337,46 @@ function populateModalSelects() {
 
   const assigneeOpts = state.users.filter(u => u.role !== 'director' && u.active).map(u => `<option value="${u.id}">${escapeHtml(u.name)} · ${ROLES[u.role].short}</option>`).join('');
   document.getElementById('taskAssignee').innerHTML = assigneeOpts;
+
+  // OKR catalog dropdown for task modal (grouped by workspace)
+  const taskOkrSel = document.getElementById('taskOkrSelect');
+  if (taskOkrSel) {
+    const activeOkrs = state.okrs.filter(o => o.active !== false);
+    let okrOpts = '<option value="">— Seleccionar del catálogo —</option>';
+    state.workspaces.forEach(w => {
+      const wsOkrs = activeOkrs.filter(o => o.ws === w.id);
+      if (wsOkrs.length > 0) {
+        okrOpts += `<optgroup label="${escapeHtml(w.name)}">`;
+        wsOkrs.forEach(o => { okrOpts += `<option value="${o.id}">${escapeHtml(o.name)}${o.quarter ? ' (' + o.quarter + ')' : ''}</option>`; });
+        okrOpts += '</optgroup>';
+      }
+    });
+    taskOkrSel.innerHTML = okrOpts;
+  }
+}
+
+function onTaskOkrSelectChange() {
+  const sel = document.getElementById('taskOkrSelect');
+  const txt = document.getElementById('taskOkr');
+  if (sel.value) {
+    const okr = state.okrs.find(o => o.id === parseInt(sel.value));
+    if (okr) {
+      txt.value = okr.name;
+      txt.dataset.okrId = okr.id;
+    }
+  }
+}
+
+function onReqOkrSelectChange() {
+  const sel = document.getElementById('reqOkrSelect');
+  const txt = document.getElementById('reqOkr');
+  if (sel.value) {
+    const okr = state.okrs.find(o => o.id === parseInt(sel.value));
+    if (okr) {
+      txt.value = okr.name;
+      txt.dataset.okrId = okr.id;
+    }
+  }
 }
 
 function updateBadges() {
@@ -2841,6 +3004,22 @@ function renderBooking() {
   const sel = document.getElementById('reqType');
   sel.innerHTML = activeMTs.map(m => `<option>${escapeHtml(m.name)} — ${m.duration} min</option>`).join('');
 
+  // Populate OKR catalog dropdown for booking form
+  const reqOkrSel = document.getElementById('reqOkrSelect');
+  if (reqOkrSel) {
+    const activeOkrs = state.okrs.filter(o => o.active !== false);
+    let okrOpts = '<option value="">— Seleccionar del catálogo —</option>';
+    state.workspaces.forEach(w => {
+      const wsOkrs = activeOkrs.filter(o => o.ws === w.id);
+      if (wsOkrs.length > 0) {
+        okrOpts += `<optgroup label="${escapeHtml(w.name)}">`;
+        wsOkrs.forEach(o => { okrOpts += `<option value="${o.id}">${escapeHtml(o.name)}${o.quarter ? ' (' + o.quarter + ')' : ''}</option>`; });
+        okrOpts += '</optgroup>';
+      }
+    });
+    reqOkrSel.innerHTML = okrOpts;
+  }
+
   const slots = document.getElementById('timeSlots');
   const slotData = [
     { label:'Lun 9:00', blocked:true },{ label:'Lun 14:00', blocked:false },
@@ -2962,6 +3141,7 @@ function renderAdmin() {
   renderAdminUsers();
   renderAdminWorkspaces();
   renderAdminMeetingTypes();
+  renderAdminOkrs();
   renderAdminPermissions();
   renderAdminSettings();
 }
@@ -3388,6 +3568,186 @@ async function confirmDeleteMeetingType(id) {
   showToast('Tipo eliminado','success');
 }
 
+/* === OKR CATALOG === */
+const OKR_CATEGORIES = {
+  sales: { label: 'Ventas', icon: 'ti-trending-up', color: 'var(--maraga-dark)', bg: 'var(--maraga-bg)' },
+  marketing: { label: 'Marketing', icon: 'ti-speakerphone', color: 'var(--purple-dark)', bg: 'var(--purple-bg)' },
+  operations: { label: 'Operaciones', icon: 'ti-truck', color: 'var(--amber-dark)', bg: 'var(--amber-bg)' },
+  growth: { label: 'Crecimiento', icon: 'ti-rocket', color: 'var(--texas-dark)', bg: 'var(--texas-bg)' },
+  finance: { label: 'Finanzas', icon: 'ti-coin', color: 'var(--consul-dark)', bg: 'var(--consul-bg)' },
+  quality: { label: 'Calidad / NPS', icon: 'ti-star', color: 'var(--maraga-dark)', bg: 'var(--maraga-bg)' },
+  other: { label: 'Otro', icon: 'ti-tag', color: 'var(--muted)', bg: 'var(--paper-2)' }
+};
+
+function renderAdminOkrs() {
+  // Filters: all + by workspace + by category
+  const fc = document.getElementById('okrFilters');
+  if (fc) {
+    fc.innerHTML = `
+      <button class="filter-chip ${state.activeOkrFilter==='all'?'active':''}" onclick="filterOkrs('all', this)">Todos</button>
+      ${state.workspaces.map(w => `
+        <button class="filter-chip ${state.activeOkrFilter===w.id?'active':''}" onclick="filterOkrs('${w.id}', this)">
+          <span class="legend-dot" style="background:${w.color};display:inline-block;margin-right:5px"></span>${escapeHtml(w.name)}
+        </button>
+      `).join('')}
+      <button class="filter-chip ${state.activeOkrFilter==='at-risk'?'active':''}" onclick="filterOkrs('at-risk', this)">
+        <i class="ti ti-alert-triangle" style="font-size:11px"></i> En riesgo (&lt;50%)
+      </button>
+    `;
+  }
+
+  const tbody = document.getElementById('okrsTableBody');
+  if (!tbody) return;
+
+  let filtered = state.okrs;
+  if (state.activeOkrFilter !== 'all') {
+    if (state.activeOkrFilter === 'at-risk') {
+      filtered = filtered.filter(o => (o.progress || 0) < 50 && o.active !== false);
+    } else {
+      filtered = filtered.filter(o => o.ws === state.activeOkrFilter);
+    }
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><i class="ti ti-target"></i><div class="empty-title">Sin OKRs en esta vista</div><div class="empty-sub">Crea uno nuevo o ajusta los filtros</div></div></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(o => {
+    const ws = state.workspaces.find(w => w.id === o.ws);
+    const cat = OKR_CATEGORIES[o.category] || OKR_CATEGORIES.other;
+    const owner = state.users.find(u => u.id === o.ownerId);
+    const progress = o.progress || 0;
+    const progressColor = progress >= 80 ? 'var(--maraga)' : progress >= 50 ? 'var(--amber)' : 'var(--red)';
+    return `
+      <tr>
+        <td data-label="Objetivo">
+          <div style="font-weight:500;line-height:1.4">${escapeHtml(o.name)}</div>
+          ${o.quarter ? `<div style="font-size:10px;color:var(--muted);margin-top:3px"><i class="ti ti-calendar" style="font-size:11px;vertical-align:-1px"></i> ${o.quarter === 'annual' ? 'Anual' : o.quarter === 'ongoing' ? 'Continuo' : o.quarter}${owner ? ' · ' + escapeHtml(owner.name) : ''}</div>` : ''}
+        </td>
+        <td data-label="Workspace">${ws ? `<span class="task-ws" style="background:${ws.color}22;color:${ws.color}">${escapeHtml(ws.name)}</span>` : '—'}</td>
+        <td data-label="Categoría"><span class="role-pill" style="background:${cat.bg};color:${cat.color}"><i class="ti ${cat.icon}" style="font-size:11px"></i> ${cat.label}</span></td>
+        <td data-label="Avance">
+          <div style="display:flex;align-items:center;gap:8px;min-width:120px">
+            <div style="flex:1;height:6px;background:var(--paper-2);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${progress}%;background:${progressColor};transition:width .3s"></div>
+            </div>
+            <span style="font-size:12px;font-weight:600;color:${progressColor};min-width:34px;text-align:right">${progress}%</span>
+          </div>
+        </td>
+        <td data-label="Estado"><span class="status-pill ${o.active!==false?'status-active':'status-inactive'}">${o.active!==false?'Activo':'Inactivo'}</span></td>
+        <td data-label="Acciones">
+          <div class="table-actions">
+            <button class="action-icon-btn" onclick="openOkrModal(${o.id})" aria-label="Editar"><i class="ti ti-pencil"></i></button>
+            <button class="action-icon-btn" onclick="toggleOkrActive(${o.id})" aria-label="${o.active!==false?'Desactivar':'Activar'}"><i class="ti ${o.active!==false?'ti-player-pause':'ti-player-play'}"></i></button>
+            <button class="action-icon-btn danger" onclick="confirmDeleteOkr(${o.id})" aria-label="Eliminar"><i class="ti ti-trash"></i></button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterOkrs(filter, el) {
+  state.activeOkrFilter = filter;
+  document.querySelectorAll('#okrFilters .filter-chip').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderAdminOkrs();
+}
+
+function openOkrModal(id) {
+  const isEdit = !!id;
+  document.getElementById('okrModalTitle').textContent = isEdit ? 'Editar OKR' : 'Nuevo OKR';
+  document.getElementById('okrDeleteBtn').style.display = isEdit ? 'inline-flex' : 'none';
+
+  // Populate workspace and owner selects
+  const wsSel = document.getElementById('okrWs');
+  wsSel.innerHTML = state.workspaces.map(w => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
+  const ownerSel = document.getElementById('okrOwner');
+  ownerSel.innerHTML = '<option value="">— Sin asignar —</option>' +
+    state.users.filter(u => u.active).map(u => `<option value="${u.id}">${escapeHtml(u.name)} · ${ROLES[u.role]?.short || u.role}</option>`).join('');
+
+  if (isEdit) {
+    const o = state.okrs.find(x => x.id === id);
+    document.getElementById('okrId').value = o.id;
+    document.getElementById('okrName').value = o.name;
+    document.getElementById('okrWs').value = o.ws;
+    document.getElementById('okrCategory').value = o.category || 'other';
+    document.getElementById('okrQuarter').value = o.quarter || '';
+    document.getElementById('okrProgress').value = o.progress || 0;
+    document.getElementById('okrOwner').value = o.ownerId || '';
+    document.getElementById('okrNotes').value = o.notes || '';
+  } else {
+    document.getElementById('okrId').value = '';
+    document.getElementById('okrName').value = '';
+    document.getElementById('okrWs').value = state.workspaces[0]?.id || 'maraga';
+    document.getElementById('okrCategory').value = 'sales';
+    document.getElementById('okrQuarter').value = '';
+    document.getElementById('okrProgress').value = 0;
+    document.getElementById('okrOwner').value = '';
+    document.getElementById('okrNotes').value = '';
+  }
+  openModal('okrModal');
+}
+
+async function saveOkr() {
+  const name = document.getElementById('okrName').value.trim();
+  if (!name) { showToast('El objetivo es obligatorio','error'); return; }
+  if (name.length < 8) { showToast('El objetivo debe ser más descriptivo (mínimo 8 caracteres)','error'); return; }
+
+  const ws = document.getElementById('okrWs').value;
+  const category = document.getElementById('okrCategory').value;
+  const quarter = document.getElementById('okrQuarter').value;
+  const progress = Math.min(100, Math.max(0, parseInt(document.getElementById('okrProgress').value) || 0));
+  const ownerVal = document.getElementById('okrOwner').value;
+  const ownerId = ownerVal ? parseInt(ownerVal) : null;
+  const notes = document.getElementById('okrNotes').value.trim();
+  const idStr = document.getElementById('okrId').value;
+
+  if (idStr) {
+    const o = state.okrs.find(x => x.id === parseInt(idStr));
+    if (o) {
+      o.name = name; o.ws = ws; o.category = category; o.quarter = quarter;
+      o.progress = progress; o.ownerId = ownerId; o.notes = notes;
+    }
+  } else {
+    state.okrs.push({
+      id: Date.now(), name, ws, category, quarter, progress, ownerId, notes,
+      active: true, createdAt: new Date().toISOString()
+    });
+  }
+  await storageSet(STORAGE_KEYS.OKRS, state.okrs);
+  closeModal('okrModal');
+  renderAll();
+  showToast(idStr ? 'OKR actualizado' : 'OKR creado','success');
+}
+
+async function toggleOkrActive(id) {
+  const o = state.okrs.find(x => x.id === id);
+  if (!o) return;
+  o.active = o.active === false ? true : false;
+  await storageSet(STORAGE_KEYS.OKRS, state.okrs);
+  renderAll();
+  showToast(o.active ? 'OKR activado' : 'OKR desactivado','success');
+}
+
+async function deleteOkr() {
+  const id = parseInt(document.getElementById('okrId').value);
+  if (!id) return;
+  await confirmDeleteOkr(id);
+}
+
+async function confirmDeleteOkr(id) {
+  const o = state.okrs.find(x => x.id === id);
+  if (!o) return;
+  if (!confirm(`¿Eliminar el OKR "${o.name}"? Las tareas vinculadas conservarán el texto pero perderán la referencia.`)) return;
+  state.okrs = state.okrs.filter(x => x.id !== id);
+  await storageSet(STORAGE_KEYS.OKRS, state.okrs);
+  closeModal('okrModal');
+  renderAll();
+  showToast('OKR eliminado','success');
+}
+
 /* === PERMISSIONS === */
 function renderAdminPermissions() {
   const c = document.getElementById('permissionsContent');
@@ -3522,9 +3882,9 @@ function exportData() {
   const data = {
     tasks: state.tasks, events: state.events, requests: state.requests,
     settings: state.settings, users: state.users, workspaces: state.workspaces,
-    meetingTypes: state.meetingTypes, activity: state.activity,
+    meetingTypes: state.meetingTypes, okrs: state.okrs, activity: state.activity,
     exportedAt: new Date().toISOString(),
-    version: 'v2'
+    version: 'v2.2'
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -3549,6 +3909,7 @@ async function importData(event) {
     if (data.users) state.users = data.users;
     if (data.workspaces) state.workspaces = data.workspaces;
     if (data.meetingTypes) state.meetingTypes = data.meetingTypes;
+    if (data.okrs) state.okrs = data.okrs;
     if (data.activity) state.activity = data.activity;
     await Promise.all([
       storageSet(STORAGE_KEYS.TASKS, state.tasks),
@@ -3558,6 +3919,7 @@ async function importData(event) {
       storageSet(STORAGE_KEYS.USERS, state.users),
       storageSet(STORAGE_KEYS.WORKSPACES, state.workspaces),
       storageSet(STORAGE_KEYS.MEETING_TYPES, state.meetingTypes),
+      storageSet(STORAGE_KEYS.OKRS, state.okrs),
       storageSet(STORAGE_KEYS.ACTIVITY, state.activity)
     ]);
     renderAll();
@@ -3659,6 +4021,11 @@ function openModal(id) {
   document.getElementById(id).classList.add('active');
   if (id === 'taskModal') {
     document.getElementById('taskDue').value = new Date(Date.now()+1000*60*60*24*3).toISOString().split('T')[0];
+    // Reset OKR fields
+    const okrSel = document.getElementById('taskOkrSelect');
+    if (okrSel) okrSel.value = '';
+    const okrTxt = document.getElementById('taskOkr');
+    if (okrTxt) { okrTxt.value = ''; delete okrTxt.dataset.okrId; }
   }
 }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
