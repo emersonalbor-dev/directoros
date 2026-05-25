@@ -1512,7 +1512,8 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div class="form-group">
         <label class="form-label">Rol <span class="required-star">*</span></label>
-        <select class="form-select" id="userRole">
+        <select class="form-select" id="userRole" onchange="onRoleChange()">
+          <option value="director">Director Comercial</option>
           <option value="leader">Líder de MKT</option>
           <option value="merchandiser">Merchandiser</option>
           <option value="designer">Diseñador</option>
@@ -1524,6 +1525,13 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
       <div class="form-group">
         <label class="form-label">Workspace principal</label>
         <select class="form-select" id="userWs"></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Alcance de workspaces</label>
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0">
+        <div class="toggle" id="userAllWsToggle" onclick="toggleAllWs(this)"></div>
+        <span style="font-size:12px;color:var(--muted)">Acceso a <strong style="color:var(--ink)">todas las empresas</strong> (ignora el workspace principal)</span>
       </div>
     </div>
     <div class="form-group">
@@ -2790,9 +2798,10 @@ function openUserModal(id) {
     document.getElementById('userId').value = u.id;
     document.getElementById('userName').value = u.name;
     document.getElementById('userEmail').value = u.email || '';
-    document.getElementById('userRole').value = u.role;
-    document.getElementById('userWs').value = u.ws;
+    document.getElementById('userRole').value = u.role === 'superuser' ? 'director' : u.role;
+    document.getElementById('userWs').value = u.ws === 'all' ? (state.workspaces[0]?.id || 'maraga') : u.ws;
     document.getElementById('userAccessToggle').classList.toggle('on', u.hasAccess);
+    document.getElementById('userAllWsToggle').classList.toggle('on', !!u.allWorkspaces);
   } else {
     document.getElementById('userId').value = '';
     document.getElementById('userName').value = '';
@@ -2800,8 +2809,32 @@ function openUserModal(id) {
     document.getElementById('userRole').value = 'merchandiser';
     document.getElementById('userWs').value = state.workspaces[0]?.id || 'maraga';
     document.getElementById('userAccessToggle').classList.add('on');
+    document.getElementById('userAllWsToggle').classList.remove('on');
   }
+  onRoleChange();
   openModal('userModal');
+}
+
+function onRoleChange() {
+  const role = document.getElementById('userRole').value;
+  const allWsToggle = document.getElementById('userAllWsToggle');
+  // Director defaults to "all workspaces" — auto-enable the toggle
+  if (role === 'director' && !allWsToggle.classList.contains('on')) {
+    allWsToggle.classList.add('on');
+  }
+}
+
+function toggleAllWs(el) {
+  el.classList.toggle('on');
+  // When "all workspaces" is on, the workspace select becomes informational only
+  const wsSel = document.getElementById('userWs');
+  if (el.classList.contains('on')) {
+    wsSel.style.opacity = '0.5';
+    wsSel.title = 'Se ignora porque el usuario tiene acceso a todas';
+  } else {
+    wsSel.style.opacity = '1';
+    wsSel.title = '';
+  }
 }
 
 async function saveUser() {
@@ -2809,17 +2842,23 @@ async function saveUser() {
   if (!name) { showToast('El nombre es obligatorio','error'); return; }
   const email = document.getElementById('userEmail').value.trim();
   const role = document.getElementById('userRole').value;
-  const ws = document.getElementById('userWs').value;
+  const allWorkspaces = document.getElementById('userAllWsToggle').classList.contains('on');
+  const ws = allWorkspaces ? 'all' : document.getElementById('userWs').value;
   const hasAccess = document.getElementById('userAccessToggle').classList.contains('on');
   const idStr = document.getElementById('userId').value;
 
   if (idStr) {
     const u = state.users.find(x => x.id === parseInt(idStr));
-    if (u) { u.name = name; u.email = email; u.role = role; u.ws = ws; u.hasAccess = hasAccess; }
+    if (u) {
+      // Protect superuser from being downgraded by accident
+      if (u.role !== 'superuser') u.role = role;
+      u.name = name; u.email = email; u.ws = ws; u.hasAccess = hasAccess;
+      u.allWorkspaces = allWorkspaces;
+    }
   } else {
     state.users.push({
       id: Date.now(), name, email, role, ws,
-      active: true, hasAccess
+      active: true, hasAccess, allWorkspaces
     });
   }
   await storageSet(STORAGE_KEYS.USERS, state.users);
