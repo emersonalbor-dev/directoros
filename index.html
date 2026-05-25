@@ -488,8 +488,59 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
   border-radius: 10px; padding: 12px;
   margin-bottom: 8px; cursor: pointer;
   transition: all .15s;
+  position: relative;
 }
+.task-card[draggable="true"] { cursor: grab; }
+.task-card[draggable="true"]:active { cursor: grabbing; }
+.task-card.dragging { opacity: 0.4; transform: scale(0.97) rotate(2deg); box-shadow: var(--shadow-lg); }
 .task-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); border-color: var(--line-2); }
+.task-card:hover .task-drag-handle { opacity: 1; }
+.task-drag-handle {
+  position: absolute; top: 8px; right: 8px;
+  width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted-2); font-size: 14px;
+  opacity: 0; transition: opacity .15s;
+  pointer-events: none;
+}
+.task-drag-handle i { font-size: 14px; }
+
+.kanban-col {
+  background: var(--paper-2);
+  border-radius: 12px; padding: 12px;
+  min-height: 200px;
+  transition: background .15s, border .15s;
+  border: 2px dashed transparent;
+}
+.kanban-col.drag-over {
+  background: var(--paper-3);
+  border-color: var(--ink);
+}
+.kanban-col-body { min-height: 40px; }
+
+/* Calendar drag */
+.event-block { transition: opacity .15s, transform .1s; }
+.event-block[draggable="true"] { cursor: grab; }
+.event-block[draggable="true"]:active { cursor: grabbing; }
+.event-block.dragging { opacity: 0.4; transform: scale(0.95); }
+.event-block:hover .event-delete-btn { opacity: 1; }
+.event-delete-btn {
+  position: absolute; top: 3px; right: 3px;
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.5);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: all .15s;
+  cursor: pointer; z-index: 3;
+  color: inherit; backdrop-filter: blur(4px);
+}
+.event-delete-btn:hover { background: var(--red); color: white; }
+.event-delete-btn i { font-size: 12px; }
+
+.event-slot.drag-over {
+  background: var(--maraga-bg) !important;
+  box-shadow: inset 0 0 0 2px var(--maraga);
+}
 .task-ws {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 10px; padding: 2px 7px; border-radius: 4px;
@@ -854,6 +905,9 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
   .hero-q { font-size: 22px; }
 }
 @media (max-width: 760px) {
+  /* Touch devices: always show delete buttons and drag handles since hover doesn't work */
+  .task-drag-handle { opacity: 0.5 !important; }
+  .event-delete-btn { opacity: 0.8 !important; }
   .sidebar {
     position: fixed; z-index: 50;
     top: 0; left: 0; bottom: 0;
@@ -1541,6 +1595,30 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
         <span style="font-size:12px;color:var(--muted)">Puede iniciar sesión en DirectorOS</span>
       </div>
     </div>
+    <div class="form-group" id="userPasswordSection">
+      <label class="form-label">
+        <i class="ti ti-key" style="font-size:13px"></i>
+        Contraseña
+        <span id="userPasswordHint" style="font-size:10px;color:var(--muted);font-weight:400;margin-left:4px"></span>
+      </label>
+      <div style="position:relative">
+        <input type="password" class="form-input" id="userPassword" placeholder="Dejar en blanco para mantener la actual" style="padding-right:80px">
+        <button type="button" onclick="togglePasswordVisibility()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:4px 8px;font-size:11px;color:var(--muted);background:none;border:1px solid var(--line);border-radius:5px;cursor:pointer">
+          <i class="ti ti-eye" id="userPasswordEye"></i>
+        </button>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+        <button type="button" class="btn btn-sm" onclick="generatePassword()" style="font-size:11px;padding:4px 8px">
+          <i class="ti ti-dice-5" style="font-size:12px"></i> Generar segura
+        </button>
+        <button type="button" class="btn btn-sm" onclick="resetToDemo()" style="font-size:11px;padding:4px 8px">
+          <i class="ti ti-refresh" style="font-size:12px"></i> Restablecer a "demo"
+        </button>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5">
+        ⚠️ Mínimo 4 caracteres. Las contraseñas se guardan localmente en este navegador.
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-danger" id="userDeleteBtn" onclick="deleteUser()" style="margin-right:auto;display:none"><i class="ti ti-trash"></i> Eliminar</button>
       <button class="btn" onclick="closeModal('userModal')">Cancelar</button>
@@ -1997,11 +2075,15 @@ async function loginByEmail() {
     }
   }
 
-  // Regular login with demo password
-  if (pass !== 'demo') { showToast('Contraseña incorrecta','error'); return; }
+  // Regular login: find user, then check their custom password OR fallback to "demo" default
   const user = state.users.find(u => u.email && u.email.toLowerCase() === email);
   if (!user) { showToast('Usuario no encontrado','error'); return; }
   if (!user.hasAccess || !user.active) { showToast('Usuario sin acceso','error'); return; }
+
+  // Password check: custom password if set, otherwise "demo" by default
+  const expectedPassword = user.password || 'demo';
+  if (pass !== expectedPassword) { showToast('Contraseña incorrecta','error'); return; }
+
   state.currentUser = user;
   await storageSet(STORAGE_KEYS.CURRENT_USER, user);
   enterApp();
@@ -2357,8 +2439,9 @@ function renderCalendar() {
     dayEvents.forEach(e => { eventMap[e.hour] = e; });
     const skipUntil = {};
     hours.forEach((h, idx) => {
+      const dropAttrs = canEdit ? `ondragover="onCalDragOver(event)" ondragleave="onCalDragLeave(event)" ondrop="onCalDrop(event, ${d}, ${h})"` : '';
       if (skipUntil[d] && idx < skipUntil[d]) {
-        html += '<div class="event-slot"' + (canEdit ? ' onclick="quickAddEvent(' + d + ',' + h + ')"' : '') + '></div>';
+        html += `<div class="event-slot" ${dropAttrs}` + (canEdit ? ` onclick="quickAddEvent(${d}, ${h})"` : '') + '></div>';
         return;
       }
       const ev = eventMap[h];
@@ -2368,22 +2451,87 @@ function renderCalendar() {
         const colorStyle = ev.ws !== 'locked' && state.workspaces.find(w=>w.id===ev.ws)
           ? `background:${state.workspaces.find(w=>w.id===ev.ws).color}22;color:${state.workspaces.find(w=>w.id===ev.ws).color};border-color:${state.workspaces.find(w=>w.id===ev.ws).color}`
           : '';
-        const clickHandler = canEdit ? `onclick="deleteEvent(${ev.id}); event.stopPropagation()"` : '';
-        html += `<div class="event-slot" style="position:relative">
-          <div class="event-block ${wsCls}" style="height:${heightPx}px;top:2px;${colorStyle}" ${clickHandler}>
+        const dragAttrs = canEdit ? `draggable="true" ondragstart="onEventDragStart(event, ${ev.id})" ondragend="onEventDragEnd(event)"` : '';
+        html += `<div class="event-slot" style="position:relative" ${dropAttrs}>
+          <div class="event-block ${wsCls}" style="height:${heightPx}px;top:2px;${colorStyle}" ${dragAttrs}>
+            ${canEdit ? `<button class="event-delete-btn" onclick="deleteEvent(${ev.id}); event.stopPropagation()" aria-label="Eliminar"><i class="ti ti-x"></i></button>` : ''}
             ${escapeHtml(ev.title)}
             <small>${getWsName(ev.ws)}</small>
           </div>
         </div>`;
         skipUntil[d] = idx + ev.dur;
       } else {
-        html += '<div class="event-slot"' + (canEdit ? ' onclick="quickAddEvent(' + d + ',' + h + ')"' : '') + '></div>';
+        html += `<div class="event-slot" ${dropAttrs}` + (canEdit ? ` onclick="quickAddEvent(${d}, ${h})"` : '') + '></div>';
       }
     });
     html += '</div>';
   }
 
   grid.innerHTML = html;
+}
+
+/* === CALENDAR DRAG & DROP === */
+let draggedEventId = null;
+
+function onEventDragStart(e, eventId) {
+  draggedEventId = eventId;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', eventId); } catch (_) {}
+  e.stopPropagation();
+}
+
+function onEventDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.event-slot.drag-over').forEach(s => s.classList.remove('drag-over'));
+  draggedEventId = null;
+}
+
+function onCalDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.event-slot.drag-over').forEach(s => s.classList.remove('drag-over'));
+  e.currentTarget.classList.add('drag-over');
+}
+
+function onCalDragLeave(e) {
+  if (!e.currentTarget.contains(e.relatedTarget)) {
+    e.currentTarget.classList.remove('drag-over');
+  }
+}
+
+async function onCalDrop(e, newDay, newHour) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (draggedEventId === null) return;
+  const ev = state.events.find(x => x.id === draggedEventId);
+  if (!ev) return;
+  if (ev.day === newDay && ev.hour === newHour) return;
+
+  // Check for conflict: any other event in target slot range
+  const targetEnd = newHour + ev.dur;
+  const conflict = state.events.find(x =>
+    x.id !== ev.id && x.day === newDay &&
+    !(x.hour + x.dur <= newHour || x.hour >= targetEnd)
+  );
+  if (conflict) {
+    showToast('Espacio ocupado por "' + conflict.title + '"', 'error');
+    return;
+  }
+
+  // Check workspace day boundary (workday hours)
+  const wdEnd = state.settings.workdayEnd || 19;
+  if (targetEnd > wdEnd + 1) {
+    showToast('No cabe en el horario laboral configurado', 'error');
+    return;
+  }
+
+  ev.day = newDay;
+  ev.hour = newHour;
+  await storageSet(STORAGE_KEYS.EVENTS, state.events);
+  renderAll();
+  const dayNames = ['Lun','Mar','Mié','Jue','Vie'];
+  showToast('Bloque movido a ' + dayNames[newDay] + ' ' + newHour + ':00', 'success');
 }
 
 function quickAddEvent(day, hour) {
@@ -2458,10 +2606,12 @@ function renderKanban() {
   }
 
   const board = document.getElementById('kanbanBoard');
+  const canDrag = state.currentUser?.role === 'director' || state.currentUser?.role === 'superuser';
   board.innerHTML = cols.map(col => {
     const tasks = filtered.filter(t => t.status === col.id);
     return `
-      <div class="kanban-col" data-col="${col.id}">
+      <div class="kanban-col" data-col="${col.id}"
+           ${canDrag ? `ondragover="onKanbanDragOver(event)" ondragleave="onKanbanDragLeave(event)" ondrop="onKanbanDrop(event, '${col.id}')"` : ''}>
         <div class="kanban-col-header">
           <div class="kanban-col-title">
             <span class="kanban-col-dot" style="background:${col.color}"></span>
@@ -2469,13 +2619,15 @@ function renderKanban() {
           </div>
           <span class="kanban-count">${tasks.length}</span>
         </div>
-        ${tasks.map(t => renderTaskCard(t)).join('') || '<div style="text-align:center;font-size:11px;color:var(--muted-2);padding:14px">Vacío</div>'}
+        <div class="kanban-col-body">
+          ${tasks.map(t => renderTaskCard(t, canDrag)).join('') || '<div class="kanban-empty" style="text-align:center;font-size:11px;color:var(--muted-2);padding:14px">Vacío</div>'}
+        </div>
       </div>
     `;
   }).join('');
 }
 
-function renderTaskCard(t) {
+function renderTaskCard(t, canDrag = false) {
   const isAlert = isTaskAlert(t);
   const due = new Date(t.due);
   const today = new Date(); today.setHours(0,0,0,0);
@@ -2486,7 +2638,10 @@ function renderTaskCard(t) {
   const ws = state.workspaces.find(w => w.id === t.ws);
   const wsName = ws ? ws.name : t.ws;
   return `
-    <div class="task-card ${isAlert ? 'task-alert' : ''}" onclick="openTaskDetail(${t.id})">
+    <div class="task-card ${isAlert ? 'task-alert' : ''}"
+         ${canDrag ? `draggable="true" ondragstart="onTaskDragStart(event, ${t.id})" ondragend="onTaskDragEnd(event)"` : ''}
+         onclick="if(!window.__justDragged) openTaskDetail(${t.id})">
+      ${canDrag ? '<div class="task-drag-handle" title="Arrastra para mover"><i class="ti ti-grip-vertical"></i></div>' : ''}
       <span class="task-ws ${t.ws}" style="${ws?'background:'+ws.color+'22;color:'+ws.color:''}">${escapeHtml(wsName)}</span>
       <div class="task-title">${escapeHtml(t.title)}</div>
       ${t.okr ? '<div style="font-size:10px;color:var(--muted);margin-bottom:8px"><i class="ti ti-target" style="font-size:11px;vertical-align:-1px"></i> ' + escapeHtml(t.okr) + '</div>' : ''}
@@ -2497,6 +2652,69 @@ function renderTaskCard(t) {
       ${isAlert ? '<div class="alert-badge"><i class="ti ti-alert-triangle"></i> Sin actualización +24h</div>' : ''}
     </div>
   `;
+}
+
+/* === KANBAN DRAG & DROP === */
+let draggedTaskId = null;
+
+function onTaskDragStart(e, taskId) {
+  draggedTaskId = taskId;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  // For Firefox compatibility
+  try { e.dataTransfer.setData('text/plain', taskId); } catch (_) {}
+}
+
+function onTaskDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.kanban-col.drag-over').forEach(c => c.classList.remove('drag-over'));
+  // Brief flag to prevent click event firing right after drag
+  window.__justDragged = true;
+  setTimeout(() => { window.__justDragged = false; }, 100);
+  draggedTaskId = null;
+}
+
+function onKanbanDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const col = e.currentTarget;
+  if (!col.classList.contains('drag-over')) {
+    document.querySelectorAll('.kanban-col.drag-over').forEach(c => c.classList.remove('drag-over'));
+    col.classList.add('drag-over');
+  }
+}
+
+function onKanbanDragLeave(e) {
+  // Only remove if leaving the column (not entering a child)
+  if (!e.currentTarget.contains(e.relatedTarget)) {
+    e.currentTarget.classList.remove('drag-over');
+  }
+}
+
+async function onKanbanDrop(e, newStatus) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!draggedTaskId) return;
+  const task = state.tasks.find(t => t.id === draggedTaskId);
+  if (!task || task.status === newStatus) return;
+  const oldStatus = task.status;
+  task.status = newStatus;
+  task.lastUpdate = new Date().toISOString();
+  await storageSet(STORAGE_KEYS.TASKS, state.tasks);
+  // Log activity
+  const statusNames = { todo:'Por hacer', doing:'En progreso', review:'En revisión', done:'Completado' };
+  state.activity.unshift({
+    id: Date.now(), type:'done',
+    icon: newStatus === 'done' ? 'ti-check' : 'ti-arrow-right',
+    iconBg: newStatus === 'done' ? 'var(--maraga-bg)' : 'var(--texas-bg)',
+    iconColor: newStatus === 'done' ? 'var(--maraga-dark)' : 'var(--texas-dark)',
+    title: 'Tarea movida',
+    detail: task.title + ' · ' + statusNames[oldStatus] + ' → ' + statusNames[newStatus],
+    time: 'hace un momento'
+  });
+  await storageSet(STORAGE_KEYS.ACTIVITY, state.activity);
+  renderAll();
+  showToast('Tarea movida a "' + statusNames[newStatus] + '"', 'success');
 }
 
 function filterTasks(filter, el) {
@@ -2776,7 +2994,10 @@ function renderAdminUsers() {
         <td data-label="Rol"><span class="role-pill ${role.class}">${role.short}</span></td>
         <td data-label="Workspace">${u.allWorkspaces ? '<span style="color:var(--ink);font-weight:500"><i class="ti ti-world" style="font-size:13px;vertical-align:-1px"></i> Todas</span>' : (ws ? escapeHtml(ws.name) : '—')}</td>
         <td data-label="Estado"><span class="status-pill ${u.active?'status-active':'status-inactive'}">${u.active?'Activo':'Inactivo'}</span></td>
-        <td data-label="Acceso">${u.hasAccess ? '<i class="ti ti-check" style="color:var(--maraga)"></i>' : '<i class="ti ti-x" style="color:var(--muted-2)"></i>'}</td>
+        <td data-label="Acceso">
+          ${u.hasAccess ? '<i class="ti ti-check" style="color:var(--maraga)" title="Tiene acceso"></i>' : '<i class="ti ti-x" style="color:var(--muted-2)" title="Sin acceso"></i>'}
+          ${u.password ? '<i class="ti ti-key" style="color:var(--amber-dark);font-size:13px;margin-left:6px" title="Contraseña personalizada"></i>' : (u.hasAccess ? '<span style="font-size:10px;color:var(--muted-2);margin-left:6px" title="Usa contraseña por defecto: demo">demo</span>' : '')}
+        </td>
         <td data-label="Acciones">
           <div class="table-actions">
             <button class="action-icon-btn" onclick="openUserModal(${u.id})" aria-label="Editar"><i class="ti ti-pencil"></i></button>
@@ -2802,6 +3023,10 @@ function openUserModal(id) {
     document.getElementById('userWs').value = u.ws === 'all' ? (state.workspaces[0]?.id || 'maraga') : u.ws;
     document.getElementById('userAccessToggle').classList.toggle('on', u.hasAccess);
     document.getElementById('userAllWsToggle').classList.toggle('on', !!u.allWorkspaces);
+    document.getElementById('userPassword').value = '';
+    document.getElementById('userPassword').type = 'password';
+    document.getElementById('userPasswordEye').className = 'ti ti-eye';
+    document.getElementById('userPasswordHint').textContent = u.password ? '· Personalizada' : '· Actual: "demo" (por defecto)';
   } else {
     document.getElementById('userId').value = '';
     document.getElementById('userName').value = '';
@@ -2810,6 +3035,10 @@ function openUserModal(id) {
     document.getElementById('userWs').value = state.workspaces[0]?.id || 'maraga';
     document.getElementById('userAccessToggle').classList.add('on');
     document.getElementById('userAllWsToggle').classList.remove('on');
+    document.getElementById('userPassword').value = '';
+    document.getElementById('userPassword').type = 'password';
+    document.getElementById('userPasswordEye').className = 'ti ti-eye';
+    document.getElementById('userPasswordHint').textContent = '· Por defecto será "demo"';
   }
   onRoleChange();
   openModal('userModal');
@@ -2837,6 +3066,41 @@ function toggleAllWs(el) {
   }
 }
 
+function togglePasswordVisibility() {
+  const input = document.getElementById('userPassword');
+  const eye = document.getElementById('userPasswordEye');
+  if (input.type === 'password') {
+    input.type = 'text';
+    eye.className = 'ti ti-eye-off';
+  } else {
+    input.type = 'password';
+    eye.className = 'ti ti-eye';
+  }
+}
+
+function generatePassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  const symbols = '!@#$%&*';
+  let pwd = '';
+  for (let i = 0; i < 10; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+  pwd += symbols.charAt(Math.floor(Math.random() * symbols.length));
+  pwd += Math.floor(Math.random() * 100);
+  // Shuffle to mix the symbol/number positions
+  pwd = pwd.split('').sort(() => Math.random() - 0.5).join('');
+  const input = document.getElementById('userPassword');
+  input.value = pwd;
+  input.type = 'text';
+  document.getElementById('userPasswordEye').className = 'ti ti-eye-off';
+  showToast('Contraseña generada · cópiala antes de guardar','info');
+}
+
+function resetToDemo() {
+  if (!confirm('¿Restablecer la contraseña de este usuario a "demo"?')) return;
+  document.getElementById('userPassword').value = 'demo';
+  document.getElementById('userPassword').type = 'text';
+  document.getElementById('userPasswordEye').className = 'ti ti-eye-off';
+}
+
 async function saveUser() {
   const name = document.getElementById('userName').value.trim();
   if (!name) { showToast('El nombre es obligatorio','error'); return; }
@@ -2845,7 +3109,14 @@ async function saveUser() {
   const allWorkspaces = document.getElementById('userAllWsToggle').classList.contains('on');
   const ws = allWorkspaces ? 'all' : document.getElementById('userWs').value;
   const hasAccess = document.getElementById('userAccessToggle').classList.contains('on');
+  const password = document.getElementById('userPassword').value;
   const idStr = document.getElementById('userId').value;
+
+  // Validate password if provided
+  if (password && password.length < 4) {
+    showToast('La contraseña debe tener al menos 4 caracteres','error');
+    return;
+  }
 
   if (idStr) {
     const u = state.users.find(x => x.id === parseInt(idStr));
@@ -2854,17 +3125,20 @@ async function saveUser() {
       if (u.role !== 'superuser') u.role = role;
       u.name = name; u.email = email; u.ws = ws; u.hasAccess = hasAccess;
       u.allWorkspaces = allWorkspaces;
+      // Only update password if field is not empty (allows editing other fields without changing password)
+      if (password) u.password = password;
     }
   } else {
     state.users.push({
       id: Date.now(), name, email, role, ws,
-      active: true, hasAccess, allWorkspaces
+      active: true, hasAccess, allWorkspaces,
+      password: password || null  // null means "use default demo"
     });
   }
   await storageSet(STORAGE_KEYS.USERS, state.users);
   closeModal('userModal');
   renderAll();
-  showToast(idStr ? 'Usuario actualizado' : 'Usuario creado','success');
+  showToast(idStr ? (password ? 'Usuario y contraseña actualizados' : 'Usuario actualizado') : 'Usuario creado','success');
 }
 
 async function toggleUserActive(id) {
