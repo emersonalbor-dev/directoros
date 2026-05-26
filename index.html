@@ -135,6 +135,14 @@ input:focus, textarea:focus, select:focus { outline: none; }
 .quick-user-name { font-size: 13px; font-weight: 500; }
 .quick-user-role { font-size: 11px; color: var(--muted); }
 .quick-user-arrow { color: var(--muted-2); font-size: 16px; }
+.quick-user-remove {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted-2); font-size: 13px;
+  background: transparent; transition: all .15s;
+  flex-shrink: 0; z-index: 1;
+}
+.quick-user-remove:hover { background: var(--red-bg); color: var(--red); }
 
 /* ===== LAYOUT ===== */
 .app { display: flex; height: 100vh; height: 100dvh; width: 100%; }
@@ -2451,14 +2459,19 @@ async function renderQuickLogin() {
     const role = ROLES[u.role];
     const initials = u.name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
     return `
-      <button class="quick-user" onclick="loginAs(${u.id})">
-        <div class="quick-user-avatar" style="background:${role.color}">${initials}</div>
-        <div class="quick-user-info">
-          <div class="quick-user-name">${escapeHtml(u.name)}</div>
-          <div class="quick-user-role">${role.name}${u.isOwner ? ' · Owner' : ''}</div>
-        </div>
-        <i class="ti ti-arrow-right quick-user-arrow"></i>
-      </button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button class="quick-user" style="flex:1" onclick="loginAs(${u.id})">
+          <div class="quick-user-avatar" style="background:${role.color}">${initials}</div>
+          <div class="quick-user-info">
+            <div class="quick-user-name">${escapeHtml(u.name)}</div>
+            <div class="quick-user-role">${role.name}${u.isOwner ? ' · Owner' : ''}</div>
+          </div>
+          <i class="ti ti-arrow-right quick-user-arrow"></i>
+        </button>
+        <button class="quick-user-remove" onclick="removeRecentLogin(${u.id})" title="Quitar de acceso rápido">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>
     `;
   }).join('');
 }
@@ -2476,6 +2489,13 @@ async function saveRecentLogin(userId) {
   const filtered = recent.filter(id => id !== userId);
   filtered.unshift(userId);
   await storageSet(STORAGE_KEYS.RECENT_LOGINS, filtered.slice(0, 10));
+}
+
+async function removeRecentLogin(userId) {
+  const recent = await storageGet(STORAGE_KEYS.RECENT_LOGINS) || [];
+  const updated = recent.filter(id => id !== userId);
+  await storageSet(STORAGE_KEYS.RECENT_LOGINS, updated);
+  await renderQuickLogin();
 }
 
 async function loginAs(userId) {
