@@ -624,6 +624,112 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 .okr-field:focus { border-color: var(--amber-dark); box-shadow: 0 0 0 3px rgba(239,159,39,0.15); }
 .okr-hint { font-size: 10px; color: var(--amber-dark); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
 
+/* === FILE ATTACHMENTS === */
+.attach-dropzone {
+  border: 1.5px dashed var(--line-2);
+  border-radius: 10px;
+  padding: 16px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .15s;
+  background: var(--paper);
+}
+.attach-dropzone:hover {
+  border-color: var(--ink);
+  background: var(--paper-2);
+}
+.attach-dropzone.drag-over {
+  border-color: var(--maraga);
+  background: var(--maraga-bg);
+  border-style: solid;
+}
+.attach-dropzone > i {
+  font-size: 22px;
+  color: var(--muted);
+  margin-bottom: 4px;
+  display: block;
+}
+.attach-cta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.attach-hint {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.attach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+.attach-list:empty { display: none; }
+.attach-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--paper-2);
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  transition: all .12s;
+}
+.attach-item:hover { border-color: var(--line-2); background: var(--paper); }
+.attach-icon {
+  width: 32px; height: 32px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+.attach-icon i { font-size: 16px; }
+.attach-icon-pdf { background: #FEE2E2; color: var(--red-dark); border-color: #FCA5A5; }
+.attach-icon-image { background: var(--maraga-bg); color: var(--maraga-dark); border-color: #A7F3D0; }
+.attach-icon-doc { background: var(--texas-bg); color: var(--texas-dark); border-color: #93C5FD; }
+.attach-icon-sheet { background: var(--maraga-bg); color: var(--maraga-dark); }
+.attach-icon-other { background: var(--paper-3); color: var(--muted); }
+.attach-info {
+  flex: 1;
+  min-width: 0;
+}
+.attach-name {
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.attach-meta {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.attach-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.attach-action-btn {
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted);
+  transition: all .12s;
+}
+.attach-action-btn:hover { background: var(--paper-3); color: var(--ink); }
+.attach-action-btn.danger:hover { background: var(--red-bg); color: var(--red-dark); }
+.attach-action-btn i { font-size: 14px; }
+.attach-preview-thumb {
+  width: 32px; height: 32px;
+  border-radius: 7px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .time-slots { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 14px; max-height: 240px; overflow-y: auto; padding: 4px; }
 .time-slot-btn {
   padding: 8px 6px; border: 1px solid var(--line-2);
@@ -1349,6 +1455,17 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 <div class="time-slots" id="timeSlots"></div>
               </div>
 
+              <div class="form-group">
+                <label class="form-label">Adjuntos (opcional)</label>
+                <div class="attach-dropzone" id="reqAttachDrop" onclick="document.getElementById('reqAttachInput').click()">
+                  <i class="ti ti-paperclip"></i>
+                  <div class="attach-cta">Adjuntar contexto previo</div>
+                  <div class="attach-hint">Reporte, gráfica, doc · Máx 5 MB por archivo</div>
+                </div>
+                <input type="file" id="reqAttachInput" multiple style="display:none" onchange="handleAttachUpload(event, 'request')">
+                <div class="attach-list" id="reqAttachList"></div>
+              </div>
+
               <button class="submit-btn" onclick="submitRequest()">
                 <i class="ti ti-send"></i> Enviar solicitud
               </button>
@@ -1606,6 +1723,16 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
       <input type="text" class="form-input" id="taskOkr" placeholder="O escribe uno libre / personalizado" style="margin-top:6px">
       <div style="font-size:10px;color:var(--muted);margin-top:4px"><i class="ti ti-info-circle" style="font-size:11px"></i> Si seleccionas del catálogo, ese texto se usará. Edita el campo libre para sobrescribir.</div>
     </div>
+    <div class="form-group">
+      <label class="form-label">Archivos adjuntos</label>
+      <div class="attach-dropzone" id="taskAttachDrop" onclick="document.getElementById('taskAttachInput').click()">
+        <i class="ti ti-paperclip"></i>
+        <div class="attach-cta">Click para adjuntar archivos</div>
+        <div class="attach-hint">PDF, imágenes, docs · Máx 5 MB por archivo</div>
+      </div>
+      <input type="file" id="taskAttachInput" multiple style="display:none" onchange="handleAttachUpload(event, 'task')">
+      <div class="attach-list" id="taskAttachList"></div>
+    </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('taskModal')">Cancelar</button>
       <button class="btn btn-primary" onclick="createTask()">Crear tarea</button>
@@ -1652,6 +1779,16 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
     <div class="form-group">
       <label class="form-label">Notas</label>
       <textarea class="form-textarea" id="evNotes" placeholder="Agenda, objetivo de la reunión, links..." style="min-height:60px"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Archivos adjuntos <span id="evAttachCount" style="font-size:10px;color:var(--muted);font-weight:400"></span></label>
+      <div class="attach-dropzone" id="evAttachDrop" onclick="document.getElementById('evAttachInput').click()">
+        <i class="ti ti-paperclip"></i>
+        <div class="attach-cta">Agregar archivos</div>
+        <div class="attach-hint">Documentos de la reunión · Máx 5 MB por archivo</div>
+      </div>
+      <input type="file" id="evAttachInput" multiple style="display:none" onchange="handleAttachUpload(event, 'event')">
+      <div class="attach-list" id="evAttachList"></div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-danger" id="evDeleteBtn" onclick="deleteEventFromModal()" style="margin-right:auto;display:none"><i class="ti ti-trash"></i> Eliminar</button>
@@ -1715,6 +1852,17 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
     <div class="form-group">
       <label class="form-label">Notas / contexto</label>
       <textarea class="form-textarea" id="taskDetailNotes" placeholder="Información adicional, contexto, links..." style="min-height:60px"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Archivos adjuntos <span id="taskDetailAttachCount" style="font-size:10px;color:var(--muted);font-weight:400"></span></label>
+      <div class="attach-dropzone" id="taskDetailAttachDrop" onclick="document.getElementById('taskDetailAttachInput').click()">
+        <i class="ti ti-paperclip"></i>
+        <div class="attach-cta">Agregar archivos</div>
+        <div class="attach-hint">PDF, imágenes, docs · Máx 5 MB por archivo</div>
+      </div>
+      <input type="file" id="taskDetailAttachInput" multiple style="display:none" onchange="handleAttachUpload(event, 'taskDetail')">
+      <div class="attach-list" id="taskDetailAttachList"></div>
     </div>
 
     <div style="background:var(--paper-2);padding:10px 12px;border-radius:8px;font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
@@ -2777,10 +2925,13 @@ function renderCalendar() {
           : '';
         const dragAttrs = canEdit ? `draggable="true" ondragstart="onEventDragStart(event, ${ev.id})" ondragend="onEventDragEnd(event)"` : '';
         const clickAttr = canEdit ? `onclick="if(!window.__justDragged) openEventDetail(${ev.id})"` : '';
+        const attachCount = (ev.attachments && ev.attachments.length) || 0;
+        const attachBadge = attachCount > 0 ? `<span style="position:absolute;top:4px;left:6px;font-size:10px;display:inline-flex;align-items:center;gap:2px;opacity:0.8" title="${attachCount} adjunto${attachCount>1?'s':''}"><i class="ti ti-paperclip" style="font-size:11px"></i>${attachCount}</span>` : '';
         html += `<div class="event-slot" style="position:relative" ${dropAttrs}>
           <div class="event-block ${wsCls}" style="height:${heightPx}px;top:2px;${colorStyle}" ${dragAttrs} ${clickAttr}>
             ${canEdit ? `<button class="event-delete-btn" onclick="deleteEvent(${ev.id}); event.stopPropagation()" aria-label="Eliminar"><i class="ti ti-x"></i></button>` : ''}
-            ${escapeHtml(ev.title)}
+            ${attachBadge}
+            <div style="${attachCount > 0 ? 'padding-left:24px' : ''}">${escapeHtml(ev.title)}</div>
             <small>${getWsName(ev.ws)}</small>
           </div>
         </div>`;
@@ -2876,7 +3027,14 @@ function quickAddEvent(day, hour) {
   document.getElementById('evNotes').value = '';
   document.getElementById('evDeleteBtn').style.display = 'none';
   document.getElementById('evSaveBtn').innerHTML = '<i class="ti ti-plus"></i> Bloquear';
+  // Reset attachments for new event
+  attachBuffers.event = [];
+  const evList = document.getElementById('evAttachList');
+  if (evList) evList.innerHTML = '';
+  const evCount = document.getElementById('evAttachCount');
+  if (evCount) evCount.textContent = '';
   openModal('eventModal');
+  initAttachDropzones();
 }
 
 function openEventDetail(id) {
@@ -2896,7 +3054,44 @@ function openEventDetail(id) {
   document.getElementById('evNotes').value = ev.notes || '';
   document.getElementById('evDeleteBtn').style.display = 'inline-flex';
   document.getElementById('evSaveBtn').innerHTML = '<i class="ti ti-device-floppy"></i> Guardar cambios';
+
+  // Reset buffer and render saved attachments
+  attachBuffers.event = [];
+  const evList = document.getElementById('evAttachList');
+  if (evList) {
+    let html = '';
+    if (ev.attachments && ev.attachments.length) {
+      html = ev.attachments.map(att => {
+        const { cls, icon } = getFileIconClass(att.name);
+        const isImage = att.type && att.type.startsWith('image/');
+        const iconHtml = isImage
+          ? `<img src="${att.data}" class="attach-preview-thumb" alt="">`
+          : `<div class="attach-icon ${cls}"><i class="ti ${icon}"></i></div>`;
+        return `
+          <div class="attach-item" data-id="${att.id}">
+            ${iconHtml}
+            <div class="attach-info">
+              <div class="attach-name" title="${escapeHtml(att.name)}">${escapeHtml(att.name)}</div>
+              <div class="attach-meta">${formatFileSize(att.size)} · guardado</div>
+            </div>
+            <div class="attach-actions">
+              ${isImage ? `<button class="attach-action-btn" onclick="previewSavedAttach('event', ${ev.id}, '${att.id}')" title="Ver"><i class="ti ti-eye"></i></button>` : ''}
+              <button class="attach-action-btn" onclick="downloadSavedAttach('event', ${ev.id}, '${att.id}')" title="Descargar"><i class="ti ti-download"></i></button>
+              <button class="attach-action-btn danger" onclick="removeSavedAttach('event', ${ev.id}, '${att.id}', 'event')" title="Quitar"><i class="ti ti-x"></i></button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    evList.innerHTML = html;
+  }
+  const evCount = document.getElementById('evAttachCount');
+  if (evCount) {
+    const total = (ev.attachments || []).length;
+    evCount.textContent = total ? '· ' + total + ' guardado' + (total !== 1 ? 's' : '') : '';
+  }
   openModal('eventModal');
+  initAttachDropzones();
 }
 
 function changeWeek(d) { state.currentWeek += d; renderCalendar(); }
@@ -2931,12 +3126,22 @@ async function saveEvent() {
 
   if (editingId) {
     const ev = state.events.find(x => x.id === editingId);
-    if (ev) { ev.title = title; ev.day = day; ev.hour = hour; ev.dur = dur; ev.ws = ws; ev.notes = notes; }
+    if (ev) {
+      ev.title = title; ev.day = day; ev.hour = hour; ev.dur = dur; ev.ws = ws; ev.notes = notes;
+      if (!ev.attachments) ev.attachments = [];
+      if (attachBuffers.event && attachBuffers.event.length) {
+        ev.attachments.push(...attachBuffers.event);
+      }
+    }
     showToast('Bloque actualizado','success');
   } else {
-    state.events.push({ id: Date.now(), day, hour, dur, title, ws, notes });
+    state.events.push({
+      id: Date.now(), day, hour, dur, title, ws, notes,
+      attachments: [...(attachBuffers.event || [])]
+    });
     showToast('Bloque agregado al calendario','success');
   }
+  attachBuffers.event = []; // reset
   await storageSet(STORAGE_KEYS.EVENTS, state.events);
   closeModal('eventModal');
   renderAll();
@@ -3039,7 +3244,10 @@ function renderTaskCard(t, canDrag = false) {
       ${t.okr ? '<div style="font-size:10px;color:var(--muted);margin-bottom:8px"><i class="ti ti-target" style="font-size:11px;vertical-align:-1px"></i> ' + escapeHtml(t.okr) + '</div>' : ''}
       <div class="task-meta">
         <div class="task-assignee" style="background:${role ? role.color : '#999'}" title="${user ? escapeHtml(user.name) : ''}">${initials}</div>
-        <div class="task-due ${overdue ? 'overdue' : ''}"><i class="ti ti-calendar"></i> ${formatDue(t.due)}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${(t.attachments && t.attachments.length) ? `<span style="font-size:10px;color:var(--muted);display:inline-flex;align-items:center;gap:2px" title="${t.attachments.length} adjunto${t.attachments.length>1?'s':''}"><i class="ti ti-paperclip" style="font-size:12px"></i>${t.attachments.length}</span>` : ''}
+          <div class="task-due ${overdue ? 'overdue' : ''}"><i class="ti ti-calendar"></i> ${formatDue(t.due)}</div>
+        </div>
       </div>
       ${isAlert ? '<div class="alert-badge"><i class="ti ti-alert-triangle"></i> Sin actualización +24h</div>' : ''}
     </div>
@@ -3188,7 +3396,50 @@ function openTaskDetail(id) {
   document.getElementById('taskDetailOkrSelect').disabled = readOnly;
   document.getElementById('taskDetailOkr').disabled = readOnly;
 
+  // Render attachments: saved ones first, then buffer is empty initially
+  attachBuffers.taskDetail = [];
+  const attachListEl = document.getElementById('taskDetailAttachList');
+  if (attachListEl) {
+    let html = '';
+    // Saved attachments (already persisted)
+    if (t.attachments && t.attachments.length) {
+      html = t.attachments.map(att => {
+        const { cls, icon } = getFileIconClass(att.name);
+        const isImage = att.type && att.type.startsWith('image/');
+        const iconHtml = isImage
+          ? `<img src="${att.data}" class="attach-preview-thumb" alt="">`
+          : `<div class="attach-icon ${cls}"><i class="ti ${icon}"></i></div>`;
+        return `
+          <div class="attach-item" data-id="${att.id}">
+            ${iconHtml}
+            <div class="attach-info">
+              <div class="attach-name" title="${escapeHtml(att.name)}">${escapeHtml(att.name)}</div>
+              <div class="attach-meta">${formatFileSize(att.size)} · guardado</div>
+            </div>
+            <div class="attach-actions">
+              ${isImage ? `<button class="attach-action-btn" onclick="previewSavedAttach('task', ${t.id}, '${att.id}')" title="Ver"><i class="ti ti-eye"></i></button>` : ''}
+              <button class="attach-action-btn" onclick="downloadSavedAttach('task', ${t.id}, '${att.id}')" title="Descargar"><i class="ti ti-download"></i></button>
+              ${!readOnly ? `<button class="attach-action-btn danger" onclick="removeSavedAttach('task', ${t.id}, '${att.id}', 'taskDetail')" title="Quitar"><i class="ti ti-x"></i></button>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    attachListEl.innerHTML = html;
+  }
+  // Update count label
+  const cntEl = document.getElementById('taskDetailAttachCount');
+  if (cntEl) {
+    const total = (t.attachments || []).length;
+    cntEl.textContent = total ? '· ' + total + ' guardado' + (total !== 1 ? 's' : '') : '';
+  }
+  // Hide dropzone for read-only users
+  const dz = document.getElementById('taskDetailAttachDrop');
+  if (dz) dz.style.display = readOnly ? 'none' : 'block';
+
   openModal('taskDetailModal');
+  // Initialize drag-drop bindings (idempotent)
+  initAttachDropzones();
 }
 
 function onTaskDetailOkrSelectChange() {
@@ -3229,9 +3480,15 @@ async function saveTaskDetail() {
   t.due = due;
   t.okr = okr;
   t.notes = notes;
+  // Merge new attachments with existing
+  if (!t.attachments) t.attachments = [];
+  if (attachBuffers.taskDetail && attachBuffers.taskDetail.length) {
+    t.attachments.push(...attachBuffers.taskDetail);
+  }
   t.lastUpdate = new Date().toISOString();
 
   await storageSet(STORAGE_KEYS.TASKS, state.tasks);
+  attachBuffers.taskDetail = []; // reset
 
   // Log activity for status change
   if (statusChanged) {
@@ -3288,14 +3545,16 @@ async function createTask() {
     status: 'todo',
     due,
     okr: document.getElementById('taskOkr').value.trim(),
+    attachments: [...(attachBuffers.task || [])],
     lastUpdate: new Date().toISOString(),
     createdAt: new Date().toISOString()
   };
   state.tasks.unshift(task);
   await storageSet(STORAGE_KEYS.TASKS, state.tasks);
   closeModal('taskModal');
+  attachBuffers.task = []; // reset
   renderAll();
-  showToast('Tarea creada y asignada','success');
+  showToast(task.attachments.length ? `Tarea creada con ${task.attachments.length} archivo${task.attachments.length>1?'s':''}` : 'Tarea creada y asignada','success');
   document.getElementById('taskTitle').value = '';
   document.getElementById('taskOkr').value = '';
 }
@@ -3539,6 +3798,26 @@ function renderRequests() {
   const isDirector = state.currentUser?.role === 'director' || state.currentUser?.role === 'superuser';
   c.innerHTML = pending.map(r => {
     const initials = r.requesterName.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+    const atts = r.attachments || [];
+    const attachmentsHtml = atts.length ? `
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">
+        ${atts.map(att => {
+          const { cls, icon } = getFileIconClass(att.name);
+          const isImage = att.type && att.type.startsWith('image/');
+          return `
+            <div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:var(--paper-2);border:1px solid var(--line);border-radius:6px;font-size:11px">
+              ${isImage
+                ? `<img src="${att.data}" style="width:20px;height:20px;border-radius:4px;object-fit:cover">`
+                : `<div class="attach-icon ${cls}" style="width:20px;height:20px;border-radius:4px"><i class="ti ${icon}" style="font-size:11px"></i></div>`}
+              <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(att.name)}</span>
+              <span style="color:var(--muted);font-size:10px">${formatFileSize(att.size)}</span>
+              ${isImage ? `<button class="attach-action-btn" style="width:22px;height:22px" onclick="previewSavedAttach('request', ${r.id}, '${att.id}')" title="Ver"><i class="ti ti-eye" style="font-size:12px"></i></button>` : ''}
+              <button class="attach-action-btn" style="width:22px;height:22px" onclick="downloadSavedAttach('request', ${r.id}, '${att.id}')" title="Descargar"><i class="ti ti-download" style="font-size:12px"></i></button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    ` : '';
     return `
     <div class="request-item">
       <div class="request-avatar" style="background:${getWsColor(r.ws)}">${initials}</div>
@@ -3546,6 +3825,7 @@ function renderRequests() {
         <div class="request-name">${escapeHtml(r.requesterName)}</div>
         <div class="request-detail">${escapeHtml(r.type)} · propuesto ${r.when}</div>
         <div class="request-okr">OKR: ${escapeHtml(r.okr)}</div>
+        ${attachmentsHtml}
       </div>
       ${isDirector ? `<div class="request-actions">
         <button class="action-btn action-approve" onclick="approveRequest(${r.id})" aria-label="Aprobar"><i class="ti ti-check"></i></button>
@@ -3612,14 +3892,15 @@ async function submitRequest() {
     when: whenDisplay,
     whenISO: state.selectedSlot, // keep machine-readable too
     ws: state.currentUser?.ws || 'maraga',
-    status: state.settings.autoApproveRequests ? 'approved' : 'pending'
+    status: state.settings.autoApproveRequests ? 'approved' : 'pending',
+    attachments: [...(attachBuffers.request || [])]
   };
   state.requests.unshift(req);
   state.activity.unshift({
     id: Date.now()+1, type:'request',
     icon:'ti-calendar-event', iconBg:'var(--texas-bg)', iconColor:'var(--texas-dark)',
     title: 'Nueva solicitud de reunión',
-    detail: name + ' · ' + req.type + ' · ' + req.when,
+    detail: name + ' · ' + req.type + ' · ' + req.when + (req.attachments.length ? ' · ' + req.attachments.length + ' adjunto' + (req.attachments.length>1?'s':'') : ''),
     time: 'hace un momento'
   });
   await storageSet(STORAGE_KEYS.REQUESTS, state.requests);
@@ -3629,6 +3910,9 @@ async function submitRequest() {
   document.querySelectorAll('.time-slot-btn').forEach(b => b.classList.remove('selected'));
   state.selectedSlot = null;
   state.selectedDate = null;
+  attachBuffers.request = []; // reset
+  const reqList = document.getElementById('reqAttachList');
+  if (reqList) reqList.innerHTML = '';
   renderAll();
   showToast(state.settings.autoApproveRequests ? 'Solicitud aprobada automáticamente' : 'Solicitud enviada al Director','success');
 }
@@ -4567,6 +4851,278 @@ async function factoryReset() {
 }
 
 /* ============================================
+   FILE ATTACHMENTS
+============================================ */
+const MAX_ATTACH_SIZE = 5 * 1024 * 1024; // 5 MB per file
+const ALLOWED_EXTENSIONS = ['pdf','png','jpg','jpeg','gif','webp','svg','doc','docx','xls','xlsx','ppt','pptx','txt','csv','md','zip','rar'];
+
+// Temporary holding buffers for new attachments before save
+const attachBuffers = {
+  task: [],       // for new task modal
+  taskDetail: [], // for task detail modal
+  event: [],      // for event modal
+  request: []     // for booking request form
+};
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+function getFileIconClass(filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  if (ext === 'pdf') return { cls: 'attach-icon-pdf', icon: 'ti-file-type-pdf' };
+  if (['png','jpg','jpeg','gif','webp','svg','bmp'].includes(ext)) return { cls: 'attach-icon-image', icon: 'ti-photo' };
+  if (['doc','docx'].includes(ext)) return { cls: 'attach-icon-doc', icon: 'ti-file-type-doc' };
+  if (['xls','xlsx','csv'].includes(ext)) return { cls: 'attach-icon-sheet', icon: 'ti-file-type-xls' };
+  if (['ppt','pptx'].includes(ext)) return { cls: 'attach-icon-doc', icon: 'ti-file-type-ppt' };
+  if (['zip','rar','7z','tar','gz'].includes(ext)) return { cls: 'attach-icon-other', icon: 'ti-file-zip' };
+  if (['txt','md'].includes(ext)) return { cls: 'attach-icon-other', icon: 'ti-file-text' };
+  return { cls: 'attach-icon-other', icon: 'ti-file' };
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleAttachUpload(event, bufferKey) {
+  const files = Array.from(event.target.files);
+  if (!files.length) return;
+
+  for (const file of files) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      showToast(`"${file.name}": tipo no permitido`, 'error');
+      continue;
+    }
+    if (file.size > MAX_ATTACH_SIZE) {
+      showToast(`"${file.name}" excede los 5 MB`, 'error');
+      continue;
+    }
+    try {
+      const dataUrl = await fileToBase64(file);
+      attachBuffers[bufferKey].push({
+        id: Date.now() + Math.random(),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        data: dataUrl,
+        uploadedAt: new Date().toISOString()
+      });
+    } catch (e) {
+      showToast(`Error al leer "${file.name}"`, 'error');
+    }
+  }
+
+  // Reset input so the same file can be re-selected if removed
+  event.target.value = '';
+
+  renderAttachList(bufferKey);
+  showToast(files.length === 1 ? 'Archivo agregado' : files.length + ' archivos agregados', 'success');
+}
+
+function renderAttachList(bufferKey) {
+  const containerMap = {
+    task: 'taskAttachList',
+    taskDetail: 'taskDetailAttachList',
+    event: 'evAttachList',
+    request: 'reqAttachList'
+  };
+  const countMap = {
+    taskDetail: 'taskDetailAttachCount',
+    event: 'evAttachCount'
+  };
+  const cont = document.getElementById(containerMap[bufferKey]);
+  if (!cont) return;
+  const items = attachBuffers[bufferKey] || [];
+
+  if (items.length === 0) {
+    cont.innerHTML = '';
+  } else {
+    cont.innerHTML = items.map(att => renderAttachItem(att, bufferKey, true)).join('');
+  }
+
+  // Update count label if applicable
+  const countEl = countMap[bufferKey] ? document.getElementById(countMap[bufferKey]) : null;
+  if (countEl) countEl.textContent = items.length ? '· ' + items.length + ' archivo' + (items.length !== 1 ? 's' : '') : '';
+}
+
+function renderAttachItem(att, bufferKey, removable) {
+  const { cls, icon } = getFileIconClass(att.name);
+  const isImage = att.type && att.type.startsWith('image/');
+  const iconHtml = isImage
+    ? `<img src="${att.data}" class="attach-preview-thumb" alt="">`
+    : `<div class="attach-icon ${cls}"><i class="ti ${icon}"></i></div>`;
+  return `
+    <div class="attach-item" data-id="${att.id}">
+      ${iconHtml}
+      <div class="attach-info">
+        <div class="attach-name" title="${escapeHtml(att.name)}">${escapeHtml(att.name)}</div>
+        <div class="attach-meta">${formatFileSize(att.size)}</div>
+      </div>
+      <div class="attach-actions">
+        ${isImage ? `<button class="attach-action-btn" onclick="previewAttachImage('${att.id}', '${bufferKey || ''}')" title="Ver"><i class="ti ti-eye"></i></button>` : ''}
+        <button class="attach-action-btn" onclick="downloadAttach('${att.id}', '${bufferKey || ''}')" title="Descargar"><i class="ti ti-download"></i></button>
+        ${removable ? `<button class="attach-action-btn danger" onclick="removeAttach('${att.id}', '${bufferKey}')" title="Quitar"><i class="ti ti-x"></i></button>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderSavedAttachments(attachments, containerId, ownerType, ownerId) {
+  // For displaying attachments on saved entities (in task/event detail when reopening)
+  const cont = document.getElementById(containerId);
+  if (!cont || !attachments) return;
+  cont.innerHTML = attachments.map(att => {
+    const { cls, icon } = getFileIconClass(att.name);
+    const isImage = att.type && att.type.startsWith('image/');
+    const iconHtml = isImage
+      ? `<img src="${att.data}" class="attach-preview-thumb" alt="">`
+      : `<div class="attach-icon ${cls}"><i class="ti ${icon}"></i></div>`;
+    return `
+      <div class="attach-item" data-id="${att.id}">
+        ${iconHtml}
+        <div class="attach-info">
+          <div class="attach-name" title="${escapeHtml(att.name)}">${escapeHtml(att.name)}</div>
+          <div class="attach-meta">${formatFileSize(att.size)}</div>
+        </div>
+        <div class="attach-actions">
+          ${isImage ? `<button class="attach-action-btn" onclick="previewSavedAttach('${ownerType}', ${ownerId}, '${att.id}')" title="Ver"><i class="ti ti-eye"></i></button>` : ''}
+          <button class="attach-action-btn" onclick="downloadSavedAttach('${ownerType}', ${ownerId}, '${att.id}')" title="Descargar"><i class="ti ti-download"></i></button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function findAttachInBuffer(bufferKey, attId) {
+  return attachBuffers[bufferKey]?.find(a => String(a.id) === String(attId));
+}
+
+function findSavedAttach(ownerType, ownerId, attId) {
+  let collection;
+  if (ownerType === 'task') collection = state.tasks;
+  else if (ownerType === 'event') collection = state.events;
+  else if (ownerType === 'request') collection = state.requests;
+  if (!collection) return null;
+  const owner = collection.find(x => x.id === ownerId);
+  if (!owner || !owner.attachments) return null;
+  return owner.attachments.find(a => String(a.id) === String(attId));
+}
+
+function removeAttach(attId, bufferKey) {
+  attachBuffers[bufferKey] = (attachBuffers[bufferKey] || []).filter(a => String(a.id) !== String(attId));
+  renderAttachList(bufferKey);
+  showToast('Archivo quitado', 'success');
+}
+
+async function removeSavedAttach(ownerType, ownerId, attId, bufferKey) {
+  if (!confirm('¿Quitar este archivo? Se elimina permanentemente.')) return;
+  let collection, storageKey;
+  if (ownerType === 'task') { collection = state.tasks; storageKey = STORAGE_KEYS.TASKS; }
+  else if (ownerType === 'event') { collection = state.events; storageKey = STORAGE_KEYS.EVENTS; }
+  else if (ownerType === 'request') { collection = state.requests; storageKey = STORAGE_KEYS.REQUESTS; }
+  if (!collection) return;
+  const owner = collection.find(x => x.id === ownerId);
+  if (!owner || !owner.attachments) return;
+  owner.attachments = owner.attachments.filter(a => String(a.id) !== String(attId));
+  await storageSet(storageKey, collection);
+  // Reopen the relevant modal to refresh list
+  if (ownerType === 'task') openTaskDetail(ownerId);
+  else if (ownerType === 'event') openEventDetail(ownerId);
+  showToast('Archivo quitado', 'success');
+}
+
+function downloadAttach(attId, bufferKey) {
+  const att = findAttachInBuffer(bufferKey, attId);
+  if (!att) return;
+  triggerDownload(att.data, att.name);
+}
+
+function downloadSavedAttach(ownerType, ownerId, attId) {
+  const att = findSavedAttach(ownerType, ownerId, attId);
+  if (!att) return;
+  triggerDownload(att.data, att.name);
+}
+
+function triggerDownload(dataUrl, filename) {
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function previewAttachImage(attId, bufferKey) {
+  const att = findAttachInBuffer(bufferKey, attId);
+  if (att) openImagePreview(att.data, att.name);
+}
+function previewSavedAttach(ownerType, ownerId, attId) {
+  const att = findSavedAttach(ownerType, ownerId, attId);
+  if (att) openImagePreview(att.data, att.name);
+}
+
+function openImagePreview(dataUrl, name) {
+  // Lightweight inline lightbox
+  let overlay = document.getElementById('imgPreviewOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'imgPreviewOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(10,10,10,0.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;flex-direction:column;gap:12px';
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <img src="${dataUrl}" alt="${escapeHtml(name)}" style="max-width:100%;max-height:85vh;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+    <div style="color:white;font-size:13px;font-weight:500">${escapeHtml(name)}</div>
+    <button onclick="document.getElementById('imgPreviewOverlay').remove()" style="position:absolute;top:20px;right:20px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.15);color:white;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)" aria-label="Cerrar">
+      <i class="ti ti-x" style="font-size:20px"></i>
+    </button>
+  `;
+}
+
+// Drag-and-drop support on dropzones
+function initAttachDropzones() {
+  const zones = [
+    { id: 'taskAttachDrop', key: 'task' },
+    { id: 'taskDetailAttachDrop', key: 'taskDetail' },
+    { id: 'evAttachDrop', key: 'event' },
+    { id: 'reqAttachDrop', key: 'request' }
+  ];
+  zones.forEach(({ id, key }) => {
+    const zone = document.getElementById(id);
+    if (!zone || zone.dataset.dropInit) return;
+    zone.dataset.dropInit = 'true';
+
+    zone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave', (e) => {
+      e.stopPropagation();
+      if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over');
+    });
+    zone.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      zone.classList.remove('drag-over');
+      const files = Array.from(e.dataTransfer.files);
+      if (!files.length) return;
+      // Reuse upload pipeline by simulating an event
+      await handleAttachUpload({ target: { files, value: '' } }, key);
+    });
+  });
+}
+
+/* ============================================
    UI HELPERS
 ============================================ */
 const viewTitles = {
@@ -4607,7 +5163,13 @@ function openModal(id) {
     if (okrSel) okrSel.value = '';
     const okrTxt = document.getElementById('taskOkr');
     if (okrTxt) { okrTxt.value = ''; delete okrTxt.dataset.okrId; }
+    // Reset attachments
+    attachBuffers.task = [];
+    const list = document.getElementById('taskAttachList');
+    if (list) list.innerHTML = '';
   }
+  // Initialize dropzones for any modal that has them
+  setTimeout(initAttachDropzones, 50);
 }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function openTaskModal() { openModal('taskModal'); }
