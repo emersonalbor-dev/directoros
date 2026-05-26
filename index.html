@@ -2542,19 +2542,42 @@ async function loginByEmail() {
     }
   }
 
-  // Regular login: busca por email exacto, nombre completo o nombre parcial
-  const query = email; // ya está en lowercase desde arriba
-  let user = state.users.find(u =>
-    (u.email && u.email.toLowerCase() === query) ||
-    (u.name && u.name.toLowerCase() === query)
+  const resetBtn = () => { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-login"></i> Iniciar sesión'; } };
+
+  // Normaliza texto: minúsculas + sin acentos
+  const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const query = norm(email);
+  let user = null;
+
+  // 1. Email exacto
+  user = state.users.find(u => u.email && norm(u.email) === query);
+
+  // 2. Nombre completo exacto (sin acentos)
+  if (!user) user = state.users.find(u => u.name && norm(u.name) === query);
+
+  // 3. Nombre que empiece igual — ej: "jesus" → "Jesus Hernan"
+  if (!user) user = state.users.find(u =>
+    u.name && norm(u.name).startsWith(query) && u.role !== 'superuser'
   );
-  // Si no hay coincidencia exacta, busca por nombre que empiece igual (ej: "jesus" → "Jesus Hernan")
-  if (!user) {
+
+  // 4. Si escribió un email, extraer palabras del local-part y buscar en el nombre
+  //    ej: "dara.garcia@empresa.mx" → ["dara","garcia"] → coincide con "Dará García"
+  if (!user && query.includes('@')) {
+    const localPart = query.split('@')[0];
+    const fragments = localPart.split(/[.\-_]+/).filter(f => f.length >= 2);
+    user = state.users.find(u => {
+      if (!u.name || u.role === 'superuser') return false;
+      const nameNorm = norm(u.name);
+      return fragments.some(f => nameNorm.includes(f));
+    });
+  }
+
+  // 5. Nombre contiene el texto — ej: "dara" coincide con "Dará García"
+  if (!user && !query.includes('@') && query.length >= 2) {
     user = state.users.find(u =>
-      u.name && u.name.toLowerCase().startsWith(query) && u.role !== 'superuser'
+      u.name && norm(u.name).includes(query) && u.role !== 'superuser'
     );
   }
-  const resetBtn = () => { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-login"></i> Iniciar sesión'; } };
 
   if (!user) { resetBtn(); shake(emailInput); showToast('Usuario no encontrado — escribe tu nombre o correo','error'); return; }
   if (!user.hasAccess || !user.active) { resetBtn(); showToast('Este usuario no tiene acceso al sistema','error'); return; }
