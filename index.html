@@ -2138,7 +2138,8 @@ const STORAGE_KEYS = {
   MEETING_TYPES: 'directoros:meetingtypes:v2',
   OKRS: 'directoros:okrs:v2',
   PERMISSIONS: 'directoros:permissions:v2',
-  CURRENT_USER: 'directoros:currentuser:v2'
+  CURRENT_USER: 'directoros:currentuser:v2',
+  RECENT_LOGINS: 'directoros:recentlogins:v2'
 };
 
 let state = {
@@ -2413,10 +2414,36 @@ async function checkAuth() {
   return false;
 }
 
-function renderQuickLogin() {
+async function renderQuickLogin() {
   const grid = document.getElementById('quickLoginGrid');
-  // Hide superuser from quick login for security — must use email+password
-  const showUsers = state.users.filter(u => u.hasAccess && u.active && u.role !== 'superuser');
+  const recentIds = await storageGet(STORAGE_KEYS.RECENT_LOGINS) || [];
+
+  if (recentIds.length === 0) {
+    grid.innerHTML = `
+      <div style="text-align:center;padding:20px 12px;color:var(--muted)">
+        <i class="ti ti-user-circle" style="font-size:32px;opacity:0.35;display:block;margin-bottom:8px"></i>
+        <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:4px">Primera vez aquí</div>
+        <div style="font-size:12px;line-height:1.5">Usa <strong>Email &amp; contraseña</strong><br>para iniciar sesión</div>
+      </div>
+    `;
+    return;
+  }
+
+  // Show only users who have logged in before, in order of most recent
+  const showUsers = recentIds
+    .map(id => state.users.find(u => u.id === id))
+    .filter(u => u && u.hasAccess && u.active && u.role !== 'superuser');
+
+  if (showUsers.length === 0) {
+    grid.innerHTML = `
+      <div style="text-align:center;padding:20px 12px;color:var(--muted)">
+        <i class="ti ti-user-off" style="font-size:32px;opacity:0.35;display:block;margin-bottom:8px"></i>
+        <div style="font-size:12px">No hay perfiles recientes disponibles</div>
+      </div>
+    `;
+    return;
+  }
+
   grid.innerHTML = showUsers.map(u => {
     const role = ROLES[u.role];
     const initials = u.name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
@@ -2440,6 +2467,14 @@ function switchLoginTab(tab, el) {
   document.getElementById('loginTabEmail').style.display = tab === 'email' ? 'block' : 'none';
 }
 
+async function saveRecentLogin(userId) {
+  if (!userId && userId !== 0) return;
+  const recent = await storageGet(STORAGE_KEYS.RECENT_LOGINS) || [];
+  const filtered = recent.filter(id => id !== userId);
+  filtered.unshift(userId);
+  await storageSet(STORAGE_KEYS.RECENT_LOGINS, filtered.slice(0, 10));
+}
+
 async function loginAs(userId) {
   const user = state.users.find(u => u.id === userId);
   if (!user) return;
@@ -2447,6 +2482,7 @@ async function loginAs(userId) {
   if (!user.active) { showToast('Este usuario está inactivo','error'); return; }
   state.currentUser = user;
   await storageSet(STORAGE_KEYS.CURRENT_USER, user);
+  await saveRecentLogin(user.id);
   enterApp();
 }
 
@@ -2471,6 +2507,7 @@ async function loginByEmail() {
     }
     state.currentUser = su;
     await storageSet(STORAGE_KEYS.CURRENT_USER, su);
+    await saveRecentLogin(su.id);
     enterApp();
     showToast('Acceso de emergencia: bienvenido Super Admin','success');
     return;
@@ -2484,6 +2521,7 @@ async function loginByEmail() {
       await storageSet(STORAGE_KEYS.USERS, state.users);
       state.currentUser = dir;
       await storageSet(STORAGE_KEYS.CURRENT_USER, dir);
+      await saveRecentLogin(dir.id);
       enterApp();
       showToast('Acceso restaurado al Director','success');
       return;
@@ -2501,6 +2539,7 @@ async function loginByEmail() {
 
   state.currentUser = user;
   await storageSet(STORAGE_KEYS.CURRENT_USER, user);
+  await saveRecentLogin(user.id);
   enterApp();
 }
 
@@ -2600,7 +2639,7 @@ async function init() {
   if (isLoggedIn) {
     enterApp();
   } else {
-    renderQuickLogin();
+    await renderQuickLogin();
   }
 }
 
