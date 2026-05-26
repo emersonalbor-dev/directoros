@@ -271,6 +271,7 @@ input:focus, textarea:focus, select:focus { outline: none; }
 .view { display: none; animation: fadeIn .2s ease; }
 .view.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Role-based visibility */
 .director-only { display: none; }
@@ -1058,7 +1059,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
   font-size: 13px; font-weight: 500;
   display: flex; align-items: center; gap: 8px;
   box-shadow: var(--shadow-lg);
-  z-index: 200; transform: translateY(120%); transition: transform .25s ease;
+  z-index: 1100; transform: translateY(120%); transition: transform .25s ease;
 }
 .toast.show { transform: none; }
 .toast.success { background: var(--maraga); }
@@ -2489,9 +2490,20 @@ async function loginAs(userId) {
 }
 
 async function loginByEmail() {
-  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-  const pass = document.getElementById('loginPass').value;
-  if (!email || !pass) { showToast('Escribe tu nombre o correo y contraseña','error'); return; }
+  const emailInput = document.getElementById('loginEmail');
+  const passInput = document.getElementById('loginPass');
+  const btn = document.querySelector('#loginTabEmail .submit-btn');
+  const email = emailInput.value.trim().toLowerCase();
+  const pass = passInput.value;
+
+  // Feedback visual inmediato en inputs
+  const shake = (el) => { el.style.borderColor = 'var(--red)'; setTimeout(() => el.style.borderColor = '', 1500); };
+
+  if (!email) { shake(emailInput); emailInput.focus(); showToast('Escribe tu nombre o correo','error'); return; }
+  if (!pass)  { shake(passInput);  passInput.focus();  showToast('Escribe tu contraseña','error'); return; }
+
+  // Estado cargando
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin .7s linear infinite"></i> Verificando…'; }
 
   // SUPERUSER EMERGENCY ACCESS - special credentials hardcoded for recovery
   // These work even if the user database is corrupted or modified
@@ -2542,12 +2554,14 @@ async function loginByEmail() {
       u.name && u.name.toLowerCase().startsWith(query) && u.role !== 'superuser'
     );
   }
-  if (!user) { showToast('Usuario no encontrado — escribe tu nombre o correo','error'); return; }
-  if (!user.hasAccess || !user.active) { showToast('Usuario sin acceso al sistema','error'); return; }
+  const resetBtn = () => { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-login"></i> Iniciar sesión'; } };
+
+  if (!user) { resetBtn(); shake(emailInput); showToast('Usuario no encontrado — escribe tu nombre o correo','error'); return; }
+  if (!user.hasAccess || !user.active) { resetBtn(); showToast('Este usuario no tiene acceso al sistema','error'); return; }
 
   // Password check: custom password if set, otherwise "demo" by default
   const expectedPassword = user.password || 'demo';
-  if (pass !== expectedPassword) { showToast('Contraseña incorrecta','error'); return; }
+  if (pass !== expectedPassword) { resetBtn(); shake(passInput); showToast('Contraseña incorrecta','error'); return; }
 
   state.currentUser = user;
   await storageSet(STORAGE_KEYS.CURRENT_USER, user);
