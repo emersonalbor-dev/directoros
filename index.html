@@ -2127,6 +2127,13 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 /* ============================================
    STORAGE & STATE
 ============================================ */
+// ─── SEED VERSION ────────────────────────────────────────────────────────────
+// Cambia este valor cada vez que modifiques usuarios, workspaces o tipos de
+// reunión en el seed. Todos los navegadores actualizarán esos datos
+// automáticamente sin borrar tareas, eventos, OKRs ni configuración.
+const SEED_VERSION = 'v3-equipo-real';
+// ─────────────────────────────────────────────────────────────────────────────
+
 const STORAGE_KEYS = {
   TASKS: 'directoros:tasks:v2',
   EVENTS: 'directoros:events:v2',
@@ -2139,7 +2146,8 @@ const STORAGE_KEYS = {
   OKRS: 'directoros:okrs:v2',
   PERMISSIONS: 'directoros:permissions:v2',
   CURRENT_USER: 'directoros:currentuser:v2',
-  RECENT_LOGINS: 'directoros:recentlogins:v2'
+  RECENT_LOGINS: 'directoros:recentlogins:v2',
+  SEED_VERSION: 'directoros:seedversion'
 };
 
 let state = {
@@ -2585,19 +2593,24 @@ function applyRoleToUI() {
    INIT
 ============================================ */
 async function init() {
-  state.users = await storageGet(STORAGE_KEYS.USERS) || getSeedUsers();
-  state.workspaces = await storageGet(STORAGE_KEYS.WORKSPACES) || getSeedWorkspaces();
-  state.meetingTypes = await storageGet(STORAGE_KEYS.MEETING_TYPES) || getSeedMeetingTypes();
-  state.okrs = await storageGet(STORAGE_KEYS.OKRS) || getSeedOkrs();
-  state.tasks = await storageGet(STORAGE_KEYS.TASKS) || getSeedTasks();
-  state.events = await storageGet(STORAGE_KEYS.EVENTS) || getSeedEvents();
-  state.requests = await storageGet(STORAGE_KEYS.REQUESTS) || getSeedRequests();
-  state.settings = await storageGet(STORAGE_KEYS.SETTINGS) || getSeedSettings();
-  state.activity = await storageGet(STORAGE_KEYS.ACTIVITY) || getSeedActivity();
-  state.permissions = await storageGet(STORAGE_KEYS.PERMISSIONS) || JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
+  const storedSeedVersion = await storageGet(STORAGE_KEYS.SEED_VERSION);
+  const seedChanged = storedSeedVersion !== SEED_VERSION;
+
+  // ── Datos de configuración base (se actualizan con cada nueva SEED_VERSION) ──
+  state.users        = seedChanged ? getSeedUsers()        : (await storageGet(STORAGE_KEYS.USERS)         || getSeedUsers());
+  state.workspaces   = seedChanged ? getSeedWorkspaces()   : (await storageGet(STORAGE_KEYS.WORKSPACES)    || getSeedWorkspaces());
+  state.meetingTypes = seedChanged ? getSeedMeetingTypes() : (await storageGet(STORAGE_KEYS.MEETING_TYPES) || getSeedMeetingTypes());
+  state.activity     = seedChanged ? getSeedActivity()     : (await storageGet(STORAGE_KEYS.ACTIVITY)      || getSeedActivity());
+  state.requests     = seedChanged ? getSeedRequests()     : (await storageGet(STORAGE_KEYS.REQUESTS)      || getSeedRequests());
+
+  // ── Datos del usuario (nunca se borran por seed version) ──
+  state.tasks       = await storageGet(STORAGE_KEYS.TASKS)        || getSeedTasks();
+  state.events      = await storageGet(STORAGE_KEYS.EVENTS)       || getSeedEvents();
+  state.okrs        = await storageGet(STORAGE_KEYS.OKRS)         || getSeedOkrs();
+  state.settings    = await storageGet(STORAGE_KEYS.SETTINGS)     || getSeedSettings();
+  state.permissions = await storageGet(STORAGE_KEYS.PERMISSIONS)  || JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
 
   // === MIGRATION: merge any missing roles or permissions from defaults ===
-  // Adds new roles or permission flags from DEFAULT_PERMISSIONS without overwriting saved customizations
   Object.entries(DEFAULT_PERMISSIONS).forEach(([roleKey, defaultPerms]) => {
     if (!state.permissions[roleKey]) {
       state.permissions[roleKey] = { ...defaultPerms };
@@ -2608,13 +2621,21 @@ async function init() {
     }
   });
 
-  // === MIGRATION: ensure superuser exists in users from earlier installs ===
+  // === MIGRATION: ensure superuser exists ===
   if (!state.users.find(u => u.role === 'superuser')) {
     state.users.unshift({ id: 0, name: 'Super Admin', email: 'root@directoros.local', role: 'superuser', ws: 'all', active: true, hasAccess: true, isOwner: true, isRoot: true, allWorkspaces: true });
   }
   // Ensure director has allWorkspaces flag
   const dir = state.users.find(u => u.role === 'director');
   if (dir && !dir.allWorkspaces) dir.allWorkspaces = true;
+
+  // Si el seed cambió, limpia recentLogins para que el login no muestre perfiles obsoletos
+  if (seedChanged) {
+    await storageDelete(STORAGE_KEYS.RECENT_LOGINS);
+    await storageDelete(STORAGE_KEYS.CURRENT_USER);
+    await storageSet(STORAGE_KEYS.SEED_VERSION, SEED_VERSION);
+    console.info(`[DirectorOS] Seed actualizado a "${SEED_VERSION}" — datos base refrescados`);
+  }
 
   await Promise.all([
     storageSet(STORAGE_KEYS.USERS, state.users),
