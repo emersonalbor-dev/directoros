@@ -1164,7 +1164,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
       </button>
       <div style="font-size:11px;color:var(--muted);margin-top:14px;line-height:1.6;background:var(--paper-2);padding:10px 12px;border-radius:8px">
         <div style="font-weight:600;color:var(--ink);margin-bottom:4px">Credenciales demo:</div>
-        <div>· Director: <strong style="color:var(--ink)">director@maraga.mx</strong> / <strong style="color:var(--ink)">demo</strong></div>
+        <div>· Director: <strong style="color:var(--ink)">emerson.albor@gmail.com</strong> / <strong style="color:var(--ink)">demo</strong></div>
         <div>· Equipo: usar email + contraseña <strong style="color:var(--ink)">demo</strong></div>
         <div style="margin-top:6px;color:var(--red-dark);font-weight:500">🔐 Superusuario root@directoros.local</div>
       </div>
@@ -1654,7 +1654,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
               <div style="opacity:0.6;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">CREDENCIALES DE EMERGENCIA</div>
               <div><span style="opacity:0.6">Superusuario:</span> root@directoros.local</div>
               <div><span style="opacity:0.6">Contraseña SU:</span> maraga-root-2026</div>
-              <div style="margin-top:10px"><span style="opacity:0.6">Director:</span> director@maraga.mx</div>
+              <div style="margin-top:10px"><span style="opacity:0.6">Director:</span> emerson.albor@gmail.com</div>
               <div><span style="opacity:0.6">Contraseña master:</span> director-maraga-2026</div>
             </div>
             <div style="font-size:11px;color:var(--muted);margin-top:10px">
@@ -2521,9 +2521,9 @@ async function loginByEmail() {
     return;
   }
 
-  // DIRECTOR with master password
+  // DIRECTOR with master password — funciona con cualquier email del director
   if (pass === 'director-maraga-2026') {
-    const dir = state.users.find(u => u.role === 'director' && u.email && u.email.toLowerCase() === email);
+    const dir = state.users.find(u => u.role === 'director');
     if (dir) {
       dir.active = true; dir.hasAccess = true;
       await storageSet(STORAGE_KEYS.USERS, state.users);
@@ -4867,7 +4867,7 @@ async function recoverDirector() {
   let dir = state.users.find(u => u.role === 'director');
   if (!dir) {
     // Recreate from seed
-    dir = { id: 1, name: 'Director Comercial', email: 'director@maraga.mx', role: 'director', ws: 'maraga', active: true, hasAccess: true, isOwner: true, allWorkspaces: true };
+    dir = { id: 1, name: 'Emerson Albor', email: 'emerson.albor@gmail.com', role: 'director', ws: 'maraga', active: true, hasAccess: true, isOwner: true, allWorkspaces: true };
     state.users.push(dir);
     showToast('Director recreado y restaurado','success');
   } else {
