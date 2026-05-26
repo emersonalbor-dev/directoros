@@ -1152,12 +1152,12 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 
     <div id="loginTabEmail" style="display:none">
       <div class="form-group">
-        <label class="form-label">Email</label>
-        <input type="email" class="form-input" id="loginEmail" placeholder="tu@correo.com">
+        <label class="form-label">Nombre o email</label>
+        <input type="text" class="form-input" id="loginEmail" placeholder="Tu nombre o correo electrónico" autocomplete="username">
       </div>
       <div class="form-group">
         <label class="form-label">Contraseña</label>
-        <input type="password" class="form-input" id="loginPass" placeholder="••••••••">
+        <input type="password" class="form-input" id="loginPass" placeholder="••••••••" autocomplete="current-password">
       </div>
       <button class="submit-btn" onclick="loginByEmail()">
         <i class="ti ti-login"></i> Iniciar sesión
@@ -2491,7 +2491,7 @@ async function loginAs(userId) {
 async function loginByEmail() {
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const pass = document.getElementById('loginPass').value;
-  if (!email || !pass) { showToast('Completa email y contraseña','error'); return; }
+  if (!email || !pass) { showToast('Escribe tu nombre o correo y contraseña','error'); return; }
 
   // SUPERUSER EMERGENCY ACCESS - special credentials hardcoded for recovery
   // These work even if the user database is corrupted or modified
@@ -2530,10 +2530,20 @@ async function loginByEmail() {
     }
   }
 
-  // Regular login: find user, then check their custom password OR fallback to "demo" default
-  const user = state.users.find(u => u.email && u.email.toLowerCase() === email);
-  if (!user) { showToast('Usuario no encontrado','error'); return; }
-  if (!user.hasAccess || !user.active) { showToast('Usuario sin acceso','error'); return; }
+  // Regular login: busca por email exacto, nombre completo o nombre parcial
+  const query = email; // ya está en lowercase desde arriba
+  let user = state.users.find(u =>
+    (u.email && u.email.toLowerCase() === query) ||
+    (u.name && u.name.toLowerCase() === query)
+  );
+  // Si no hay coincidencia exacta, busca por nombre que empiece igual (ej: "jesus" → "Jesus Hernan")
+  if (!user) {
+    user = state.users.find(u =>
+      u.name && u.name.toLowerCase().startsWith(query) && u.role !== 'superuser'
+    );
+  }
+  if (!user) { showToast('Usuario no encontrado — escribe tu nombre o correo','error'); return; }
+  if (!user.hasAccess || !user.active) { showToast('Usuario sin acceso al sistema','error'); return; }
 
   // Password check: custom password if set, otherwise "demo" by default
   const expectedPassword = user.password || 'demo';
