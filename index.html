@@ -2868,6 +2868,7 @@ function renderActivity() {
 
 let charts = {};
 function renderCharts(wsHours) {
+  if (typeof Chart === 'undefined') return; // Chart.js aún no cargó
   if (charts.hours) charts.hours.destroy();
   if (charts.dist) charts.dist.destroy();
 
@@ -5296,10 +5297,17 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
 });
 
-/* Load Chart.js then start */
+/* Iniciar app inmediatamente — no esperar Chart.js para login/auth */
+init();
+
+/* Chart.js carga en paralelo — se usa solo al renderizar el dashboard */
 const chartScript = document.createElement('script');
 chartScript.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js';
-chartScript.onload = init;
+chartScript.async = true;
+chartScript.onload = () => {
+  // Si el usuario ya entró a la app, re-renderizar el dashboard para mostrar gráficas
+  if (state.currentUser) renderDashboard();
+};
 document.head.appendChild(chartScript);
 </script>
 </body>
