@@ -1539,17 +1539,18 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 
 <div class="modal-overlay" id="eventModal">
   <div class="modal">
-    <div class="modal-title">Bloquear espacio en calendario</div>
-    <div class="modal-sub">Marca un bloque inamovible para análisis estratégico o reuniones clave.</div>
+    <div class="modal-title" id="eventModalTitle">Bloquear espacio en calendario</div>
+    <div class="modal-sub" id="eventModalSub">Marca un bloque inamovible para análisis estratégico o reuniones clave.</div>
+    <input type="hidden" id="evId">
     <div class="form-group">
-      <label class="form-label">Título</label>
+      <label class="form-label">Título <span class="required-star">*</span></label>
       <input type="text" class="form-input" id="evTitle" placeholder="Ej. Análisis estratégico semanal">
     </div>
     <div class="form-group">
       <label class="form-label">Workspace</label>
       <select class="form-select" id="evWs"></select>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
       <div class="form-group">
         <label class="form-label">Día</label>
         <select class="form-select" id="evDay">
@@ -1562,28 +1563,93 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
         <label class="form-label">Hora</label>
         <select class="form-select" id="evHour"></select>
       </div>
+      <div class="form-group">
+        <label class="form-label">Duración</label>
+        <select class="form-select" id="evDur">
+          <option value="1">1 hora</option>
+          <option value="2">2 horas</option>
+          <option value="3">3 horas</option>
+          <option value="4">4 horas</option>
+        </select>
+      </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Duración (horas)</label>
-      <select class="form-select" id="evDur">
-        <option value="1">1 hora</option>
-        <option value="2">2 horas</option>
-        <option value="3">3 horas</option>
-      </select>
+      <label class="form-label">Notas</label>
+      <textarea class="form-textarea" id="evNotes" placeholder="Agenda, objetivo de la reunión, links..." style="min-height:60px"></textarea>
     </div>
     <div class="modal-actions">
+      <button class="btn btn-danger" id="evDeleteBtn" onclick="deleteEventFromModal()" style="margin-right:auto;display:none"><i class="ti ti-trash"></i> Eliminar</button>
       <button class="btn" onclick="closeModal('eventModal')">Cancelar</button>
-      <button class="btn btn-primary" onclick="createEvent()">Bloquear</button>
+      <button class="btn btn-primary" id="evSaveBtn" onclick="saveEvent()">Bloquear</button>
     </div>
   </div>
 </div>
 
 <div class="modal-overlay" id="taskDetailModal">
   <div class="modal">
-    <div id="taskDetailContent"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div>
+        <div class="modal-title" id="taskDetailTitle">Editar tarea</div>
+        <div class="modal-sub" id="taskDetailSub">Todos los campos son editables</div>
+      </div>
+      <span class="status-pill" id="taskAlertBadge" style="display:none;background:var(--amber-bg);color:var(--amber-dark)"></span>
+    </div>
+    <input type="hidden" id="taskDetailId">
+
+    <div class="form-group">
+      <label class="form-label">Título <span class="required-star">*</span></label>
+      <input type="text" class="form-input" id="taskDetailTitleInput">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="form-group">
+        <label class="form-label">Workspace <span class="required-star">*</span></label>
+        <select class="form-select" id="taskDetailWs"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Asignado a</label>
+        <select class="form-select" id="taskDetailAssignee"></select>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="form-group">
+        <label class="form-label">Estatus</label>
+        <select class="form-select" id="taskDetailStatus">
+          <option value="todo">Por hacer</option>
+          <option value="doing">En progreso</option>
+          <option value="review">En revisión</option>
+          <option value="done">Completado</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha límite <span class="required-star">*</span></label>
+        <input type="date" class="form-input" id="taskDetailDue">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">OKR / KPI</label>
+      <select class="form-select" id="taskDetailOkrSelect" onchange="onTaskDetailOkrSelectChange()" style="margin-bottom:6px">
+        <option value="">— Seleccionar del catálogo —</option>
+      </select>
+      <input type="text" class="form-input okr-field" id="taskDetailOkr" placeholder="O escribe uno libre">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Notas / contexto</label>
+      <textarea class="form-textarea" id="taskDetailNotes" placeholder="Información adicional, contexto, links..." style="min-height:60px"></textarea>
+    </div>
+
+    <div style="background:var(--paper-2);padding:10px 12px;border-radius:8px;font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <div><i class="ti ti-clock-edit" style="font-size:12px;vertical-align:-1px"></i> Última actualización: <strong id="taskDetailLastUpdate" style="color:var(--ink)">—</strong></div>
+      <div><i class="ti ti-calendar-plus" style="font-size:12px;vertical-align:-1px"></i> Creada: <strong id="taskDetailCreated" style="color:var(--ink)">—</strong></div>
+    </div>
+
     <div class="modal-actions">
-      <button class="btn" onclick="closeModal('taskDetailModal')">Cerrar</button>
-      <button class="btn btn-primary" onclick="markTaskUpdated()"><i class="ti ti-refresh"></i> Marcar actualizado</button>
+      <button class="btn btn-danger" id="taskDetailDeleteBtn" onclick="deleteTaskFromDetail()" style="margin-right:auto"><i class="ti ti-trash"></i> Eliminar</button>
+      <button class="btn" onclick="closeModal('taskDetailModal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveTaskDetail()"><i class="ti ti-device-floppy"></i> Guardar cambios</button>
     </div>
   </div>
 </div>
@@ -2632,8 +2698,9 @@ function renderCalendar() {
           ? `background:${state.workspaces.find(w=>w.id===ev.ws).color}22;color:${state.workspaces.find(w=>w.id===ev.ws).color};border-color:${state.workspaces.find(w=>w.id===ev.ws).color}`
           : '';
         const dragAttrs = canEdit ? `draggable="true" ondragstart="onEventDragStart(event, ${ev.id})" ondragend="onEventDragEnd(event)"` : '';
+        const clickAttr = canEdit ? `onclick="if(!window.__justDragged) openEventDetail(${ev.id})"` : '';
         html += `<div class="event-slot" style="position:relative" ${dropAttrs}>
-          <div class="event-block ${wsCls}" style="height:${heightPx}px;top:2px;${colorStyle}" ${dragAttrs}>
+          <div class="event-block ${wsCls}" style="height:${heightPx}px;top:2px;${colorStyle}" ${dragAttrs} ${clickAttr}>
             ${canEdit ? `<button class="event-delete-btn" onclick="deleteEvent(${ev.id}); event.stopPropagation()" aria-label="Eliminar"><i class="ti ti-x"></i></button>` : ''}
             ${escapeHtml(ev.title)}
             <small>${getWsName(ev.ws)}</small>
@@ -2664,6 +2731,8 @@ function onEventDragStart(e, eventId) {
 function onEventDragEnd(e) {
   e.currentTarget.classList.remove('dragging');
   document.querySelectorAll('.event-slot.drag-over').forEach(s => s.classList.remove('drag-over'));
+  window.__justDragged = true;
+  setTimeout(() => { window.__justDragged = false; }, 150);
   draggedEventId = null;
 }
 
@@ -2715,35 +2784,100 @@ async function onCalDrop(e, newDay, newHour) {
 }
 
 function quickAddEvent(day, hour) {
-  if (state.currentUser?.role !== 'director') return;
+  const canEdit = state.currentUser?.role === 'director' || state.currentUser?.role === 'superuser';
+  if (!canEdit) return;
+  // Mode: create
+  document.getElementById('evId').value = '';
+  document.getElementById('eventModalTitle').textContent = 'Bloquear espacio en calendario';
+  document.getElementById('eventModalSub').textContent = 'Marca un nuevo bloque en tu agenda';
   document.getElementById('evDay').value = day;
   document.getElementById('evHour').value = hour;
   document.getElementById('evTitle').value = '';
   document.getElementById('evWs').value = state.workspaces[0]?.id || '';
   document.getElementById('evDur').value = 1;
+  document.getElementById('evNotes').value = '';
+  document.getElementById('evDeleteBtn').style.display = 'none';
+  document.getElementById('evSaveBtn').innerHTML = '<i class="ti ti-plus"></i> Bloquear';
+  openModal('eventModal');
+}
+
+function openEventDetail(id) {
+  const canEdit = state.currentUser?.role === 'director' || state.currentUser?.role === 'superuser';
+  if (!canEdit) return;
+  const ev = state.events.find(x => x.id === id);
+  if (!ev) return;
+  // Mode: edit
+  document.getElementById('evId').value = ev.id;
+  document.getElementById('eventModalTitle').textContent = 'Editar bloque';
+  document.getElementById('eventModalSub').textContent = 'Modifica cualquier dato del bloque';
+  document.getElementById('evDay').value = ev.day;
+  document.getElementById('evHour').value = ev.hour;
+  document.getElementById('evTitle').value = ev.title;
+  document.getElementById('evWs').value = ev.ws;
+  document.getElementById('evDur').value = ev.dur;
+  document.getElementById('evNotes').value = ev.notes || '';
+  document.getElementById('evDeleteBtn').style.display = 'inline-flex';
+  document.getElementById('evSaveBtn').innerHTML = '<i class="ti ti-device-floppy"></i> Guardar cambios';
   openModal('eventModal');
 }
 
 function changeWeek(d) { state.currentWeek += d; renderCalendar(); }
 function goToday() { state.currentWeek = 0; renderCalendar(); }
 
-async function createEvent() {
+async function saveEvent() {
   const title = document.getElementById('evTitle').value.trim();
   if (!title) { showToast('Falta el título','error'); return; }
   const day = parseInt(document.getElementById('evDay').value);
   const hour = parseInt(document.getElementById('evHour').value);
   const dur = parseInt(document.getElementById('evDur').value);
   const ws = document.getElementById('evWs').value;
-  state.events.push({ id: Date.now(), day, hour, dur, title, ws });
+  const notes = document.getElementById('evNotes').value.trim();
+  const idStr = document.getElementById('evId').value;
+  const editingId = idStr ? parseInt(idStr) : null;
+
+  // Conflict check: any other event overlapping this slot
+  const targetEnd = hour + dur;
+  const conflict = state.events.find(x =>
+    x.id !== editingId && x.day === day &&
+    !(x.hour + x.dur <= hour || x.hour >= targetEnd)
+  );
+  if (conflict) {
+    showToast('Choca con "' + conflict.title + '" en ese horario','error');
+    return;
+  }
+  const wdEnd = state.settings.workdayEnd || 19;
+  if (targetEnd > wdEnd + 1) {
+    showToast('No cabe en el horario laboral configurado', 'error');
+    return;
+  }
+
+  if (editingId) {
+    const ev = state.events.find(x => x.id === editingId);
+    if (ev) { ev.title = title; ev.day = day; ev.hour = hour; ev.dur = dur; ev.ws = ws; ev.notes = notes; }
+    showToast('Bloque actualizado','success');
+  } else {
+    state.events.push({ id: Date.now(), day, hour, dur, title, ws, notes });
+    showToast('Bloque agregado al calendario','success');
+  }
   await storageSet(STORAGE_KEYS.EVENTS, state.events);
   closeModal('eventModal');
   renderAll();
-  showToast('Bloque agregado al calendario','success');
 }
 
-async function deleteEvent(id) {
-  if (state.currentUser?.role !== 'director') return;
-  if (!confirm('¿Eliminar este bloque?')) return;
+// Backwards-compat alias (was called by markup before this refactor)
+async function createEvent() { await saveEvent(); }
+
+async function deleteEventFromModal() {
+  const idStr = document.getElementById('evId').value;
+  if (!idStr) return;
+  await deleteEvent(parseInt(idStr), true);
+  closeModal('eventModal');
+}
+
+async function deleteEvent(id, skipConfirm) {
+  const canEdit = state.currentUser?.role === 'director' || state.currentUser?.role === 'superuser';
+  if (!canEdit) return;
+  if (!skipConfirm && !confirm('¿Eliminar este bloque?')) return;
   state.events = state.events.filter(e => e.id !== id);
   await storageSet(STORAGE_KEYS.EVENTS, state.events);
   renderAll();
@@ -2908,60 +3042,153 @@ function openTaskDetail(id) {
   const t = state.tasks.find(x => x.id === id);
   if (!t) return;
   state.selectedTask = t;
+
   const isAlert = isTaskAlert(t);
-  const due = new Date(t.due);
-  const today = new Date(); today.setHours(0,0,0,0);
-  const overdue = due < today && t.status !== 'done';
   const lastUp = new Date(t.lastUpdate);
   const hoursAgo = Math.floor((new Date() - lastUp) / (1000*60*60));
-  const user = state.users.find(u => u.id === t.assigneeId);
-  const ws = state.workspaces.find(w => w.id === t.ws);
   const isDirector = state.currentUser?.role === 'director' || state.currentUser?.role === 'superuser';
 
-  document.getElementById('taskDetailContent').innerHTML = `
-    <span class="task-ws ${t.ws}" style="${ws?'background:'+ws.color+'22;color:'+ws.color:''}">${ws ? escapeHtml(ws.name) : t.ws}</span>
-    <div class="modal-title" style="margin:8px 0 4px">${escapeHtml(t.title)}</div>
-    <div class="modal-sub">Asignado a <strong>${user ? escapeHtml(user.name) : 'sin asignar'}</strong> · ${overdue ? 'Vencida' : 'Vence'} ${formatDue(t.due)}</div>
-    ${isAlert ? '<div class="alert-badge" style="display:inline-flex;margin-bottom:12px"><i class="ti ti-alert-triangle"></i> Sin actualización hace ' + hoursAgo + 'h</div>' : ''}
-    ${t.okr ? '<div style="background:var(--amber-bg);padding:10px 12px;border-radius:8px;margin-bottom:12px"><div style="font-size:10px;color:var(--amber-dark);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px">OKR / KPI</div><div style="font-size:13px;color:var(--amber-dark)">' + escapeHtml(t.okr) + '</div></div>' : ''}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <div>
-        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px">Estatus</div>
-        <select class="form-select" id="detailStatus" onchange="updateTaskStatus(${t.id}, this.value)">
-          <option value="todo" ${t.status==='todo'?'selected':''}>Por hacer</option>
-          <option value="doing" ${t.status==='doing'?'selected':''}>En progreso</option>
-          <option value="review" ${t.status==='review'?'selected':''}>En revisión</option>
-          <option value="done" ${t.status==='done'?'selected':''}>Completado</option>
-        </select>
-      </div>
-      <div>
-        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px">Última actualización</div>
-        <div style="font-size:13px;padding:8px 0">hace ${hoursAgo}h</div>
-      </div>
-    </div>
-    ${isDirector ? '<button class="btn btn-sm" onclick="deleteTask(' + t.id + ')" style="color:var(--red);border-color:var(--red-bg)"><i class="ti ti-trash"></i> Eliminar tarea</button>' : ''}
-  `;
+  // Populate ws + assignee selects (always fresh from current state)
+  const wsSel = document.getElementById('taskDetailWs');
+  wsSel.innerHTML = state.workspaces.map(w => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
+
+  const assigneeSel = document.getElementById('taskDetailAssignee');
+  assigneeSel.innerHTML = '<option value="">— Sin asignar —</option>' +
+    state.users.filter(u => u.role !== 'director' && u.role !== 'superuser' && u.active)
+               .map(u => `<option value="${u.id}">${escapeHtml(u.name)} · ${ROLES[u.role]?.short || u.role}</option>`).join('');
+
+  // OKR catalog dropdown grouped by workspace
+  const okrSel = document.getElementById('taskDetailOkrSelect');
+  const activeOkrs = state.okrs.filter(o => o.active !== false);
+  let okrOpts = '<option value="">— Seleccionar del catálogo —</option>';
+  state.workspaces.forEach(w => {
+    const wsOkrs = activeOkrs.filter(o => o.ws === w.id);
+    if (wsOkrs.length > 0) {
+      okrOpts += `<optgroup label="${escapeHtml(w.name)}">`;
+      wsOkrs.forEach(o => { okrOpts += `<option value="${o.id}">${escapeHtml(o.name)}${o.quarter ? ' (' + o.quarter + ')' : ''}</option>`; });
+      okrOpts += '</optgroup>';
+    }
+  });
+  okrSel.innerHTML = okrOpts;
+  okrSel.value = ''; // free text by default
+
+  // Fill form
+  document.getElementById('taskDetailId').value = t.id;
+  document.getElementById('taskDetailTitle').textContent = 'Editar tarea';
+  document.getElementById('taskDetailSub').textContent = 'Modifica cualquier campo y guarda los cambios';
+  document.getElementById('taskDetailTitleInput').value = t.title;
+  document.getElementById('taskDetailWs').value = t.ws;
+  document.getElementById('taskDetailAssignee').value = t.assigneeId || '';
+  document.getElementById('taskDetailStatus').value = t.status;
+  document.getElementById('taskDetailDue').value = t.due;
+  document.getElementById('taskDetailOkr').value = t.okr || '';
+  document.getElementById('taskDetailNotes').value = t.notes || '';
+
+  // Metadata
+  const createdStr = t.createdAt ? new Date(t.createdAt).toLocaleDateString('es-MX', {day:'numeric',month:'short',year:'numeric'}) : '—';
+  document.getElementById('taskDetailLastUpdate').textContent = 'hace ' + hoursAgo + 'h';
+  document.getElementById('taskDetailCreated').textContent = createdStr;
+
+  // Alert badge
+  const alertBadge = document.getElementById('taskAlertBadge');
+  if (isAlert) {
+    alertBadge.innerHTML = '<i class="ti ti-alert-triangle"></i> Sin actualización hace ' + hoursAgo + 'h';
+    alertBadge.style.display = 'inline-flex';
+  } else {
+    alertBadge.style.display = 'none';
+  }
+
+  // Role guard: non-director cannot delete
+  document.getElementById('taskDetailDeleteBtn').style.display = isDirector ? 'inline-flex' : 'none';
+
+  // Read-only fields for team members (they can still update status and notes)
+  const readOnly = !isDirector;
+  document.getElementById('taskDetailTitleInput').disabled = readOnly;
+  document.getElementById('taskDetailWs').disabled = readOnly;
+  document.getElementById('taskDetailAssignee').disabled = readOnly;
+  document.getElementById('taskDetailDue').disabled = readOnly;
+  document.getElementById('taskDetailOkrSelect').disabled = readOnly;
+  document.getElementById('taskDetailOkr').disabled = readOnly;
+
   openModal('taskDetailModal');
 }
 
-async function updateTaskStatus(id, status) {
-  const t = state.tasks.find(x => x.id === id);
-  if (!t) return;
-  t.status = status;
-  t.lastUpdate = new Date().toISOString();
-  await storageSet(STORAGE_KEYS.TASKS, state.tasks);
-  renderAll();
+function onTaskDetailOkrSelectChange() {
+  const sel = document.getElementById('taskDetailOkrSelect');
+  const txt = document.getElementById('taskDetailOkr');
+  if (sel.value) {
+    const okr = state.okrs.find(o => o.id === parseInt(sel.value));
+    if (okr) txt.value = okr.name;
+  }
 }
 
-async function markTaskUpdated() {
-  if (!state.selectedTask) return;
-  state.selectedTask.lastUpdate = new Date().toISOString();
+async function saveTaskDetail() {
+  const id = parseInt(document.getElementById('taskDetailId').value);
+  const t = state.tasks.find(x => x.id === id);
+  if (!t) { showToast('Tarea no encontrada','error'); return; }
+
+  const title = document.getElementById('taskDetailTitleInput').value.trim();
+  if (!title) { showToast('El título es obligatorio','error'); return; }
+
+  const due = document.getElementById('taskDetailDue').value;
+  if (!due) { showToast('La fecha límite es obligatoria','error'); return; }
+
+  const ws = document.getElementById('taskDetailWs').value;
+  const assigneeVal = document.getElementById('taskDetailAssignee').value;
+  const assigneeId = assigneeVal ? parseInt(assigneeVal) : null;
+  const status = document.getElementById('taskDetailStatus').value;
+  const okr = document.getElementById('taskDetailOkr').value.trim();
+  const notes = document.getElementById('taskDetailNotes').value.trim();
+
+  // Track if status changed for activity log
+  const oldStatus = t.status;
+  const statusChanged = oldStatus !== status;
+
+  t.title = title;
+  t.ws = ws;
+  t.assigneeId = assigneeId;
+  t.status = status;
+  t.due = due;
+  t.okr = okr;
+  t.notes = notes;
+  t.lastUpdate = new Date().toISOString();
+
+  await storageSet(STORAGE_KEYS.TASKS, state.tasks);
+
+  // Log activity for status change
+  if (statusChanged) {
+    const statusNames = { todo:'Por hacer', doing:'En progreso', review:'En revisión', done:'Completado' };
+    state.activity.unshift({
+      id: Date.now(),
+      icon: status === 'done' ? 'ti-check' : 'ti-arrow-right',
+      iconBg: status === 'done' ? 'var(--maraga-bg)' : 'var(--texas-bg)',
+      iconColor: status === 'done' ? 'var(--maraga-dark)' : 'var(--texas-dark)',
+      title: 'Tarea actualizada',
+      detail: title + ' · ' + statusNames[oldStatus] + ' → ' + statusNames[status],
+      time: 'hace un momento'
+    });
+    await storageSet(STORAGE_KEYS.ACTIVITY, state.activity);
+  }
+
+  closeModal('taskDetailModal');
+  renderAll();
+  showToast('Tarea actualizada','success');
+}
+
+async function deleteTaskFromDetail() {
+  const id = parseInt(document.getElementById('taskDetailId').value);
+  if (!id) return;
+  const t = state.tasks.find(x => x.id === id);
+  if (!t) return;
+  if (!confirm(`¿Eliminar la tarea "${t.title}"? Esta acción no se puede deshacer.`)) return;
+  state.tasks = state.tasks.filter(x => x.id !== id);
   await storageSet(STORAGE_KEYS.TASKS, state.tasks);
   closeModal('taskDetailModal');
   renderAll();
-  showToast('Tarea marcada como actualizada','success');
+  showToast('Tarea eliminada','success');
 }
 
+/* Legacy aliases for any external callers */
 async function deleteTask(id) {
   if (!confirm('¿Eliminar esta tarea?')) return;
   state.tasks = state.tasks.filter(t => t.id !== id);
