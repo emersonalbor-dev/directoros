@@ -2282,14 +2282,13 @@ const PERMISSION_LABELS = {
 function getSeedUsers() {
   return [
     { id: 0, name: 'Super Admin', email: 'root@directoros.local', role: 'superuser', ws: 'all', active: true, hasAccess: true, isOwner: true, isRoot: true, allWorkspaces: true },
-    { id: 1, name: 'Director Comercial', email: 'director@maraga.mx', role: 'director', ws: 'maraga', active: true, hasAccess: true, isOwner: true, allWorkspaces: true },
-    { id: 2, name: 'Marco Pérez', email: 'marco@maraga.mx', role: 'leader', ws: 'maraga', active: true, hasAccess: true },
-    { id: 3, name: 'Luis Ramírez', email: 'luis@maraga.mx', role: 'merchandiser', ws: 'maraga', active: true, hasAccess: true },
-    { id: 4, name: 'Sofía Mendoza', email: 'sofia@maraga.mx', role: 'merchandiser', ws: 'maraga', active: true, hasAccess: true },
-    { id: 5, name: 'Carlos Torres', email: 'carlos@maraga.mx', role: 'merchandiser', ws: 'maraga', active: true, hasAccess: true },
-    { id: 6, name: 'Diana Vargas', email: 'diana@maraga.mx', role: 'merchandiser', ws: 'maraga', active: true, hasAccess: true },
-    { id: 7, name: 'Pablo Rivas', email: 'pablo@maraga.mx', role: 'designer', ws: 'maraga', active: true, hasAccess: true },
-    { id: 8, name: 'Andrea Ruiz', email: 'andrea@maraga.mx', role: 'intern', ws: 'maraga', active: true, hasAccess: false },
+    { id: 1, name: 'Emerson Albor', email: 'emerson.albor@gmail.com', role: 'director', ws: 'maraga', active: true, hasAccess: true, isOwner: true, allWorkspaces: true },
+    { id: 2, name: 'Mayra Mota', email: 'mayra@maraga.mx', role: 'leader', ws: 'maraga', active: true, hasAccess: true },
+    { id: 3, name: 'Jesus Hernan', email: 'jesus@maraga.mx', role: 'merchandiser', ws: 'maraga', active: true, hasAccess: true },
+    { id: 4, name: 'Evelyn Sanchez', email: 'evelyn@maraga.mx', role: 'merchandiser', ws: 'maraga', active: true, hasAccess: true },
+    { id: 5, name: 'Cecilia Lozano', email: 'cecilia@maraga.mx', role: 'merchandiser', ws: 'maraga', active: true, hasAccess: true },
+    { id: 6, name: 'Priscila Juarez', email: 'priscila@maraga.mx', role: 'merchandiser', ws: 'maraga', active: true, hasAccess: true },
+    { id: 7, name: 'Dará García', email: 'dara@maraga.mx', role: 'designer', ws: 'maraga', active: true, hasAccess: true },
     { id: 9, name: 'Ana López', email: 'ana@maraga.us', role: 'warehouse', ws: 'texas', active: true, hasAccess: true },
     { id: 10, name: 'Roberto Silva', email: 'roberto@maraga.us', role: 'driver', ws: 'texas', active: true, hasAccess: true }
   ];
@@ -2374,19 +2373,19 @@ function getSeedEvents() {
 
 function getSeedRequests() {
   return [
-    { id:1, requesterId:3, requesterName:'Luis Ramírez', type:'Revisión de ROAS', okr:'ROAS Mercado Libre 4.5x · Meta Ads CPA -20%', when:'Mar 11:00', ws:'maraga', status:'pending' },
+    { id:1, requesterId:3, requesterName:'Jesus Hernan', type:'Revisión de ROAS', okr:'ROAS Mercado Libre 4.5x · Meta Ads CPA -20%', when:'Mar 11:00', ws:'maraga', status:'pending' },
     { id:2, requesterId:9, requesterName:'Ana López', type:'Sync logístico', okr:'Reducir merma 15% Q2 · Tiempo entrega <48h', when:'Mié 10:00', ws:'texas', status:'pending' },
-    { id:3, requesterId:2, requesterName:'Marco Pérez', type:'Estrategia de campaña', okr:'Lanzamiento Prime Day · Incrementar SKUs top 30%', when:'Jue 14:30', ws:'maraga', status:'pending' },
-    { id:4, requesterId:8, requesterName:'Andrea Ruiz', type:'Revisión OKR semanal', okr:'Entregable final estrategia · NPS >8', when:'Vie 11:00', ws:'consul', status:'pending' }
+    { id:3, requesterId:2, requesterName:'Mayra Mota', type:'Estrategia de campaña', okr:'Lanzamiento Prime Day · Incrementar SKUs top 30%', when:'Jue 14:30', ws:'maraga', status:'pending' },
+    { id:4, requesterId:4, requesterName:'Evelyn Sanchez', type:'Revisión OKR semanal', okr:'Entregable final estrategia · NPS >8', when:'Vie 11:00', ws:'maraga', status:'pending' }
   ];
 }
 
 function getSeedActivity() {
   return [
-    { id:1, type:'alert', icon:'ti-alert-triangle', iconBg:'var(--amber-bg)', iconColor:'var(--amber-dark)', title:'Merchandiser sin actualización', detail:'Luis R. no ha actualizado "Campaña ML S22" — reunión en 18h', time:'hace 2h' },
-    { id:2, type:'done', icon:'ti-check', iconBg:'var(--maraga-bg)', iconColor:'var(--maraga-dark)', title:'Tarea entregada a tiempo', detail:'Marco Pérez — "Análisis ROAS Meta Ads S21" listo para revisión', time:'hace 4h' },
+    { id:1, type:'alert', icon:'ti-alert-triangle', iconBg:'var(--amber-bg)', iconColor:'var(--amber-dark)', title:'Merchandiser sin actualización', detail:'Jesus H. no ha actualizado "Campaña ML S22" — reunión en 18h', time:'hace 2h' },
+    { id:2, type:'done', icon:'ti-check', iconBg:'var(--maraga-bg)', iconColor:'var(--maraga-dark)', title:'Tarea entregada a tiempo', detail:'Mayra Mota — "Análisis ROAS Meta Ads S21" listo para revisión', time:'hace 4h' },
     { id:3, type:'request', icon:'ti-calendar-event', iconBg:'var(--texas-bg)', iconColor:'var(--texas-dark)', title:'Nueva solicitud de reunión', detail:'Ana L. solicita Sync logístico · OKR: Reducir merma 15%', time:'hace 6h' },
-    { id:4, type:'risk', icon:'ti-chart-bar', iconBg:'var(--consul-bg)', iconColor:'var(--consul-dark)', title:'OKR en riesgo', detail:'Cliente Fernández al 30% con 2 semanas restantes', time:'ayer' }
+    { id:4, type:'risk', icon:'ti-chart-bar', iconBg:'var(--consul-bg)', iconColor:'var(--consul-dark)', title:'OKR en riesgo', detail:'Meta Prime Day al 60% con 2 semanas restantes', time:'ayer' }
   ];
 }
 
