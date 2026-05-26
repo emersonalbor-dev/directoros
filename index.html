@@ -853,6 +853,8 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 }
 .toggle.on { background: var(--maraga); }
 .toggle.on::after { transform: translateX(16px); }
+.toggle.toggle-disabled { cursor: not-allowed; opacity: 0.55; }
+.toggle.toggle-disabled:hover { opacity: 0.55; }
 
 /* ===== MODAL ===== */
 .modal-overlay {
@@ -1845,12 +1847,13 @@ const STORAGE_KEYS = {
   WORKSPACES: 'directoros:workspaces:v2',
   MEETING_TYPES: 'directoros:meetingtypes:v2',
   OKRS: 'directoros:okrs:v2',
+  PERMISSIONS: 'directoros:permissions:v2',
   CURRENT_USER: 'directoros:currentuser:v2'
 };
 
 let state = {
   tasks: [], events: [], requests: [], settings: {}, activity: [],
-  users: [], workspaces: [], meetingTypes: [], okrs: [],
+  users: [], workspaces: [], meetingTypes: [], okrs: [], permissions: null,
   currentUser: null,
   currentWeek: 0,
   activeFilter: 'all',
@@ -1900,7 +1903,7 @@ const ROLES = {
   driver: { name: 'Repartidor', short: 'Reparto', color: '#EF9F27', class: 'role-driver' }
 };
 
-const PERMISSIONS = {
+const DEFAULT_PERMISSIONS = {
   superuser: {
     name: 'Superusuario (Root)',
     desc: 'Acceso ilimitado · puede resetear contraseñas, recuperar accesos perdidos y administrar al propio Director',
@@ -2261,6 +2264,19 @@ async function init() {
   state.requests = await storageGet(STORAGE_KEYS.REQUESTS) || getSeedRequests();
   state.settings = await storageGet(STORAGE_KEYS.SETTINGS) || getSeedSettings();
   state.activity = await storageGet(STORAGE_KEYS.ACTIVITY) || getSeedActivity();
+  state.permissions = await storageGet(STORAGE_KEYS.PERMISSIONS) || JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
+
+  // === MIGRATION: merge any missing roles or permissions from defaults ===
+  // Adds new roles or permission flags from DEFAULT_PERMISSIONS without overwriting saved customizations
+  Object.entries(DEFAULT_PERMISSIONS).forEach(([roleKey, defaultPerms]) => {
+    if (!state.permissions[roleKey]) {
+      state.permissions[roleKey] = { ...defaultPerms };
+    } else {
+      Object.entries(defaultPerms).forEach(([k, v]) => {
+        if (state.permissions[roleKey][k] === undefined) state.permissions[roleKey][k] = v;
+      });
+    }
+  });
 
   // === MIGRATION: ensure superuser exists in users from earlier installs ===
   if (!state.users.find(u => u.role === 'superuser')) {
@@ -2279,7 +2295,8 @@ async function init() {
     storageSet(STORAGE_KEYS.EVENTS, state.events),
     storageSet(STORAGE_KEYS.REQUESTS, state.requests),
     storageSet(STORAGE_KEYS.SETTINGS, state.settings),
-    storageSet(STORAGE_KEYS.ACTIVITY, state.activity)
+    storageSet(STORAGE_KEYS.ACTIVITY, state.activity),
+    storageSet(STORAGE_KEYS.PERMISSIONS, state.permissions)
   ]);
 
   populateHourSelect();
@@ -3751,30 +3768,87 @@ async function confirmDeleteOkr(id) {
 /* === PERMISSIONS === */
 function renderAdminPermissions() {
   const c = document.getElementById('permissionsContent');
-  c.innerHTML = Object.entries(PERMISSIONS).map(([roleKey, perms]) => {
+  c.innerHTML = `
+    <div style="background:var(--paper-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px">
+      <i class="ti ti-info-circle" style="font-size:18px;color:var(--texas);flex-shrink:0;margin-top:1px"></i>
+      <div style="font-size:12px;color:var(--muted);line-height:1.5">
+        Activa o desactiva los permisos directamente con los toggles. Los cambios se guardan automáticamente.
+        <strong style="color:var(--ink)">Superusuario y Director</strong> son roles protegidos (sus permisos no se pueden quitar).
+        ${state.currentUser?.role !== 'superuser' ? '<br><span style="color:var(--red-dark)">Solo el Superusuario puede modificar el rol Director.</span>' : ''}
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <button class="btn btn-sm" onclick="restoreDefaultPermissions()">
+        <i class="ti ti-rotate"></i> Restaurar valores por defecto
+      </button>
+    </div>
+  ` + Object.entries(state.permissions).map(([roleKey, perms]) => {
     const role = ROLES[roleKey];
+    const isProtected = roleKey === 'superuser' || (roleKey === 'director' && state.currentUser?.role !== 'superuser');
+    const isLocked = roleKey === 'superuser'; // Su nunca se edita
     return `
       <div class="settings-section">
-        <h3 style="display:flex;align-items:center;gap:10px">
+        <h3 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <span class="role-pill ${role.class}">${role.short}</span>
           ${perms.name}
+          ${isLocked ? '<span style="font-size:11px;color:var(--red-dark);background:var(--red-bg);padding:2px 8px;border-radius:5px;font-weight:500;display:inline-flex;align-items:center;gap:4px"><i class="ti ti-lock" style="font-size:11px"></i> Inmutable</span>' : ''}
+          ${roleKey === 'director' && !isLocked ? '<span style="font-size:11px;color:var(--amber-dark);background:var(--amber-bg);padding:2px 8px;border-radius:5px;font-weight:500;display:inline-flex;align-items:center;gap:4px"><i class="ti ti-shield" style="font-size:11px"></i> Owner</span>' : ''}
         </h3>
         <div class="sub">${perms.desc}</div>
-        ${Object.entries(PERMISSION_LABELS).map(([key, label]) => `
-          <div class="settings-row">
-            <div>
-              <div class="settings-row-label">${label}</div>
+        ${Object.entries(PERMISSION_LABELS).map(([key, label]) => {
+          const checked = !!perms[key];
+          const disabled = isProtected;
+          return `
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-label">${label}</div>
+              </div>
+              <div class="settings-row-control">
+                <div class="toggle ${checked?'on':''} ${disabled?'toggle-disabled':''}"
+                     onclick="${disabled ? '' : `togglePermission('${roleKey}', '${key}', this)`}"
+                     title="${disabled ? 'Permiso protegido — no editable' : 'Click para cambiar'}"></div>
+              </div>
             </div>
-            <div class="settings-row-control">
-              ${perms[key]
-                ? '<i class="ti ti-check" style="color:var(--maraga);font-size:18px"></i>'
-                : '<i class="ti ti-x" style="color:var(--muted-2);font-size:18px"></i>'}
-            </div>
-          </div>
-        `).join('')}
+          `;
+        }).join('')}
       </div>
     `;
   }).join('');
+}
+
+async function togglePermission(roleKey, permKey, el) {
+  // Safety guards
+  if (roleKey === 'superuser') {
+    showToast('Los permisos del Superusuario no se pueden modificar','error');
+    return;
+  }
+  if (roleKey === 'director' && state.currentUser?.role !== 'superuser') {
+    showToast('Solo el Superusuario puede modificar los permisos del Director','error');
+    return;
+  }
+
+  // Toggle visual immediately
+  el.classList.toggle('on');
+  const newValue = el.classList.contains('on');
+  state.permissions[roleKey][permKey] = newValue;
+
+  await storageSet(STORAGE_KEYS.PERMISSIONS, state.permissions);
+
+  const label = PERMISSION_LABELS[permKey] || permKey;
+  const roleLabel = ROLES[roleKey]?.short || roleKey;
+  showToast(`${roleLabel}: ${label} ${newValue ? 'activado' : 'desactivado'}`, 'success');
+}
+
+async function restoreDefaultPermissions() {
+  if (state.currentUser?.role !== 'superuser' && state.currentUser?.role !== 'director') {
+    showToast('Sin permisos para esta acción','error');
+    return;
+  }
+  if (!confirm('¿Restaurar todos los permisos a los valores por defecto? Se perderán las personalizaciones actuales.')) return;
+  state.permissions = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
+  await storageSet(STORAGE_KEYS.PERMISSIONS, state.permissions);
+  renderAdminPermissions();
+  showToast('Permisos restaurados a los valores por defecto','success');
 }
 
 /* === SETTINGS === */
