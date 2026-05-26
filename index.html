@@ -2634,17 +2634,21 @@ function applyRoleToUI() {
    INIT
 ============================================ */
 async function init() {
-  const storedSeedVersion = await storageGet(STORAGE_KEYS.SEED_VERSION);
-  const seedChanged = storedSeedVersion !== SEED_VERSION;
+  // ── Cargar SIEMPRE desde localStorage si existe, seed solo si está vacío ──
+  // Los datos del admin NUNCA se sobreescriben automáticamente.
+  // Para forzar un reset usa el botón "Restaurar datos" en Admin > Configuración.
+  const savedUsers    = await storageGet(STORAGE_KEYS.USERS);
+  const savedWs       = await storageGet(STORAGE_KEYS.WORKSPACES);
+  const savedMT       = await storageGet(STORAGE_KEYS.MEETING_TYPES);
+  const isFirstLoad   = !savedUsers; // primera vez en este dispositivo
 
-  // ── Datos de configuración base (se actualizan con cada nueva SEED_VERSION) ──
-  state.users        = seedChanged ? getSeedUsers()        : (await storageGet(STORAGE_KEYS.USERS)         || getSeedUsers());
-  state.workspaces   = seedChanged ? getSeedWorkspaces()   : (await storageGet(STORAGE_KEYS.WORKSPACES)    || getSeedWorkspaces());
-  state.meetingTypes = seedChanged ? getSeedMeetingTypes() : (await storageGet(STORAGE_KEYS.MEETING_TYPES) || getSeedMeetingTypes());
-  state.activity     = seedChanged ? getSeedActivity()     : (await storageGet(STORAGE_KEYS.ACTIVITY)      || getSeedActivity());
-  state.requests     = seedChanged ? getSeedRequests()     : (await storageGet(STORAGE_KEYS.REQUESTS)      || getSeedRequests());
+  state.users        = savedUsers  || getSeedUsers();
+  state.workspaces   = savedWs     || getSeedWorkspaces();
+  state.meetingTypes = savedMT     || getSeedMeetingTypes();
+  state.activity     = await storageGet(STORAGE_KEYS.ACTIVITY)   || getSeedActivity();
+  state.requests     = await storageGet(STORAGE_KEYS.REQUESTS)   || getSeedRequests();
 
-  // ── Datos del usuario (nunca se borran por seed version) ──
+  // ── Datos del usuario (siempre desde localStorage) ──
   state.tasks       = await storageGet(STORAGE_KEYS.TASKS)        || getSeedTasks();
   state.events      = await storageGet(STORAGE_KEYS.EVENTS)       || getSeedEvents();
   state.okrs        = await storageGet(STORAGE_KEYS.OKRS)         || getSeedOkrs();
@@ -2670,13 +2674,14 @@ async function init() {
   const dir = state.users.find(u => u.role === 'director');
   if (dir && !dir.allWorkspaces) dir.allWorkspaces = true;
 
-  // Si el seed cambió, limpia recentLogins para que el login no muestre perfiles obsoletos
-  if (seedChanged) {
+  // En primera carga: limpiar sesión y logins recientes para que haga login fresco
+  if (isFirstLoad) {
     await storageDelete(STORAGE_KEYS.RECENT_LOGINS);
     await storageDelete(STORAGE_KEYS.CURRENT_USER);
-    await storageSet(STORAGE_KEYS.SEED_VERSION, SEED_VERSION);
-    console.info(`[DirectorOS] Seed actualizado a "${SEED_VERSION}" — datos base refrescados`);
+    console.info('[DirectorOS] Primera carga — seed inicial aplicado');
   }
+  // Guardar versión de seed (solo informativo)
+  await storageSet(STORAGE_KEYS.SEED_VERSION, SEED_VERSION);
 
   await Promise.all([
     storageSet(STORAGE_KEYS.USERS, state.users),
