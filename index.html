@@ -1694,6 +1694,12 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 </tr>
               </thead>
               <tbody>
+                <tr class="row-rent positivo" id="rcRowBruta">
+                  <td>📦 Rentabilidad bruta</td>
+                  <td id="rcBrutaIva">$0</td>
+                  <td id="rcBrutaSiva">$0</td>
+                  <td id="rcBrutaPct">0%</td>
+                </tr>
                 <tr class="row-rent" id="rcRowRent">
                   <td>💰 Rentabilidad neta</td>
                   <td id="rcRentIva">$0</td>
@@ -4500,6 +4506,15 @@ function calcularRent() {
 
   const fmt = (n) => (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
   const pct = (n) => n.toFixed(1) + '%';
+
+  // Rentabilidad bruta (PVP - CMV, antes de costos de venta)
+  const brutaSiva = pvpSiva - costoProd;
+  const brutaIva  = brutaSiva * (1 + tasaIva);
+  const brutaPct  = pvpSiva > 0 ? (brutaSiva / pvpSiva) * 100 : 0;
+  document.getElementById('rcBrutaSiva').textContent = fmt(brutaSiva);
+  document.getElementById('rcBrutaIva').textContent  = fmt(brutaIva);
+  document.getElementById('rcBrutaPct').textContent  = pct(brutaPct);
+  document.getElementById('rcRowBruta').className    = 'row-rent ' + (brutaSiva >= 0 ? 'positivo' : 'negativo');
 
   // Ingresos
   document.getElementById('rcIngIva').textContent   = fmt(pvpIva);
