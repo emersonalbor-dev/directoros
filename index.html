@@ -1741,7 +1741,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 </tr>
                 <tr class="row-sub">
                   <td>Publicidad (ACOS)</td>
-                  <td>—</td>
+                  <td id="rcPubIva">$0</td>
                   <td id="rcPubSiva">$0</td>
                   <td id="rcPubPct">0%</td>
                 </tr>
@@ -4503,7 +4503,8 @@ function calcularRent() {
   const logisticaSiva = logistica / (1 + tasaIva);                  // capturada con IVA → sin IVA
   const markConIva    = pvpIva * comPct;                             // % aplica sobre pvpIva (con IVA)
   const markSiva      = markConIva / (1 + tasaIva);                 // equivalente sin IVA para el cálculo
-  const pubSiva       = pvpSiva * pubPct;
+  const pubConIva     = pvpIva * pubPct;
+  const pubSiva       = pubConIva / (1 + tasaIva);
   const totalCostos   = markSiva + logisticaSiva + pubSiva;
   const rentSiva     = pvpSiva - costoProd - totalCostos;
   const rentIva      = rentSiva * (1 + tasaIva);
@@ -4537,8 +4538,9 @@ function calcularRent() {
   document.getElementById('rcLogIva').textContent   = fmt(logistica);
   document.getElementById('rcLogSiva').textContent  = fmt(logisticaSiva);
   document.getElementById('rcLogPct').textContent   = pct(pvpSiva > 0 ? (logisticaSiva/pvpSiva)*100 : 0);
+  document.getElementById('rcPubIva').textContent   = fmt(pubConIva);
   document.getElementById('rcPubSiva').textContent  = fmt(pubSiva);
-  document.getElementById('rcPubPct').textContent   = pct(pubPct * 100);
+  document.getElementById('rcPubPct').textContent   = pct(pvpSiva > 0 ? (pubSiva/pvpSiva)*100 : 0);
   // Rentabilidad
   document.getElementById('rcRentIva').textContent  = fmt(rentIva);
   document.getElementById('rcRentSiva').textContent = fmt(rentSiva);
