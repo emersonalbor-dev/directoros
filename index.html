@@ -4472,7 +4472,7 @@ function calcularRent() {
   const semPct = document.getElementById('rcSemaforoPct');
   semPct.textContent = pct(rentPct);
   row.className = 'row-rent ' + (rentSiva >= 0 ? 'positivo' : 'negativo');
-  if (rentPct >= 20) {
+  if (rentPct >= 17) {
     sem.className = 'calc-semaforo verde';
     sem.querySelector('i').className = 'ti ti-circle-check';
     semTxt.textContent = 'Margen saludable ✓';
