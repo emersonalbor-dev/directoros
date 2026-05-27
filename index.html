@@ -4553,9 +4553,10 @@ function calcularRent() {
   const pvpLock  = document.getElementById('rcPvpLock');
   const pvpHint  = document.getElementById('rcPvpHint');
   const pvpMinEl = document.getElementById('rcPvpMin');
-  const markup   = costoProd > 0 ? (pvpSiva - costoProd) / costoProd * 100 : 100;
-  if (costoProd > 0 && markup < 38) {
-    const minCiva = (costoProd * 1.38 * (1 + tasaIva));
+  // Margen bruto = (PVP - Costo) / PVP  →  mínimo 40% (÷ 0.6)
+  const grossMargin = pvpSiva > 0 ? (pvpSiva - costoProd) / pvpSiva * 100 : 0;
+  if (costoProd > 0 && grossMargin < 40) {
+    const minCiva = (costoProd / 0.6) * (1 + tasaIva);
     pvpInput.classList.add('pvp-locked');
     if (pvpLock)  pvpLock.style.display  = 'block';
     if (pvpHint)  pvpHint.style.display  = 'block';
