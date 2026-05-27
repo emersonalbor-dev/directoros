@@ -4542,18 +4542,18 @@ function calcularRent() {
   const sem = document.getElementById('rcSemaforo');
   const semTxt = document.getElementById('rcSemaforoTxt');
   const semPct = document.getElementById('rcSemaforoPct');
-  semPct.textContent = pct(brutaPct);
+  semPct.textContent = pct(rentPct);
   row.className = 'row-rent ' + (rentSiva >= 0 ? 'positivo' : 'negativo');
-  const brutaPctR = Math.round(brutaPct * 10) / 10; // evita errores de punto flotante
-  if (brutaPctR >= 17) {
+  const rentPctR = Math.round(rentPct * 10) / 10; // evita errores de punto flotante
+  if (rentPctR >= 17) {
     sem.className = 'calc-semaforo verde';
     sem.querySelector('i').className = 'ti ti-circle-check';
     semTxt.textContent = 'Margen saludable ✓';
-  } else if (brutaPctR >= 14) {
+  } else if (rentPctR >= 14) {
     sem.className = 'calc-semaforo amarillo';
     sem.querySelector('i').className = 'ti ti-alert-circle';
     semTxt.textContent = 'Margen ajustado — revisar costos';
-  } else if (brutaPctR >= 0) {
+  } else if (rentPctR >= 0) {
     sem.className = 'calc-semaforo rojo';
     sem.querySelector('i').className = 'ti ti-alert-triangle';
     semTxt.textContent = 'Margen muy bajo — riesgo';
