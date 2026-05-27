@@ -1735,7 +1735,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 </tr>
                 <tr class="row-sub">
                   <td>Logística / Envío</td>
-                  <td>—</td>
+                  <td id="rcLogIva">$0</td>
                   <td id="rcLogSiva">$0</td>
                   <td id="rcLogPct">0%</td>
                 </tr>
@@ -4534,6 +4534,7 @@ function calcularRent() {
   document.getElementById('rcMarkIva').textContent  = fmt(markConIva);
   document.getElementById('rcMarkSiva').textContent = fmt(markSiva);
   document.getElementById('rcMarkPct').textContent  = pct(pvpSiva > 0 ? (markSiva/pvpSiva)*100 : 0);
+  document.getElementById('rcLogIva').textContent   = fmt(logistica);
   document.getElementById('rcLogSiva').textContent  = fmt(logisticaSiva);
   document.getElementById('rcLogPct').textContent   = pct(pvpSiva > 0 ? (logisticaSiva/pvpSiva)*100 : 0);
   document.getElementById('rcPubSiva').textContent  = fmt(pubSiva);
