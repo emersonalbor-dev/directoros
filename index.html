@@ -4500,10 +4500,10 @@ function calcularRent() {
   const pubPct     = parseFloat(document.getElementById('rcPublicidad').value)/ 100 || 0;
 
   const pvpSiva      = pvpIva / (1 + tasaIva);
-  const logisticaSiva = logistica / (1 + tasaIva);   // el usuario captura logística con IVA → convertir a sin IVA
-  const markSiva     = pvpSiva * comPct;
+  const logisticaSiva = logistica / (1 + tasaIva);   // capturada con IVA → convertir a sin IVA
+  const markConIva   = pvpIva * comPct;              // marketplace aplica % sobre pvpIva (con IVA)
   const pubSiva      = pvpSiva * pubPct;
-  const totalCostos  = markSiva + logisticaSiva + pubSiva;
+  const totalCostos  = markConIva + logisticaSiva + pubSiva;
   const rentSiva     = pvpSiva - costoProd - totalCostos;
   const rentIva      = rentSiva * (1 + tasaIva);
   const rentPct      = pvpSiva > 0 ? (rentSiva / pvpSiva) * 100 : 0;
@@ -4530,8 +4530,8 @@ function calcularRent() {
   document.getElementById('rcCostosTotalSiva').textContent = '-$' + totalCostos.toFixed(2);
   document.getElementById('rcCostosTotalPct').textContent  = pct(pvpSiva > 0 ? (totalCostos/pvpSiva)*100 : 0);
   // Desglose costos
-  document.getElementById('rcMarkSiva').textContent = fmt(markSiva);
-  document.getElementById('rcMarkPct').textContent  = pct(comPct * 100);
+  document.getElementById('rcMarkSiva').textContent = fmt(markConIva);
+  document.getElementById('rcMarkPct').textContent  = pct(pvpSiva > 0 ? (markConIva/pvpSiva)*100 : 0);
   document.getElementById('rcLogSiva').textContent  = fmt(logisticaSiva);
   document.getElementById('rcLogPct').textContent   = pct(pvpSiva > 0 ? (logisticaSiva/pvpSiva)*100 : 0);
   document.getElementById('rcPubSiva').textContent  = fmt(pubSiva);
