@@ -727,6 +727,9 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 .sku-option-desc { font-size: 11px; color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sku-option-price { font-size: 12px; font-weight: 700; color: var(--maraga); white-space: nowrap; }
 .sku-no-results { padding: 14px; text-align: center; color: var(--muted); font-size: 12px; }
+.calc-input.pvp-locked { border-color: var(--red) !important; background: var(--red-bg) !important; color: var(--red-dark) !important; }
+.pvp-lock-icon { display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--red); font-size:18px; pointer-events:none; }
+.pvp-hint { display:none; margin-top:6px; background:var(--red-bg); color:var(--red-dark); font-size:11px; padding:7px 10px; border-radius:8px; font-weight:500; border-left:3px solid var(--red); }
 
 .form-group { margin-bottom: 14px; }
 .form-label {
@@ -1631,9 +1634,15 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                   autocomplete="off" spellcheck="false">
                 <div class="sku-dropdown" id="rcSkuDropdown"></div>
               </div>
-                            <div class="calc-input-group full">
+              <div class="calc-input-group full">
                 <label class="calc-label">PVP — Precio de venta con IVA ($)</label>
-                <input type="number" class="calc-input" id="rcPvpIva" value="650" min="0" step="0.01" oninput="calcularRent()">
+                <div style="position:relative">
+                  <input type="number" class="calc-input" id="rcPvpIva" value="650" min="0" step="0.01" oninput="calcularRent()" style="padding-right:36px">
+                  <span id="rcPvpLock" class="pvp-lock-icon"><i class="ti ti-lock"></i></span>
+                </div>
+                <div id="rcPvpHint" class="pvp-hint">
+                  <i class="ti ti-lock" style="font-size:12px;margin-right:5px"></i>No es posible vender el producto por debajo de este precio. Precio mínimo c/IVA: <strong id="rcPvpMin">$0.00</strong>
+                </div>
               </div>
               <div class="calc-input-group full">
                 <label class="calc-label"><i class="ti ti-building-warehouse" style="font-size:12px"></i> Centro de distribución <span id="rcCentroHint" style="display:none;margin-left:6px;background:var(--amber-bg);color:var(--amber-dark);font-size:9px;padding:1px 6px;border-radius:4px;font-weight:600">SKU sin costo en este centro</span></label>
@@ -4537,6 +4546,24 @@ function calcularRent() {
     sem.className = 'calc-semaforo rojo';
     sem.querySelector('i').className = 'ti ti-x';
     semTxt.textContent = 'Operación en pérdida';
+  }
+
+  // Candado PVP — markup mínimo 35% sobre costo
+  const pvpInput = document.getElementById('rcPvpIva');
+  const pvpLock  = document.getElementById('rcPvpLock');
+  const pvpHint  = document.getElementById('rcPvpHint');
+  const pvpMinEl = document.getElementById('rcPvpMin');
+  const markup   = costoProd > 0 ? (pvpSiva - costoProd) / costoProd * 100 : 100;
+  if (costoProd > 0 && markup <= 35) {
+    const minCiva = (costoProd * 1.35 * (1 + tasaIva));
+    pvpInput.classList.add('pvp-locked');
+    if (pvpLock)  pvpLock.style.display  = 'block';
+    if (pvpHint)  pvpHint.style.display  = 'block';
+    if (pvpMinEl) pvpMinEl.textContent   = '$' + minCiva.toFixed(2);
+  } else {
+    pvpInput.classList.remove('pvp-locked');
+    if (pvpLock)  pvpLock.style.display  = 'none';
+    if (pvpHint)  pvpHint.style.display  = 'none';
   }
 }
 
