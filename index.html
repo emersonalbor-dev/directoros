@@ -644,6 +644,69 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
   background: var(--paper); border: 1px solid var(--line);
   border-radius: 14px; padding: 18px;
 }
+
+/* ===== RECURSOS / CALCULATOR ===== */
+.recursos-layout { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
+@media (max-width: 860px) { .recursos-layout { grid-template-columns: 1fr; } }
+.calc-card {
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: 14px; padding: 20px;
+}
+.calc-inputs-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px;
+}
+.calc-input-group { display: flex; flex-direction: column; }
+.calc-input-group.full { grid-column: 1 / -1; }
+.calc-label {
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.03em;
+}
+.calc-input {
+  padding: 8px 10px; border: 1px solid var(--line);
+  border-radius: 8px; font-size: 14px; font-weight: 500;
+  background: var(--paper-2); color: var(--ink);
+  transition: border-color .15s;
+  width: 100%;
+}
+.calc-input:focus { border-color: var(--maraga); background: var(--paper); }
+.calc-divider { height: 1px; background: var(--line); margin: 6px 0 18px; }
+.calc-results {
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: 14px; overflow: hidden;
+}
+.calc-results table { width: 100%; border-collapse: collapse; }
+.calc-results th {
+  background: var(--paper-2); padding: 10px 14px;
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--line);
+}
+.calc-results th:not(:first-child) { text-align: right; }
+.calc-results td {
+  padding: 10px 14px; border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.calc-results td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.calc-results tr:last-child td { border-bottom: none; }
+.calc-results .row-total td { background: var(--paper-2); font-weight: 600; }
+.calc-results .row-rent td {
+  font-size: 14px; font-weight: 700;
+}
+.calc-results .row-rent.positivo td { background: var(--maraga-bg); color: var(--maraga-dark); }
+.calc-results .row-rent.negativo td { background: var(--red-bg); color: var(--red-dark); }
+.calc-results .row-sub td { font-size: 12px; color: var(--muted); }
+.calc-results .row-sub td:first-child { padding-left: 28px; }
+.calc-val-neg { color: var(--red); }
+.calc-semaforo {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; border-radius: 10px; margin-bottom: 16px;
+  font-size: 13px; font-weight: 600;
+}
+.calc-semaforo.verde { background: var(--maraga-bg); color: var(--maraga-dark); }
+.calc-semaforo.amarillo { background: var(--amber-bg); color: var(--amber-dark); }
+.calc-semaforo.rojo { background: var(--red-bg); color: var(--red-dark); }
+.calc-semaforo i { font-size: 20px; }
+.calc-semaforo-pct { font-size: 22px; font-weight: 700; margin-left: auto; }
 .form-group { margin-bottom: 14px; }
 .form-label {
   font-size: 11px; font-weight: 600; margin-bottom: 6px;
@@ -1241,6 +1304,9 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
         <i class="ti ti-calendar-plus"></i> Agendamiento
         <span class="nav-badge" id="navBadgeBooking" style="display:none">0</span>
       </button>
+      <button class="nav-item" data-view="recursos" onclick="switchView('recursos', this)">
+        <i class="ti ti-tools"></i> Recursos
+      </button>
     </div>
 
     <div class="nav-section director-only">
@@ -1515,6 +1581,116 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 <i class="ti ti-send"></i> Enviar solicitud
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ RECURSOS ============ -->
+      <div class="view" id="view-recursos">
+        <div class="kanban-toolbar">
+          <div>
+            <h2>Recursos Merchandiser</h2>
+            <div class="sub">Herramientas de análisis para el equipo comercial</div>
+          </div>
+        </div>
+
+        <div class="recursos-layout">
+          <!-- Panel izquierdo: inputs -->
+          <div class="calc-card">
+            <div class="section-title" style="margin-bottom:4px">Calculadora de Rentabilidad</div>
+            <div class="section-sub" style="margin-bottom:16px">Ingresa los datos del producto para ver el margen operativo</div>
+
+            <div class="calc-inputs-grid">
+              <div class="calc-input-group full">
+                <label class="calc-label">PVP — Precio de venta con IVA ($)</label>
+                <input type="number" class="calc-input" id="rcPvpIva" value="650" min="0" step="0.01" oninput="calcularRent()">
+              </div>
+              <div class="calc-input-group">
+                <label class="calc-label">Tasa IVA (%)</label>
+                <input type="number" class="calc-input" id="rcTasaIva" value="16" min="0" max="100" step="0.1" oninput="calcularRent()">
+              </div>
+              <div class="calc-input-group">
+                <label class="calc-label">Costo Producto (sin IVA)</label>
+                <input type="number" class="calc-input" id="rcCosto" value="306" min="0" step="0.01" oninput="calcularRent()">
+              </div>
+              <div class="calc-input-group">
+                <label class="calc-label">% Comisión Marketplace</label>
+                <input type="number" class="calc-input" id="rcComision" value="13.5" min="0" max="100" step="0.1" oninput="calcularRent()">
+              </div>
+              <div class="calc-input-group">
+                <label class="calc-label">Logística / Envío (neto)</label>
+                <input type="number" class="calc-input" id="rcLogistica" value="73" min="0" step="0.01" oninput="calcularRent()">
+              </div>
+              <div class="calc-input-group">
+                <label class="calc-label">% Publicidad (ACOS/TACOS)</label>
+                <input type="number" class="calc-input" id="rcPublicidad" value="3" min="0" max="100" step="0.1" oninput="calcularRent()">
+              </div>
+            </div>
+
+            <div class="calc-divider"></div>
+            <div id="rcSemaforo" class="calc-semaforo verde">
+              <i class="ti ti-circle-check"></i>
+              <span id="rcSemaforoTxt">Margen saludable</span>
+              <span class="calc-semaforo-pct" id="rcSemaforoPct">0%</span>
+            </div>
+          </div>
+
+          <!-- Panel derecho: resultados -->
+          <div class="calc-results">
+            <table>
+              <thead>
+                <tr>
+                  <th>Concepto</th>
+                  <th>Con IVA</th>
+                  <th>Sin IVA</th>
+                  <th>% PVP</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="row-rent" id="rcRowRent">
+                  <td>💰 Rentabilidad neta</td>
+                  <td id="rcRentIva">$0</td>
+                  <td id="rcRentSiva">$0</td>
+                  <td id="rcRentPct">0%</td>
+                </tr>
+                <tr>
+                  <td>Ingresos por venta</td>
+                  <td id="rcIngIva">$0</td>
+                  <td id="rcIngSiva">$0</td>
+                  <td>100.0%</td>
+                </tr>
+                <tr>
+                  <td>CMV — Costo de mercancía</td>
+                  <td>—</td>
+                  <td id="rcCmvSiva" class="calc-val-neg">$0</td>
+                  <td id="rcCmvPct">0%</td>
+                </tr>
+                <tr class="row-total">
+                  <td>Costos de venta (total)</td>
+                  <td>—</td>
+                  <td id="rcCostosTotalSiva" class="calc-val-neg">$0</td>
+                  <td id="rcCostosTotalPct">0%</td>
+                </tr>
+                <tr class="row-sub">
+                  <td>Comisión Marketplace</td>
+                  <td>—</td>
+                  <td id="rcMarkSiva">$0</td>
+                  <td id="rcMarkPct">0%</td>
+                </tr>
+                <tr class="row-sub">
+                  <td>Logística / Envío</td>
+                  <td>—</td>
+                  <td id="rcLogSiva">$0</td>
+                  <td id="rcLogPct">0%</td>
+                </tr>
+                <tr class="row-sub">
+                  <td>Publicidad (ACOS)</td>
+                  <td>—</td>
+                  <td id="rcPubSiva">$0</td>
+                  <td id="rcPubPct">0%</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -2791,6 +2967,7 @@ function renderAll() {
   renderCalendar();
   renderKanban();
   renderBooking();
+  calcularRent();
   renderAdmin();
   updateBadges();
   populateModalSelects();
@@ -4246,6 +4423,75 @@ async function rejectRequest(id) {
 }
 
 /* ============================================
+   RECURSOS — CALCULADORA DE RENTABILIDAD
+============================================ */
+function calcularRent() {
+  const pvpIva     = parseFloat(document.getElementById('rcPvpIva').value)    || 0;
+  const tasaIva    = parseFloat(document.getElementById('rcTasaIva').value)   / 100 || 0;
+  const costoProd  = parseFloat(document.getElementById('rcCosto').value)     || 0;
+  const comPct     = parseFloat(document.getElementById('rcComision').value)  / 100 || 0;
+  const logistica  = parseFloat(document.getElementById('rcLogistica').value) || 0;
+  const pubPct     = parseFloat(document.getElementById('rcPublicidad').value)/ 100 || 0;
+
+  const pvpSiva      = pvpIva / (1 + tasaIva);
+  const markSiva     = pvpSiva * comPct;
+  const pubSiva      = pvpSiva * pubPct;
+  const totalCostos  = markSiva + logistica + pubSiva;
+  const rentSiva     = pvpSiva - costoProd - totalCostos;
+  const rentIva      = rentSiva * (1 + tasaIva);
+  const rentPct      = pvpSiva > 0 ? (rentSiva / pvpSiva) * 100 : 0;
+
+  const fmt = (n) => (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
+  const pct = (n) => n.toFixed(1) + '%';
+
+  // Ingresos
+  document.getElementById('rcIngIva').textContent   = fmt(pvpIva);
+  document.getElementById('rcIngSiva').textContent  = fmt(pvpSiva);
+  // CMV
+  document.getElementById('rcCmvSiva').textContent  = '-$' + costoProd.toFixed(2);
+  document.getElementById('rcCmvPct').textContent   = pct(pvpSiva > 0 ? (costoProd/pvpSiva)*100 : 0);
+  // Costos
+  document.getElementById('rcCostosTotalSiva').textContent = '-$' + totalCostos.toFixed(2);
+  document.getElementById('rcCostosTotalPct').textContent  = pct(pvpSiva > 0 ? (totalCostos/pvpSiva)*100 : 0);
+  // Desglose costos
+  document.getElementById('rcMarkSiva').textContent = fmt(markSiva);
+  document.getElementById('rcMarkPct').textContent  = pct(comPct * 100);
+  document.getElementById('rcLogSiva').textContent  = fmt(logistica);
+  document.getElementById('rcLogPct').textContent   = pct(pvpSiva > 0 ? (logistica/pvpSiva)*100 : 0);
+  document.getElementById('rcPubSiva').textContent  = fmt(pubSiva);
+  document.getElementById('rcPubPct').textContent   = pct(pubPct * 100);
+  // Rentabilidad
+  document.getElementById('rcRentIva').textContent  = fmt(rentIva);
+  document.getElementById('rcRentSiva').textContent = fmt(rentSiva);
+  document.getElementById('rcRentPct').textContent  = pct(rentPct);
+
+  // Semáforo y color fila
+  const row = document.getElementById('rcRowRent');
+  const sem = document.getElementById('rcSemaforo');
+  const semTxt = document.getElementById('rcSemaforoTxt');
+  const semPct = document.getElementById('rcSemaforoPct');
+  semPct.textContent = pct(rentPct);
+  row.className = 'row-rent ' + (rentSiva >= 0 ? 'positivo' : 'negativo');
+  if (rentPct >= 20) {
+    sem.className = 'calc-semaforo verde';
+    sem.querySelector('i').className = 'ti ti-circle-check';
+    semTxt.textContent = 'Margen saludable ✓';
+  } else if (rentPct >= 10) {
+    sem.className = 'calc-semaforo amarillo';
+    sem.querySelector('i').className = 'ti ti-alert-circle';
+    semTxt.textContent = 'Margen ajustado — revisar costos';
+  } else if (rentPct >= 0) {
+    sem.className = 'calc-semaforo rojo';
+    sem.querySelector('i').className = 'ti ti-alert-triangle';
+    semTxt.textContent = 'Margen muy bajo — riesgo';
+  } else {
+    sem.className = 'calc-semaforo rojo';
+    sem.querySelector('i').className = 'ti ti-x';
+    semTxt.textContent = 'Operación en pérdida';
+  }
+}
+
+/* ============================================
    ADMIN MODULE
 ============================================ */
 function renderAdmin() {
@@ -5433,6 +5679,7 @@ const viewTitles = {
   calendar: { title: 'Smart Calendar', sub: 'Time blocking 70 / 20 / 10' },
   kanban: { title: 'Task Delegation', sub: 'Seguimiento del equipo con alertas a 24h' },
   booking: { title: 'Team Booking', sub: 'Agendamiento con OKR obligatorio' },
+  recursos: { title: 'Recursos Merchandiser', sub: 'Herramientas de análisis para el equipo comercial' },
   admin: { title: 'Centro de administración', sub: 'Equipo, empresas, permisos y configuración' }
 };
 
