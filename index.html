@@ -1717,13 +1717,13 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 </tr>
                 <tr>
                   <td>CMV — Costo de mercancía</td>
-                  <td>—</td>
+                  <td id="rcCmvIva" class="calc-val-neg">$0</td>
                   <td id="rcCmvSiva" class="calc-val-neg">$0</td>
                   <td id="rcCmvPct">0%</td>
                 </tr>
                 <tr class="row-total">
                   <td>Costos de venta (total)</td>
-                  <td>—</td>
+                  <td id="rcCostosTotalIva" class="calc-val-neg">$0</td>
                   <td id="rcCostosTotalSiva" class="calc-val-neg">$0</td>
                   <td id="rcCostosTotalPct">0%</td>
                 </tr>
@@ -4526,9 +4526,13 @@ function calcularRent() {
   document.getElementById('rcIngIva').textContent   = fmt(pvpIva);
   document.getElementById('rcIngSiva').textContent  = fmt(pvpSiva);
   // CMV
+  const costoProdIva     = costoProd * (1 + tasaIva);
+  const totalCostosIva   = markConIva + logistica + pubConIva;
+  document.getElementById('rcCmvIva').textContent   = '-$' + costoProdIva.toFixed(2);
   document.getElementById('rcCmvSiva').textContent  = '-$' + costoProd.toFixed(2);
   document.getElementById('rcCmvPct').textContent   = pct(pvpSiva > 0 ? (costoProd/pvpSiva)*100 : 0);
   // Costos
+  document.getElementById('rcCostosTotalIva').textContent  = '-$' + totalCostosIva.toFixed(2);
   document.getElementById('rcCostosTotalSiva').textContent = '-$' + totalCostos.toFixed(2);
   document.getElementById('rcCostosTotalPct').textContent  = pct(pvpSiva > 0 ? (totalCostos/pvpSiva)*100 : 0);
   // Desglose costos
