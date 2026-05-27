@@ -1729,7 +1729,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 </tr>
                 <tr class="row-sub">
                   <td>Comisión Marketplace</td>
-                  <td>—</td>
+                  <td id="rcMarkIva">$0</td>
                   <td id="rcMarkSiva">$0</td>
                   <td id="rcMarkPct">0%</td>
                 </tr>
@@ -4499,11 +4499,12 @@ function calcularRent() {
   const logistica  = parseFloat(document.getElementById('rcLogistica').value) || 0;
   const pubPct     = parseFloat(document.getElementById('rcPublicidad').value)/ 100 || 0;
 
-  const pvpSiva      = pvpIva / (1 + tasaIva);
-  const logisticaSiva = logistica / (1 + tasaIva);   // capturada con IVA → convertir a sin IVA
-  const markConIva   = pvpIva * comPct;              // marketplace aplica % sobre pvpIva (con IVA)
-  const pubSiva      = pvpSiva * pubPct;
-  const totalCostos  = markConIva + logisticaSiva + pubSiva;
+  const pvpSiva       = pvpIva / (1 + tasaIva);
+  const logisticaSiva = logistica / (1 + tasaIva);                  // capturada con IVA → sin IVA
+  const markConIva    = pvpIva * comPct;                             // % aplica sobre pvpIva (con IVA)
+  const markSiva      = markConIva / (1 + tasaIva);                 // equivalente sin IVA para el cálculo
+  const pubSiva       = pvpSiva * pubPct;
+  const totalCostos   = markSiva + logisticaSiva + pubSiva;
   const rentSiva     = pvpSiva - costoProd - totalCostos;
   const rentIva      = rentSiva * (1 + tasaIva);
   const rentPct      = pvpSiva > 0 ? (rentSiva / pvpSiva) * 100 : 0;
@@ -4530,8 +4531,9 @@ function calcularRent() {
   document.getElementById('rcCostosTotalSiva').textContent = '-$' + totalCostos.toFixed(2);
   document.getElementById('rcCostosTotalPct').textContent  = pct(pvpSiva > 0 ? (totalCostos/pvpSiva)*100 : 0);
   // Desglose costos
-  document.getElementById('rcMarkSiva').textContent = fmt(markConIva);
-  document.getElementById('rcMarkPct').textContent  = pct(pvpSiva > 0 ? (markConIva/pvpSiva)*100 : 0);
+  document.getElementById('rcMarkIva').textContent  = fmt(markConIva);
+  document.getElementById('rcMarkSiva').textContent = fmt(markSiva);
+  document.getElementById('rcMarkPct').textContent  = pct(pvpSiva > 0 ? (markSiva/pvpSiva)*100 : 0);
   document.getElementById('rcLogSiva').textContent  = fmt(logisticaSiva);
   document.getElementById('rcLogPct').textContent   = pct(pvpSiva > 0 ? (logisticaSiva/pvpSiva)*100 : 0);
   document.getElementById('rcPubSiva').textContent  = fmt(pubSiva);
