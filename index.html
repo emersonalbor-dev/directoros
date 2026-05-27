@@ -694,6 +694,9 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 }
 .calc-results .row-rent.positivo td { background: var(--maraga-bg); color: var(--maraga-dark); }
 .calc-results .row-rent.negativo td { background: var(--red-bg); color: var(--red-dark); }
+.calc-results .row-rent.verde    td { background: var(--maraga-bg); color: var(--maraga-dark); }
+.calc-results .row-rent.amarillo td { background: var(--amber-bg);  color: var(--amber-dark); }
+.calc-results .row-rent.rojo     td { background: var(--red-bg);    color: var(--red-dark); }
 .calc-results .row-sub td { font-size: 12px; color: var(--muted); }
 .calc-results .row-sub td:first-child { padding-left: 28px; }
 .calc-val-neg { color: var(--red); }
@@ -4544,21 +4547,24 @@ function calcularRent() {
   const semPct = document.getElementById('rcSemaforoPct');
   // Semáforo — evalúa rentabilidad NETA
   const r = Math.round(rentPct * 10) / 10;
-  row.className = 'row-rent ' + (rentSiva >= 0 ? 'positivo' : 'negativo');
   semPct.textContent = pct(rentPct);
   if (r >= 17) {
+    row.className = 'row-rent verde';
     sem.className = 'calc-semaforo verde';
     sem.querySelector('i').className = 'ti ti-circle-check';
     semTxt.textContent = 'Margen saludable ✓';
   } else if (r >= 14) {
+    row.className = 'row-rent amarillo';
     sem.className = 'calc-semaforo amarillo';
     sem.querySelector('i').className = 'ti ti-alert-circle';
     semTxt.textContent = 'Margen ajustado — revisar costos';
   } else if (r >= 0) {
+    row.className = 'row-rent rojo';
     sem.className = 'calc-semaforo rojo';
     sem.querySelector('i').className = 'ti ti-alert-triangle';
     semTxt.textContent = 'Margen muy bajo — riesgo';
   } else {
+    row.className = 'row-rent rojo';
     sem.className = 'calc-semaforo rojo';
     sem.querySelector('i').className = 'ti ti-x';
     semTxt.textContent = 'Operación en pérdida';
