@@ -5810,22 +5810,27 @@ document.addEventListener('keydown', e => {
 
 
 /* ===== SKU PRICE LIST SEARCH ===== */
+let _skuResults = []; // almacén de resultados actual
+
 function filterSkuSearch(q) {
   const dd = document.getElementById('rcSkuDropdown');
   if (!dd) return;
   const trimmed = (q || '').trim();
   if (trimmed.length < 2) { dd.classList.remove('open'); return; }
   const qU = trimmed.toUpperCase();
-  const results = PRICE_LIST.filter(([s,d]) =>
+  _skuResults = PRICE_LIST.filter(([s,d]) =>
     s.toUpperCase().includes(qU) || d.toUpperCase().includes(qU)
   ).slice(0, 15);
-  if (!results.length) {
-    dd.innerHTML = '<div class="sku-no-results">Sin resultados para &ldquo;' + escapeHtml(trimmed) + '&rdquo;</div>';
+  if (!_skuResults.length) {
+    dd.innerHTML = '<div class="sku-no-results">Sin resultados para "' + escapeHtml(trimmed) + '"</div>';
   } else {
-    dd.innerHTML = results.map(([sku, desc, precio]) => {
-      const s = escapeHtml(sku), d = escapeHtml(desc);
-      return '<div class="sku-option" onmousedown="selectSku(' + JSON.stringify(sku) + ',' + JSON.stringify(desc) + ',' + precio + ')"><span class="sku-option-code">' + s + '</span><span class="sku-option-desc">' + d + '</span><span class="sku-option-price">$' + precio.toFixed(2) + '</span></div>';
-    }).join('');
+    dd.innerHTML = _skuResults.map(([sku, desc, precio], i) =>
+      `<div class="sku-option" data-i="${i}">
+        <span class="sku-option-code">${escapeHtml(sku)}</span>
+        <span class="sku-option-desc">${escapeHtml(desc)}</span>
+        <span class="sku-option-price">$${precio.toFixed(2)}</span>
+      </div>`
+    ).join('');
   }
   dd.classList.add('open');
 }
@@ -5834,16 +5839,33 @@ function selectSku(sku, desc, precio) {
   const inp = document.getElementById('rcSkuSearch');
   if (inp) inp.value = sku + '  —  ' + desc;
   const pvp = document.getElementById('rcPvpIva');
-  if (pvp) pvp.value = precio.toFixed(2);
+  if (pvp) { pvp.value = precio.toFixed(2); }
   const dd = document.getElementById('rcSkuDropdown');
   if (dd) dd.classList.remove('open');
   calcularRent();
 }
 
+// Delegated mousedown: e.preventDefault() evita que el input pierda el foco
+// antes de que podamos leer el índice del ítem seleccionado
+document.addEventListener('mousedown', function(e) {
+  const opt = e.target.closest('.sku-option');
+  const ddEl = e.target.closest('.sku-dropdown');
+  if (ddEl) e.preventDefault(); // mantener foco en el input
+  if (opt) {
+    const i = parseInt(opt.dataset.i, 10);
+    if (!isNaN(i) && _skuResults[i]) {
+      const [sku, desc, precio] = _skuResults[i];
+      selectSku(sku, desc, precio);
+    }
+  }
+});
+
+// Cerrar dropdown al hacer clic fuera
 document.addEventListener('click', function(e) {
-  const dd = document.getElementById('rcSkuDropdown');
-  const wrap = document.querySelector('.sku-search-wrap');
-  if (dd && wrap && !wrap.contains(e.target)) dd.classList.remove('open');
+  if (!e.target.closest('.sku-search-wrap')) {
+    const dd = document.getElementById('rcSkuDropdown');
+    if (dd) dd.classList.remove('open');
+  }
 });
 
 function downloadPriceList() {
