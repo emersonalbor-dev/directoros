@@ -1668,13 +1668,23 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 <label class="calc-label">Costo Producto (sin IVA) <span id="rcCostoAuto" style="display:none;background:var(--maraga-bg);color:var(--maraga-dark);font-size:9px;padding:1px 6px;border-radius:4px;font-weight:600;letter-spacing:0.02em">AUTO ✓</span></label>
                 <input type="number" class="calc-input" id="rcCosto" value="306" min="0" step="0.01" oninput="calcularRent()">
               </div>
-              <div class="calc-input-group">
-                <label class="calc-label">% Comisión Marketplace</label>
-                <input type="number" class="calc-input" id="rcComision" value="13.5" min="0" max="100" step="0.1" oninput="calcularRent()">
+              <div class="calc-input-group full">
+                <label class="calc-label">🏪 Plataforma</label>
+                <select class="calc-input" id="rcPlataforma" onchange="selectPlataforma(this.value)">
+                  <option value="">— Manual —</option>
+                  <option value="MERCADOLIBRE">Mercado Libre</option>
+                  <option value="AMAZON">Amazon</option>
+                  <option value="WALMART">Walmart</option>
+                  <option value="MARAGA">MaragaMX</option>
+                </select>
               </div>
               <div class="calc-input-group">
-                <label class="calc-label">Logística / Envío (con IVA)</label>
-                <input type="number" class="calc-input" id="rcLogistica" value="73" min="0" step="0.01" oninput="calcularRent()">
+                <label class="calc-label">% Comisión Marketplace</label>
+                <input type="number" class="calc-input" id="rcComision" value="17" min="0" max="100" step="0.1" oninput="calcularRent()">
+              </div>
+              <div class="calc-input-group">
+                <label class="calc-label">% Logística / Envío</label>
+                <input type="number" class="calc-input" id="rcLogistica" value="12" min="0" max="100" step="0.1" oninput="calcularRent()">
               </div>
               <div class="calc-input-group">
                 <label class="calc-label">% Publicidad (ACOS/TACOS)</label>
@@ -4491,16 +4501,32 @@ async function rejectRequest(id) {
 /* ============================================
    RECURSOS — CALCULADORA DE RENTABILIDAD
 ============================================ */
+const PLATAFORMAS = {
+  MERCADOLIBRE: { comision: 17,  logistica: 12 },
+  AMAZON:       { comision: 19,  logistica: 4  },
+  WALMART:      { comision: 18,  logistica: 4  },
+  MARAGA:       { comision: 1,   logistica: 3  },
+};
+
+function selectPlataforma(val) {
+  const p = PLATAFORMAS[val];
+  if (!p) return;
+  document.getElementById('rcComision').value  = p.comision;
+  document.getElementById('rcLogistica').value = p.logistica;
+  calcularRent();
+}
+
 function calcularRent() {
   const pvpIva     = parseFloat(document.getElementById('rcPvpIva').value)    || 0;
   const tasaIva    = parseFloat(document.getElementById('rcTasaIva').value)   / 100 || 0;
   const costoProd  = parseFloat(document.getElementById('rcCosto').value)     || 0;
   const comPct     = parseFloat(document.getElementById('rcComision').value)  / 100 || 0;
-  const logistica  = parseFloat(document.getElementById('rcLogistica').value) || 0;
+  const logisticaPct = parseFloat(document.getElementById('rcLogistica').value) / 100 || 0;
   const pubPct     = parseFloat(document.getElementById('rcPublicidad').value)/ 100 || 0;
 
   const pvpSiva       = pvpIva / (1 + tasaIva);
-  const logisticaSiva = logistica / (1 + tasaIva);                  // capturada con IVA → sin IVA
+  const logisticaConIva = pvpIva * logisticaPct;                     // % aplica sobre pvpIva (con IVA)
+  const logisticaSiva   = logisticaConIva / (1 + tasaIva);          // equivalente sin IVA para el cálculo
   const markConIva    = pvpIva * comPct;                             // % aplica sobre pvpIva (con IVA)
   const markSiva      = markConIva / (1 + tasaIva);                 // equivalente sin IVA para el cálculo
   const pubConIva     = pvpIva * pubPct;
@@ -4527,7 +4553,7 @@ function calcularRent() {
   document.getElementById('rcIngSiva').textContent  = fmt(pvpSiva);
   // CMV
   const costoProdIva     = costoProd * (1 + tasaIva);
-  const totalCostosIva   = markConIva + logistica + pubConIva;
+  const totalCostosIva   = markConIva + logisticaConIva + pubConIva;
   document.getElementById('rcCmvIva').textContent   = '-$' + costoProdIva.toFixed(2);
   document.getElementById('rcCmvSiva').textContent  = '-$' + costoProd.toFixed(2);
   document.getElementById('rcCmvPct').textContent   = pct(pvpSiva > 0 ? (costoProd/pvpSiva)*100 : 0);
@@ -4539,7 +4565,7 @@ function calcularRent() {
   document.getElementById('rcMarkIva').textContent  = fmt(markConIva);
   document.getElementById('rcMarkSiva').textContent = fmt(markSiva);
   document.getElementById('rcMarkPct').textContent  = pct(pvpSiva > 0 ? (markSiva/pvpSiva)*100 : 0);
-  document.getElementById('rcLogIva').textContent   = fmt(logistica);
+  document.getElementById('rcLogIva').textContent   = fmt(logisticaConIva);
   document.getElementById('rcLogSiva').textContent  = fmt(logisticaSiva);
   document.getElementById('rcLogPct').textContent   = pct(pvpSiva > 0 ? (logisticaSiva/pvpSiva)*100 : 0);
   document.getElementById('rcPubIva').textContent   = fmt(pubConIva);
