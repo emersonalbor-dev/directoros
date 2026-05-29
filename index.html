@@ -731,6 +731,31 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 .sku-option-price { font-size: 12px; font-weight: 700; color: var(--maraga); white-space: nowrap; }
 .sku-no-results { padding: 14px; text-align: center; color: var(--muted); font-size: 12px; }
 .calc-input.pvp-locked { border-color: var(--red) !important; background: var(--red-bg) !important; color: var(--red-dark) !important; }
+
+/* ── Kit Builder ───────────────────────────────────────────────────── */
+.recursos-section-divider{display:flex;align-items:center;gap:12px;margin:32px 0 18px;font-weight:700;font-size:13px;color:var(--muted)}
+.recursos-section-divider::before,.recursos-section-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.kit-top-layout{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.kit-top-layout{grid-template-columns:1fr}}
+.kit-add-row{display:flex;gap:8px;align-items:flex-start}
+.kit-comp-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
+.kit-comp-table th{background:var(--paper-2);padding:6px 8px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border)}
+.kit-comp-table td{padding:5px 8px;border-bottom:1px solid var(--border-light, var(--border))}
+.kit-comp-total td{background:var(--paper-2);font-size:12px;padding:7px 8px}
+.kit-cell-input{border:1px solid var(--border);border-radius:5px;padding:3px 6px;font-size:12px;width:100%;background:var(--paper);color:var(--text);font-family:inherit}
+.kit-cell-input:focus{outline:none;border-color:var(--maraga)}
+.kit-stock-panel{background:var(--paper-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:8px}
+.kit-stock-bar-bg{background:var(--border);border-radius:6px;height:8px;overflow:hidden}
+.kit-stock-bar-fill{height:8px;border-radius:6px;background:var(--maraga);transition:width .4s,background .4s}
+.kit-channels-table{width:100%;border-collapse:collapse;font-size:12px}
+.kit-channels-table th{background:var(--paper-2);padding:6px 8px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border)}
+.kit-channels-table td{padding:6px 8px;border-bottom:1px solid var(--border-light, var(--border));font-size:12px}
+.kit-channels-table tr:last-child td{border-bottom:none}
+.kit-canal-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle;border:1px solid rgba(0,0,0,.15)}
+.kit-badge{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;font-size:9px;font-weight:700;vertical-align:middle;margin-right:2px}
+.kit-badge-verde{background:var(--maraga-bg);color:var(--maraga-dark)}
+.kit-badge-amarillo{background:var(--amber-bg);color:var(--amber-dark)}
+.kit-badge-rojo{background:var(--red-bg);color:var(--red-dark)}
 .pvp-lock-icon { display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--red); font-size:18px; pointer-events:none; }
 .pvp-hint { display:none; margin-top:6px; background:var(--red-bg); color:var(--red-dark); font-size:11px; padding:7px 10px; border-radius:8px; font-weight:500; border-left:3px solid var(--red); }
 
@@ -1768,6 +1793,119 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
         </div>
       </div>
 
+
+        <!-- ===== KIT BUILDER ===== -->
+        <div class="recursos-section-divider"><span>&#127873; Creador de Kits / Bundles</span></div>
+        <div>
+          <div class="kit-top-layout">
+            <div class="calc-card" style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="calc-input-group">
+                  <label class="calc-label">SKU Maestro del Kit</label>
+                  <input type="text" class="calc-input" id="kitSkuMaestro" placeholder="Ej. KIT-MIG350A-ACC">
+                </div>
+                <div class="calc-input-group">
+                  <label class="calc-label">Nombre del Kit</label>
+                  <input type="text" class="calc-input" id="kitNombre" placeholder="Ej. Kit Soldador Profesional">
+                </div>
+              </div>
+              <div class="calc-input-group full" style="margin-top:4px">
+                <label class="calc-label">Buscar y agregar componente</label>
+                <div class="kit-add-row">
+                  <div class="sku-search-wrap" style="flex:1;min-width:0">
+                    <input type="text" class="calc-input" id="kitSkuSearch" placeholder="SKU o descripcion..." oninput="kitFilterSku(this.value)" autocomplete="off" onblur="setTimeout(function(){var d=document.getElementById('kitSkuDropdown');if(d)d.classList.remove('open');},200)">
+                    <div class="sku-dropdown" id="kitSkuDropdown"></div>
+                  </div>
+                  <input type="number" class="calc-input" id="kitQtyAdd" value="1" min="1" step="1" style="width:64px" title="Cantidad">
+                  <button class="btn btn-sm" onclick="kitAddComponent()"><i class="ti ti-plus"></i> Agregar</button>
+                </div>
+              </div>
+              <div style="overflow-x:auto">
+                <table class="kit-comp-table">
+                  <thead><tr>
+                    <th>SKU</th><th>Descripcion</th><th style="text-align:center">Qty</th>
+                    <th>Costo s/IVA</th><th>Subtotal</th><th>Stock disp.</th><th></th>
+                  </tr></thead>
+                  <tbody id="kitCompBody">
+                    <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:22px;font-size:12px">Sin componentes &mdash; busca y agrega SKUs</td></tr>
+                  </tbody>
+                  <tfoot><tr class="kit-comp-total">
+                    <td colspan="4" style="text-align:right;font-weight:600;font-size:12px">COGS Total (sin IVA)</td>
+                    <td id="kitCogsSiva" style="font-weight:700;color:var(--maraga-dark)">$0.00</td>
+                    <td colspan="2"></td>
+                  </tr></tfoot>
+                </table>
+              </div>
+              <div class="kit-stock-panel">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                  <i class="ti ti-stack" style="color:var(--maraga-dark);font-size:15px"></i>
+                  <span style="font-weight:600;font-size:12px">Stock Virtual del Kit</span>
+                  <span style="margin-left:auto;font-size:18px;font-weight:700;color:var(--maraga-dark)" id="kitStockCount">&#8212;</span>
+                  <span style="font-size:11px;color:var(--muted)">unidades</span>
+                </div>
+                <div class="kit-stock-bar-bg"><div class="kit-stock-bar-fill" id="kitStockBarFill" style="width:0%"></div></div>
+                <div id="kitBottleneck" style="font-size:11px;color:var(--muted);margin-top:5px">Ingresa stock disponible por componente para calcular</div>
+              </div>
+            </div>
+            <div class="calc-card" style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="calc-input-group">
+                  <label class="calc-label">PVP Kit con IVA ($)</label>
+                  <input type="number" class="calc-input" id="kitPvpIva" value="0" min="0" step="0.01" oninput="calcularKit()">
+                </div>
+                <div class="calc-input-group">
+                  <label class="calc-label">Tasa IVA (%)</label>
+                  <input type="number" class="calc-input" id="kitTasaIva" value="16" min="0" max="100" step="0.1" oninput="calcularKit()">
+                </div>
+              </div>
+              <div>
+                <div style="font-weight:600;font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:.04em">RENTABILIDAD POR CANAL</div>
+                <table class="kit-channels-table">
+                  <thead><tr>
+                    <th>Canal</th><th>Comision</th><th>Logistica</th>
+                    <th>Margen $</th><th>Margen %</th><th>ROI</th>
+                  </tr></thead>
+                  <tbody id="kitChannelsBody">
+                    <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px;font-size:12px">Ingresa PVP y agrega componentes</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="calc-card" style="margin-top:12px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+              <i class="ti ti-tag" style="color:var(--maraga-dark);font-size:18px"></i>
+              <div>
+                <div style="font-weight:700;font-size:14px">PIM &#8212; Informacion de Producto</div>
+                <div style="font-size:11px;color:var(--muted)">Datos para publicacion omnicanal</div>
+              </div>
+              <button class="btn btn-sm" style="margin-left:auto" onclick="kitGenerarTitulo()"><i class="ti ti-sparkles"></i> Generar titulo</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="calc-input-group full" style="grid-column:1/-1">
+                <label class="calc-label">Titulo del Kit</label>
+                <input type="text" class="calc-input" id="kitTitulo" placeholder="Se genera automaticamente o escribe manualmente">
+              </div>
+              <div class="calc-input-group full" style="grid-column:1/-1">
+                <label class="calc-label">Descripcion</label>
+                <textarea class="calc-input" id="kitDescripcion" rows="3" style="resize:vertical" placeholder="Describe el kit: que incluye, para que sirve, beneficios clave..."></textarea>
+              </div>
+              <div class="calc-input-group">
+                <label class="calc-label">Tags / Palabras clave</label>
+                <input type="text" class="calc-input" id="kitTags" placeholder="soldadora, kit, MIG, profesional...">
+              </div>
+              <div class="calc-input-group">
+                <label class="calc-label">Categoria</label>
+                <input type="text" class="calc-input" id="kitCategoria" placeholder="Ej. Herramientas > Soldadura">
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center">
+              <button class="btn btn-sm" onclick="kitExportJson()"><i class="ti ti-download"></i> Exportar JSON</button>
+              <button class="btn btn-sm" style="background:var(--maraga);color:#fff" onclick="kitPublicarKit()"><i class="ti ti-send"></i> Preparar para publicacion</button>
+              <span style="font-size:11px;color:var(--muted);margin-left:4px"><i class="ti ti-api"></i> API push disponible &mdash; v1.0</span>
+            </div>
+          </div>
+        </div>
       <!-- ============ ADMIN MODULE ============ -->
       <div class="view" id="view-admin">
         <div class="admin-tabs">
@@ -4626,6 +4764,190 @@ function calcularRent() {
   }
 }
 
+
+/* ============================================
+   KIT BUILDER
+============================================ */
+let _kitComponents = [];
+let _kitSkuResults = [];
+let _kitSelectedSearch = null;
+
+const CANALES_KIT = {
+  MERCADOLIBRE: { nombre:'Mercado Libre', comision:17, logistica:12, color:'#FFE600', border:'#b8a800' },
+  AMAZON:       { nombre:'Amazon',        comision:19, logistica:4,  color:'#FF9900', border:'#c77700' },
+  WALMART:      { nombre:'Walmart',       comision:18, logistica:4,  color:'#007DC6', border:'#005f9e' },
+  TIKTOK:       { nombre:'TikTok Shop',   comision:8,  logistica:3,  color:'#010101', border:'#444'    },
+  TIENDA:       { nombre:'Tienda Propia', comision:2,  logistica:5,  color:'#6C47FF', border:'#5030d0' },
+};
+
+function kitFilterSku(q) {
+  const dd = document.getElementById('kitSkuDropdown');
+  const trimmed = (q||'').trim();
+  if (trimmed.length < 2) { dd.classList.remove('open'); return; }
+  const qU = trimmed.toUpperCase();
+  _kitSkuResults = PRICE_LIST.filter(function(r){ return r[0].toUpperCase().includes(qU)||r[1].toUpperCase().includes(qU); }).slice(0,15);
+  dd.innerHTML = _kitSkuResults.map(function(r,i){
+    return '<div class="sku-option" data-kit-i="'+i+'"><span class="sku-opt-code">'+r[0]+'</span><span class="sku-opt-desc">'+r[1]+'</span><span class="sku-opt-price">$'+r[2].toLocaleString('es-MX',{minimumFractionDigits:2})+'</span></div>';
+  }).join('');
+  dd.classList.add('open');
+}
+
+function kitAddComponent() {
+  if (!_kitSelectedSearch) { showToast('Selecciona un SKU del dropdown primero','warn'); return; }
+  var sel = _kitSelectedSearch;
+  if (_kitComponents.find(function(c){return c.sku===sel.sku;})) { showToast('Este SKU ya esta en el kit','warn'); return; }
+  var qty = parseInt(document.getElementById('kitQtyAdd').value)||1;
+  var costo = 0;
+  if (typeof INVENTORY !== 'undefined' && INVENTORY[sel.sku]) {
+    var costs = Object.values(INVENTORY[sel.sku]).filter(function(v){return v>0;});
+    if (costs.length) costo = Math.min.apply(null, costs);
+  }
+  _kitComponents.push({sku:sel.sku, desc:sel.desc, pvp:sel.pvp, qty:qty, costo:costo, stock:0});
+  document.getElementById('kitSkuSearch').value = '';
+  document.getElementById('kitSkuDropdown').classList.remove('open');
+  document.getElementById('kitQtyAdd').value = 1;
+  _kitSelectedSearch = null;
+  renderKitComponents();
+  calcularKit();
+  showToast('Componente agregado','success');
+}
+
+function kitRemoveComponent(sku) {
+  _kitComponents = _kitComponents.filter(function(c){return c.sku!==sku;});
+  renderKitComponents();
+  calcularKit();
+}
+
+function kitUpdateField(sku, field, val) {
+  var comp = _kitComponents.find(function(c){return c.sku===sku;});
+  if (!comp) return;
+  comp[field] = parseFloat(val)||0;
+  calcularKit();
+}
+
+function renderKitComponents() {
+  var tbody = document.getElementById('kitCompBody');
+  if (!_kitComponents.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:22px;font-size:12px">Sin componentes &mdash; busca y agrega SKUs</td></tr>';
+    document.getElementById('kitCogsSiva').textContent = '$0.00';
+    return;
+  }
+  tbody.innerHTML = _kitComponents.map(function(c){
+    return '<tr>'
+      +'<td><span style="font-size:11px;font-weight:700;color:var(--maraga-dark)">'+c.sku+'</span></td>'
+      +'<td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+c.desc+'">'+c.desc+'</td>'
+      +'<td style="text-align:center"><input type="number" class="kit-cell-input" value="'+c.qty+'" min="1" step="1" style="width:52px;text-align:center" onchange="kitUpdateField(''+c.sku+'','qty',this.value)"></td>'
+      +'<td><input type="number" class="kit-cell-input" value="'+c.costo.toFixed(2)+'" min="0" step="0.01" style="width:82px" onchange="kitUpdateField(''+c.sku+'','costo',this.value)"></td>'
+      +'<td style="font-weight:600;color:var(--maraga-dark)">$'+(c.qty*c.costo).toFixed(2)+'</td>'
+      +'<td><input type="number" class="kit-cell-input" value="'+c.stock+'" min="0" step="1" style="width:62px" onchange="kitUpdateField(''+c.sku+'','stock',this.value)" placeholder="0"></td>'
+      +'<td><button class="btn btn-icon" style="color:var(--red);padding:2px 5px;font-size:12px" onclick="kitRemoveComponent(''+c.sku+'')"><i class="ti ti-trash"></i></button></td>'
+      +'</tr>';
+  }).join('');
+  var cogs = _kitComponents.reduce(function(s,c){return s+c.qty*c.costo;},0);
+  document.getElementById('kitCogsSiva').textContent = '$'+cogs.toFixed(2);
+}
+
+function calcularKit() {
+  var pvpIva  = parseFloat(document.getElementById('kitPvpIva').value)  || 0;
+  var tasaIva = parseFloat(document.getElementById('kitTasaIva').value) / 100 || 0.16;
+  var pvpSiva = pvpIva / (1 + tasaIva);
+  var cogsSiva = _kitComponents.reduce(function(s,c){return s+c.qty*c.costo;},0);
+  document.getElementById('kitCogsSiva').textContent = '$'+cogsSiva.toFixed(2);
+
+  if (_kitComponents.length > 0) {
+    var allHaveStock = _kitComponents.every(function(c){return c.stock>0;});
+    if (allHaveStock) {
+      var minUnits = Infinity, bottle = '';
+      _kitComponents.forEach(function(c){
+        var u = Math.floor(c.stock/c.qty);
+        if (u < minUnits) { minUnits = u; bottle = c.sku; }
+      });
+      document.getElementById('kitStockCount').textContent = minUnits===Infinity?'—':minUnits;
+      document.getElementById('kitBottleneck').textContent = bottle?'Cuello de botella: '+bottle:'';
+      var pct = Math.min((minUnits/Math.max(minUnits,100))*100,100);
+      var fill = document.getElementById('kitStockBarFill');
+      fill.style.width = pct+'%';
+      fill.style.background = minUnits>50?'var(--maraga)':minUnits>10?'var(--amber)':'var(--red)';
+    } else {
+      document.getElementById('kitStockCount').textContent = '—';
+      document.getElementById('kitBottleneck').textContent = 'Ingresa stock disponible por componente';
+      document.getElementById('kitStockBarFill').style.width = '0%';
+    }
+  }
+
+  var tbody = document.getElementById('kitChannelsBody');
+  if (pvpIva <= 0 || cogsSiva <= 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px;font-size:12px">Ingresa PVP y agrega componentes con costo</td></tr>';
+    return;
+  }
+  tbody.innerHTML = Object.entries(CANALES_KIT).map(function(entry){
+    var key=entry[0], canal=entry[1];
+    var markConIva = pvpIva*(canal.comision/100);
+    var markSiva   = markConIva/(1+tasaIva);
+    var logConIva  = pvpIva*(canal.logistica/100);
+    var logSiva    = logConIva/(1+tasaIva);
+    var margenSiva = pvpSiva - cogsSiva - markSiva - logSiva;
+    var margenPct  = pvpSiva>0?(margenSiva/pvpSiva)*100:0;
+    var roi        = cogsSiva>0?(margenSiva/cogsSiva)*100:0;
+    var r = Math.round(margenPct*10)/10;
+    var rowBg = r<0?'background:var(--red-bg)':r<14?'background:var(--amber-bg)':'';
+    var badge = r>=17
+      ?'<span class="kit-badge kit-badge-verde">&#10003;</span>'
+      :r>=0?'<span class="kit-badge kit-badge-amarillo">&#9888;</span>'
+           :'<span class="kit-badge kit-badge-rojo">&#10007;</span>';
+    return '<tr style="'+rowBg+'">'
+      +'<td style="white-space:nowrap"><span class="kit-canal-dot" style="background:'+canal.color+';border-color:'+canal.border+'"></span>'+canal.nombre+'</td>'
+      +'<td>'+canal.comision+'%</td><td>'+canal.logistica+'%</td>'
+      +'<td style="font-weight:600'+(margenSiva<0?';color:var(--red)':'')+'">$'+margenSiva.toFixed(2)+'</td>'
+      +'<td>'+badge+' '+margenPct.toFixed(1)+'%</td>'
+      +'<td style="font-weight:600'+(roi<0?';color:var(--red)':'')+'">'+roi.toFixed(1)+'%</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function kitGenerarTitulo() {
+  if (!_kitComponents.length) { showToast('Agrega componentes primero','warn'); return; }
+  var nombre = document.getElementById('kitNombre').value.trim();
+  var comps = _kitComponents.slice(0,3).map(function(c){return c.sku;}).join(' + ');
+  var extra = _kitComponents.length>3?' +'+(_kitComponents.length-3)+' mas':'';
+  document.getElementById('kitTitulo').value = nombre
+    ?'Kit '+nombre+' ('+comps+extra+')'
+    :'Kit '+comps+extra+' — '+_kitComponents.length+' componentes';
+  showToast('Titulo generado','success');
+}
+
+function kitExportJson() {
+  var data = {
+    sku_maestro:  document.getElementById('kitSkuMaestro').value,
+    nombre:       document.getElementById('kitNombre').value,
+    titulo:       document.getElementById('kitTitulo').value,
+    descripcion:  document.getElementById('kitDescripcion').value,
+    tags:         document.getElementById('kitTags').value,
+    categoria:    document.getElementById('kitCategoria').value,
+    pvp_iva:      parseFloat(document.getElementById('kitPvpIva').value)||0,
+    tasa_iva:     parseFloat(document.getElementById('kitTasaIva').value)||16,
+    componentes:  _kitComponents,
+    cogs_sin_iva: _kitComponents.reduce(function(s,c){return s+c.qty*c.costo;},0),
+    timestamp:    new Date().toISOString()
+  };
+  var blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'kit_'+(data.sku_maestro||'nuevo')+'_'+Date.now()+'.json';
+  a.click();
+  showToast('Kit exportado como JSON','success');
+}
+
+function kitPublicarKit() {
+  var skuM  = document.getElementById('kitSkuMaestro').value.trim();
+  var nombre = document.getElementById('kitNombre').value.trim();
+  if (!skuM||!nombre) { showToast('Completa SKU Maestro y Nombre del Kit','warn'); return; }
+  if (!_kitComponents.length) { showToast('Agrega al menos un componente','warn'); return; }
+  var pvpIva = parseFloat(document.getElementById('kitPvpIva').value)||0;
+  if (!pvpIva) { showToast('Ingresa el PVP del kit','warn'); return; }
+  showToast('Kit "'+nombre+'" listo — integracion API v1.0 disponible','success');
+}
+
 /* ============================================
    ADMIN MODULE
 ============================================ */
@@ -5972,8 +6294,20 @@ function _setCostFromInventory(sku, centro) {
 document.addEventListener('mousedown', function(e) {
   const opt = e.target.closest('.sku-option');
   const ddEl = e.target.closest('.sku-dropdown');
-  if (ddEl) e.preventDefault(); // mantener foco en el input
+  if (ddEl) e.preventDefault();
   if (opt) {
+    // Kit Builder dropdown
+    if (opt.dataset.kitI !== undefined) {
+      const i = parseInt(opt.dataset.kitI, 10);
+      if (!isNaN(i) && _kitSkuResults[i]) {
+        const [sku, desc, precio] = _kitSkuResults[i];
+        _kitSelectedSearch = {sku, desc, pvp: precio};
+        document.getElementById('kitSkuSearch').value = sku + '  —  ' + desc;
+        document.getElementById('kitSkuDropdown').classList.remove('open');
+      }
+      return;
+    }
+    // Calculadora dropdown
     const i = parseInt(opt.dataset.i, 10);
     if (!isNaN(i) && _skuResults[i]) {
       const [sku, desc, precio] = _skuResults[i];
