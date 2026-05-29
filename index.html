@@ -1886,7 +1886,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 <table class="kit-channels-table">
                   <thead><tr>
                     <th>Canal</th><th>Comision</th><th>Logistica</th>
-                    <th>Margen $</th><th>Margen %</th><th>ROI</th>
+                    <th>Margen $</th><th>Margen %</th>
                   </tr></thead>
                   <tbody id="kitChannelsBody">
                     <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px;font-size:12px">Ingresa PVP y agrega componentes</td></tr>
@@ -4948,7 +4948,6 @@ function calcularKit() {
       +'<td>'+canal.comision+'%</td><td>'+canal.logistica+'%</td>'
       +'<td style="font-weight:600'+(margenSiva<0?';color:var(--red)':'')+'">$'+margenSiva.toFixed(2)+'</td>'
       +'<td>'+badge+' '+margenPct.toFixed(1)+'%</td>'
-      +'<td style="font-weight:600'+(roi<0?';color:var(--red)':'')+'">'+roi.toFixed(1)+'%</td>'
       +'</tr>';
   }).join('');
 }
