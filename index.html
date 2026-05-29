@@ -1802,8 +1802,8 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div class="calc-input-group">
                   <label class="calc-label">SKU Maestro del Kit</label>
-                  <div class="sku-search-wrap">
-                    <input type="text" class="calc-input" id="kitSkuMaestro" placeholder="Buscar SKU maestro..." oninput="kitMaestroFilter(this.value)" autocomplete="off" onblur="setTimeout(function(){var d=document.getElementById('kitMaestroDd');if(d)d.classList.remove('open');},200)">
+                  <div class="sku-search-wrap" style="grid-column:auto">
+                    <input type="text" class="calc-input" id="kitSkuMaestro" placeholder="Buscar SKU maestro..." oninput="kitMaestroFilter(this.value)" autocomplete="off">
                     <div class="sku-dropdown" id="kitMaestroDd"></div>
                   </div>
                 </div>
@@ -1815,8 +1815,8 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
               <div class="calc-input-group full" style="margin-top:4px">
                 <label class="calc-label">Buscar y agregar componente</label>
                 <div class="kit-add-row">
-                  <div class="sku-search-wrap" style="flex:1;min-width:0">
-                    <input type="text" class="calc-input" id="kitSkuSearch" placeholder="SKU o descripcion..." oninput="kitFilterSku(this.value)" autocomplete="off" onblur="setTimeout(function(){var d=document.getElementById('kitSkuDropdown');if(d)d.classList.remove('open');},200)">
+                  <div class="sku-search-wrap" style="flex:1;min-width:0;grid-column:auto">
+                    <input type="text" class="calc-input" id="kitSkuSearch" placeholder="SKU o descripcion..." oninput="kitFilterSku(this.value)" autocomplete="off">
                     <div class="sku-dropdown" id="kitSkuDropdown"></div>
                   </div>
                   <input type="number" class="calc-input" id="kitQtyAdd" value="1" min="1" step="1" style="width:64px" title="Cantidad">
@@ -4936,7 +4936,7 @@ function kitGenerarTitulo() {
 
 function kitExportJson() {
   var data = {
-    sku_maestro:  document.getElementById('kitSkuMaestro').value,
+    sku_maestro:  (document.getElementById('kitSkuMaestro').value.split('  —  ')[0]).trim(),
     nombre:       document.getElementById('kitNombre').value,
     titulo:       document.getElementById('kitTitulo').value,
     descripcion:  document.getElementById('kitDescripcion').value,
@@ -4957,7 +4957,7 @@ function kitExportJson() {
 }
 
 function kitPublicarKit() {
-  var skuM  = document.getElementById('kitSkuMaestro').value.trim();
+  var skuM  = (document.getElementById('kitSkuMaestro').value.split('  —  ')[0]).trim();
   var nombre = document.getElementById('kitNombre').value.trim();
   if (!skuM||!nombre) { showToast('Completa SKU Maestro y Nombre del Kit','warn'); return; }
   if (!_kitComponents.length) { showToast('Agrega al menos un componente','warn'); return; }
@@ -6344,11 +6344,13 @@ document.addEventListener('mousedown', function(e) {
   }
 });
 
-// Cerrar dropdown al hacer clic fuera
+// Cerrar todos los dropdowns al hacer clic fuera
 document.addEventListener('click', function(e) {
   if (!e.target.closest('.sku-search-wrap')) {
-    const dd = document.getElementById('rcSkuDropdown');
-    if (dd) dd.classList.remove('open');
+    ['rcSkuDropdown','kitSkuDropdown','kitMaestroDd'].forEach(function(id){
+      var d = document.getElementById(id);
+      if (d) d.classList.remove('open');
+    });
   }
 });
 
