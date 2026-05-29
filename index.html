@@ -732,6 +732,15 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 .sku-no-results { padding: 14px; text-align: center; color: var(--muted); font-size: 12px; }
 .calc-input.pvp-locked { border-color: var(--red) !important; background: var(--red-bg) !important; color: var(--red-dark) !important; }
 
+/* ── Recursos submodule tabs ──────────────────────────────────────── */
+.recursos-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;background:var(--bg);border-radius:10px;padding:5px;width:fit-content}
+.recursos-tab{padding:8px 20px;font-size:12px;font-weight:500;border-radius:7px;cursor:pointer;border:none;background:transparent;color:var(--muted);display:inline-flex;align-items:center;gap:7px;transition:all .15s}
+.recursos-tab:hover{color:var(--ink)}
+.recursos-tab.active{background:var(--paper);color:var(--ink);box-shadow:var(--shadow-sm)}
+.recursos-tab i{font-size:14px}
+.recursos-panel{display:none;animation:fadeIn .2s ease}
+.recursos-panel.active{display:block}
+
 /* ── Kit Builder ───────────────────────────────────────────────────── */
 .recursos-section-divider{display:flex;align-items:center;gap:12px;margin:32px 0 18px;font-weight:700;font-size:13px;color:var(--muted)}
 .recursos-section-divider::before,.recursos-section-divider::after{content:'';flex:1;height:1px;background:var(--border)}
@@ -1641,11 +1650,22 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
       <div class="view" id="view-recursos">
         <div class="kanban-toolbar">
           <div>
-            <h2>Recursos Merchandiser</h2>
-            <div class="sub">Herramientas de análisis para el equipo comercial</div>
+            <h2>Recursos</h2>
+            <div class="sub">Herramientas para el equipo comercial y de marketing</div>
           </div>
         </div>
 
+        <div class="recursos-tabs">
+          <button class="recursos-tab active" onclick="switchRecursosTab('merchandiser',this)">
+            <i class="ti ti-chart-bar"></i> Merchandiser
+          </button>
+          <button class="recursos-tab" onclick="switchRecursosTab('marketing',this)">
+            <i class="ti ti-sparkles"></i> Marketing
+          </button>
+        </div>
+
+        <!-- ===== SUBMODULO MERCHANDISER ===== -->
+        <div class="recursos-panel active" id="recursos-panel-merchandiser">
         <div class="recursos-layout">
           <!-- Panel izquierdo: inputs -->
           <div class="calc-card">
@@ -1791,9 +1811,10 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           </div>
           </div><!-- /wrapper derecho -->
         </div>
+        </div><!-- /recursos-panel-merchandiser -->
 
-
-        <!-- ===== KIT BUILDER ===== -->
+        <!-- ===== SUBMODULO MARKETING ===== -->
+        <div class="recursos-panel" id="recursos-panel-marketing">
         <div class="recursos-section-divider"><span>&#127873; Creador de Kits / Bundles</span></div>
         <div>
           <div class="kit-top-layout">
@@ -1908,6 +1929,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             </div>
           </div>
         </div>
+        </div><!-- /recursos-panel-marketing -->
       </div>
 
 
@@ -4984,6 +5006,13 @@ function renderAdmin() {
   renderAdminOkrs();
   renderAdminPermissions();
   renderAdminSettings();
+}
+
+function switchRecursosTab(name, el) {
+  document.querySelectorAll('.recursos-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.recursos-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('recursos-panel-' + name).classList.add('active');
 }
 
 function switchAdminTab(name, el) {
