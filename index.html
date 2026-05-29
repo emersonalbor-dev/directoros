@@ -1802,7 +1802,10 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div class="calc-input-group">
                   <label class="calc-label">SKU Maestro del Kit</label>
-                  <input type="text" class="calc-input" id="kitSkuMaestro" placeholder="Ej. KIT-MIG350A-ACC">
+                  <div class="sku-search-wrap">
+                    <input type="text" class="calc-input" id="kitSkuMaestro" placeholder="Buscar SKU maestro..." oninput="kitMaestroFilter(this.value)" autocomplete="off" onblur="setTimeout(function(){var d=document.getElementById('kitMaestroDd');if(d)d.classList.remove('open');},200)">
+                    <div class="sku-dropdown" id="kitMaestroDd"></div>
+                  </div>
                 </div>
                 <div class="calc-input-group">
                   <label class="calc-label">Nombre del Kit</label>
@@ -4771,6 +4774,21 @@ function calcularRent() {
 let _kitComponents = [];
 let _kitSkuResults = [];
 let _kitSelectedSearch = null;
+let _kitMaestroResults = [];
+
+function kitMaestroFilter(q) {
+  var dd = document.getElementById('kitMaestroDd');
+  var trimmed = (q||'').trim();
+  if (trimmed.length < 2) { dd.classList.remove('open'); return; }
+  var qU = trimmed.toUpperCase();
+  _kitMaestroResults = PRICE_LIST.filter(function(r){
+    return r[0].toUpperCase().includes(qU) || r[1].toUpperCase().includes(qU);
+  }).slice(0, 15);
+  dd.innerHTML = _kitMaestroResults.map(function(r, i){
+    return '<div class="sku-option" data-maestro-i="'+i+'"><span class="sku-opt-code">'+r[0]+'</span><span class="sku-opt-desc">'+r[1]+'</span><span class="sku-opt-price">$'+r[2].toLocaleString('es-MX',{minimumFractionDigits:2})+'</span></div>';
+  }).join('');
+  dd.classList.add('open');
+}
 
 const CANALES_KIT = {
   MERCADOLIBRE: { nombre:'Mercado Libre', comision:17, logistica:12, color:'#FFE600', border:'#b8a800' },
@@ -6296,7 +6314,17 @@ document.addEventListener('mousedown', function(e) {
   const ddEl = e.target.closest('.sku-dropdown');
   if (ddEl) e.preventDefault();
   if (opt) {
-    // Kit Builder dropdown
+    // Kit Maestro dropdown
+    if (opt.dataset.maestroI !== undefined) {
+      const i = parseInt(opt.dataset.maestroI, 10);
+      if (!isNaN(i) && _kitMaestroResults[i]) {
+        const [sku, desc] = _kitMaestroResults[i];
+        document.getElementById('kitSkuMaestro').value = sku + '  —  ' + desc;
+        document.getElementById('kitMaestroDd').classList.remove('open');
+      }
+      return;
+    }
+    // Kit componentes dropdown
     if (opt.dataset.kitI !== undefined) {
       const i = parseInt(opt.dataset.kitI, 10);
       if (!isNaN(i) && _kitSkuResults[i]) {
