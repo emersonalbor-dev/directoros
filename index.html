@@ -1902,7 +1902,11 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 <div style="font-weight:700;font-size:14px">PIM &#8212; Informacion de Producto</div>
                 <div style="font-size:11px;color:var(--muted)">Datos para publicacion omnicanal</div>
               </div>
-              <button class="btn btn-sm" style="margin-left:auto" onclick="kitGenerarTitulo()"><i class="ti ti-sparkles"></i> Generar titulo</button>
+              <div style="display:flex;gap:6px;margin-left:auto">
+                <button class="btn btn-sm" onclick="kitGenerarTitulo()"><i class="ti ti-sparkles"></i> Generar titulo</button>
+                <button class="btn btn-sm" id="kitBtnIA" onclick="kitGenerarIA()" style="background:var(--maraga);color:#fff;border-color:var(--maraga)"><i class="ti ti-robot"></i> Generar con IA</button>
+                <button class="btn btn-sm" onclick="kitConfigAI()" title="Configurar API Key de IA" style="padding:0 8px"><i class="ti ti-settings"></i></button>
+              </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div class="calc-input-group full" style="grid-column:1/-1">
@@ -1911,7 +1915,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
               </div>
               <div class="calc-input-group full" style="grid-column:1/-1">
                 <label class="calc-label">Descripcion</label>
-                <textarea class="calc-input" id="kitDescripcion" rows="3" style="resize:vertical" placeholder="Describe el kit: que incluye, para que sirve, beneficios clave..."></textarea>
+                <textarea class="calc-input" id="kitDescripcion" rows="4" style="resize:vertical" placeholder="Presiona 'Generar con IA' para crear una descripción automáticamente con los componentes del kit..."></textarea>
               </div>
               <div class="calc-input-group">
                 <label class="calc-label">Tags / Palabras clave</label>
@@ -2149,6 +2153,28 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 
       </div>
 
+    </div>
+  </div>
+</div>
+
+<!-- ============ KIT AI MODAL ============ -->
+<div class="modal-overlay" id="kitAiModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">🤖 Configurar IA — Generador de descripciones</div>
+    <div class="modal-sub">La IA analiza los componentes del kit y genera título, descripción, tags y categoría optimizados para marketplaces.</div>
+    <div class="form-group">
+      <label class="form-label">Anthropic API Key <span class="required-star">*</span></label>
+      <input type="password" class="form-input" id="kitAiKeyInput" placeholder="sk-ant-api03-...">
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">
+        Obtén tu key en <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--maraga-dark)">console.anthropic.com</a>.<br>
+        Se guarda únicamente en tu navegador (localStorage) — nunca sale del dispositivo.
+      </div>
+    </div>
+    <div id="kitAiKeyStatus" style="display:none;font-size:12px;padding:8px 12px;border-radius:8px;margin-top:-6px;margin-bottom:10px"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('kitAiModal')">Cancelar</button>
+      <button class="btn" onclick="kitClearAiKey()" style="color:var(--red);border-color:var(--red-bg)"><i class="ti ti-trash"></i> Borrar key</button>
+      <button class="btn btn-primary" onclick="kitSaveAiKey()"><i class="ti ti-check"></i> Guardar</button>
     </div>
   </div>
 </div>
@@ -4993,6 +5019,120 @@ function kitPublicarKit() {
   var pvpIva = parseFloat(document.getElementById('kitPvpIva').value)||0;
   if (!pvpIva) { showToast('Ingresa el PVP del kit','warn'); return; }
   showToast('Kit "'+nombre+'" listo — integracion API v1.0 disponible','success');
+}
+
+/* ── Kit IA — Generador de descripción con Claude API ──────────────── */
+function kitConfigAI() {
+  var existing = localStorage.getItem('directoros_ai_key') || '';
+  var inp = document.getElementById('kitAiKeyInput');
+  inp.value = existing ? '••••••••••••••••' : '';
+  inp.placeholder = existing ? 'Key guardada — escribe para reemplazar' : 'sk-ant-api03-...';
+  var st = document.getElementById('kitAiKeyStatus');
+  if (existing) {
+    st.style.display = 'block';
+    st.style.background = 'var(--maraga-bg)';
+    st.style.color = 'var(--maraga-dark)';
+    st.innerHTML = '<i class="ti ti-check" style="margin-right:5px"></i>API Key configurada correctamente.';
+  } else {
+    st.style.display = 'none';
+  }
+  document.getElementById('kitAiModal').classList.add('active');
+}
+
+function kitSaveAiKey() {
+  var val = document.getElementById('kitAiKeyInput').value.trim();
+  if (!val || val === '••••••••••••••••') {
+    showToast('Ingresa una API Key válida','warn'); return;
+  }
+  if (!val.startsWith('sk-ant')) {
+    showToast('La key debe comenzar con sk-ant…','warn'); return;
+  }
+  localStorage.setItem('directoros_ai_key', val);
+  closeModal('kitAiModal');
+  showToast('API Key guardada correctamente','success');
+}
+
+function kitClearAiKey() {
+  localStorage.removeItem('directoros_ai_key');
+  document.getElementById('kitAiKeyInput').value = '';
+  document.getElementById('kitAiKeyStatus').style.display = 'none';
+  showToast('API Key eliminada','info');
+}
+
+async function kitGenerarIA() {
+  if (!_kitComponents.length) { showToast('Agrega componentes primero','warn'); return; }
+  var key = localStorage.getItem('directoros_ai_key');
+  if (!key) { showToast('Configura tu API Key primero','warn'); kitConfigAI(); return; }
+
+  var nombre  = document.getElementById('kitNombre').value.trim() || 'Kit';
+  var pvpIva  = parseFloat(document.getElementById('kitPvpIva').value) || 0;
+  var comps   = _kitComponents.map(function(c) {
+    return '- SKU: ' + c.sku + ' | Descripcion: ' + c.desc + ' | Cantidad en kit: ' + c.qty + ' | Costo sin IVA: $' + c.costo.toFixed(2);
+  }).join('\n');
+
+  var btn = document.getElementById('kitBtnIA');
+  var orig = btn.innerHTML;
+  btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin .7s linear infinite"></i> Generando...';
+  btn.disabled = true;
+
+  var prompt = 'Eres un experto en copywriting para ecommerce mexicano, especializado en herramientas industriales, equipos eléctricos y de soldadura.\n\n'
+    + 'Crea contenido PIM optimizado para un kit/bundle que se venderá en Mercado Libre, Amazon México y Walmart México.\n\n'
+    + '**Nombre del Kit**: ' + nombre + '\n'
+    + '**PVP con IVA**: $' + pvpIva.toFixed(2) + ' MXN\n'
+    + '**Componentes incluidos en el kit**:\n' + comps + '\n\n'
+    + 'Usa tu conocimiento sobre estos productos para enriquecer la descripción con especificaciones técnicas y casos de uso reales.\n\n'
+    + 'Responde ÚNICAMENTE con un objeto JSON válido (sin texto adicional, sin markdown, sin bloques de código):\n'
+    + '{\n'
+    + '  "titulo": "Título atractivo para marketplace, máximo 80 caracteres, incluye palabras clave de búsqueda y el tipo de kit",\n'
+    + '  "descripcion": "3 párrafos separados por dos saltos de línea: (1) qué incluye el kit y para quién es ideal, (2) beneficios técnicos y aplicaciones profesionales de los componentes, (3) llamada a la acción con propuesta de valor. Total 160-200 palabras.",\n'
+    + '  "tags": "8-10 palabras clave separadas por coma, sin espacios extra",\n'
+    + '  "categoria": "Categoría principal > Subcategoría"\n'
+    + '}';
+
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key':                              key,
+        'anthropic-version':                      '2023-06-01',
+        'content-type':                           'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model:      'claude-haiku-4-5',
+        max_tokens: 1024,
+        messages:   [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) {
+      var errData = await res.json().catch(function(){ return {}; });
+      throw new Error(errData.error && errData.error.message ? errData.error.message : 'Error HTTP ' + res.status);
+    }
+
+    var data = await res.json();
+    var text = (data.content && data.content[0] && data.content[0].text) ? data.content[0].text : '';
+    var match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('La IA no devolvió un JSON válido');
+
+    var pim = JSON.parse(match[0]);
+    if (pim.titulo)      document.getElementById('kitTitulo').value      = pim.titulo;
+    if (pim.descripcion) document.getElementById('kitDescripcion').value  = pim.descripcion;
+    if (pim.tags)        document.getElementById('kitTags').value         = pim.tags;
+    if (pim.categoria)   document.getElementById('kitCategoria').value    = pim.categoria;
+
+    showToast('✨ PIM generado con IA — revisa y ajusta si es necesario','success');
+
+  } catch(e) {
+    console.error('kitGenerarIA:', e);
+    var msg = e.message || 'Error desconocido';
+    if (msg.includes('401') || msg.includes('authentication')) msg = 'API Key inválida — verifica tu key en console.anthropic.com';
+    if (msg.includes('429')) msg = 'Límite de requests alcanzado — espera un momento';
+    showToast('Error IA: ' + msg, 'error');
+  } finally {
+    btn.innerHTML = orig;
+    btn.disabled = false;
+  }
 }
 
 /* ============================================
