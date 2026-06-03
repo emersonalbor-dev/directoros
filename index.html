@@ -1809,6 +1809,11 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             <span id="rcSemaforoTxt">Margen saludable</span>
             <span class="calc-semaforo-pct" id="rcSemaforoPct">0%</span>
           </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:4px">
+            <button class="btn btn-sm" id="rcBtnExcel" onclick="descargarRentExcel()" style="gap:6px">
+              <i class="ti ti-file-spreadsheet" style="color:#1d6f42;font-size:14px"></i> Descargar Excel
+            </button>
+          </div>
           </div><!-- /wrapper derecho -->
         </div>
         </div><!-- /recursos-panel-merchandiser -->
@@ -4707,6 +4712,81 @@ function selectPlataforma(val) {
   document.getElementById('rcComision').value  = p.comision;
   document.getElementById('rcLogistica').value = p.logistica;
   calcularRent();
+}
+
+/* ── Descargar cálculo de rentabilidad como Excel ───────────────────── */
+function descargarRentExcel() {
+  var btn = document.getElementById('rcBtnExcel');
+  if (typeof window.XLSX === 'undefined') {
+    if (btn) { btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin .7s linear infinite"></i> Cargando…'; btn.disabled = true; }
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload  = function() { _generarRentExcel(); if (btn) { btn.innerHTML = '<i class="ti ti-file-spreadsheet" style="color:#1d6f42;font-size:14px"></i> Descargar Excel'; btn.disabled = false; } };
+    s.onerror = function() { showToast('Error al cargar librería Excel','error'); if (btn) { btn.innerHTML = '<i class="ti ti-file-spreadsheet" style="color:#1d6f42;font-size:14px"></i> Descargar Excel'; btn.disabled = false; } };
+    document.head.appendChild(s);
+    return;
+  }
+  _generarRentExcel();
+}
+
+function _generarRentExcel() {
+  var XLSX = window.XLSX;
+  var g = function(id) { var el = document.getElementById(id); return el ? el.textContent.trim() : '—'; };
+  var v = function(id) { var el = document.getElementById(id); return el ? el.value : ''; };
+  var sel = function(id) { var el = document.getElementById(id); return (el && el.options && el.selectedIndex >= 0) ? el.options[el.selectedIndex].text : '—'; };
+
+  var skuStr     = v('rcSkuSearch') || '—';
+  var plataforma = sel('rcPlataforma');
+  var centro     = sel('rcCentro');
+  var fecha      = new Date().toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'});
+  var hora       = new Date().toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'});
+
+  var rows = [
+    ['CALCULADORA DE RENTABILIDAD', '', '', ''],
+    ['DirectorOS', '', '', ''],
+    ['Generado:', fecha + '  ' + hora, '', ''],
+    ['', '', '', ''],
+    ['PARÁMETROS', '', '', ''],
+    ['Producto / SKU',               skuStr,                  '', ''],
+    ['Plataforma',                   plataforma,              '', ''],
+    ['Centro de distribución',       centro,                  '', ''],
+    ['PVP con IVA ($)',               parseFloat(v('rcPvpIva'))||0,   '', ''],
+    ['Tasa IVA (%)',                  parseFloat(v('rcTasaIva'))||16,  '', ''],
+    ['Costo de producto sin IVA ($)', parseFloat(v('rcCosto'))||0,    '', ''],
+    ['% Comisión Marketplace',        v('rcComision') + '%',   '', ''],
+    ['% Logística / Envío',           v('rcLogistica') + '%',  '', ''],
+    ['% Publicidad (ACOS)',           v('rcPublicidad') + '%', '', ''],
+    ['', '', '', ''],
+    ['RESULTADOS', '', '', ''],
+    ['Concepto',                'Con IVA',               'Sin IVA',                '% PVP'],
+    ['Rentabilidad Bruta',      g('rcBrutaIva'),          g('rcBrutaSiva'),         g('rcBrutaPct')],
+    ['Rentabilidad Neta',       g('rcRentIva'),           g('rcRentSiva'),          g('rcRentPct')],
+    ['Ingresos por venta',      g('rcIngIva'),            g('rcIngSiva'),           '100.0%'],
+    ['CMV — Costo de mercancía',g('rcCmvIva'),            g('rcCmvSiva'),           g('rcCmvPct')],
+    ['Costos de venta (total)', g('rcCostosTotalIva'),    g('rcCostosTotalSiva'),   g('rcCostosTotalPct')],
+    ['  Comisión Marketplace',  g('rcMarkIva'),           g('rcMarkSiva'),          g('rcMarkPct')],
+    ['  Logística / Envío',     g('rcLogIva'),            g('rcLogSiva'),           g('rcLogPct')],
+    ['  Publicidad (ACOS)',     g('rcPubIva'),            g('rcPubSiva'),           g('rcPubPct')],
+    ['', '', '', ''],
+    ['SEMÁFORO',  g('rcSemaforoTxt'),  g('rcSemaforoPct'), ''],
+  ];
+
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 34 }, { wch: 16 }, { wch: 16 }, { wch: 10 }];
+
+  // Merge title cells
+  ws['!merges'] = [
+    { s: { r:0, c:0 }, e: { r:0, c:3 } },
+    { s: { r:1, c:0 }, e: { r:1, c:3 } },
+  ];
+
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Rentabilidad');
+
+  var slug = skuStr.replace(/[^a-zA-Z0-9]/g,'_').slice(0,20);
+  var dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  XLSX.writeFile(wb, 'Rentabilidad_' + slug + '_' + dateStr + '.xlsx');
+  showToast('Excel descargado','success');
 }
 
 function calcularRent() {
