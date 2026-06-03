@@ -1809,9 +1809,12 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             <span id="rcSemaforoTxt">Margen saludable</span>
             <span class="calc-semaforo-pct" id="rcSemaforoPct">0%</span>
           </div>
-          <div style="display:flex;justify-content:flex-end;margin-top:4px">
-            <button class="btn btn-sm" id="rcBtnExcel" onclick="descargarRentExcel()" style="gap:6px">
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-top:4px">
+            <button class="btn btn-sm" id="rcBtnExcel" onclick="descargarRentExcel()" style="gap:6px;width:154px;justify-content:center">
               <i class="ti ti-file-spreadsheet" style="color:#1d6f42;font-size:14px"></i> Descargar Excel
+            </button>
+            <button class="btn btn-sm" id="rcBtnPdf" onclick="descargarRentPdf()" style="gap:6px;width:154px;justify-content:center">
+              <i class="ti ti-file-type-pdf" style="color:#e53e3e;font-size:14px"></i> Descargar PDF
             </button>
           </div>
           </div><!-- /wrapper derecho -->
@@ -4787,6 +4790,136 @@ function _generarRentExcel() {
   var dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
   XLSX.writeFile(wb, 'Rentabilidad_' + slug + '_' + dateStr + '.xlsx');
   showToast('Excel descargado','success');
+}
+
+/* ── Descargar cálculo de rentabilidad como PDF ─────────────────────── */
+function descargarRentPdf() {
+  var btn = document.getElementById('rcBtnPdf');
+  var orig = btn ? btn.innerHTML : '';
+  var setLoading = function() { if (btn) { btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin .7s linear infinite"></i> Cargando…'; btn.disabled = true; } };
+  var resetBtn  = function() { if (btn) { btn.innerHTML = orig; btn.disabled = false; } };
+
+  if (typeof window.jspdf !== 'undefined') { _generarRentPdf(); return; }
+  setLoading();
+  var s1 = document.createElement('script');
+  s1.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+  s1.onerror = function() { showToast('Error al cargar librería PDF','error'); resetBtn(); };
+  s1.onload = function() {
+    var s2 = document.createElement('script');
+    s2.src = 'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js';
+    s2.onerror = function() { showToast('Error al cargar autoTable','error'); resetBtn(); };
+    s2.onload  = function() { resetBtn(); _generarRentPdf(); };
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s1);
+}
+
+function _generarRentPdf() {
+  var jsPDF = window.jspdf.jsPDF;
+  var doc   = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+
+  var g   = function(id){ var e=document.getElementById(id); return e?e.textContent.trim():'—'; };
+  var v   = function(id){ var e=document.getElementById(id); return e?e.value:''; };
+  var sel = function(id){ var e=document.getElementById(id); return (e&&e.options&&e.selectedIndex>=0)?e.options[e.selectedIndex].text:'—'; };
+
+  var skuStr     = v('rcSkuSearch') || '—';
+  var plataforma = sel('rcPlataforma');
+  var centro     = sel('rcCentro');
+  var fecha      = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
+
+  // ── Encabezado ──────────────────────────────────────────────────────
+  doc.setFillColor(79, 60, 201);
+  doc.rect(0, 0, 210, 22, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(15); doc.setFont('helvetica','bold');
+  doc.text('Calculadora de Rentabilidad', 14, 10);
+  doc.setFontSize(9);  doc.setFont('helvetica','normal');
+  doc.text('DirectorOS  —  ' + fecha, 14, 17);
+
+  // ── Metadata ─────────────────────────────────────────────────────────
+  doc.setTextColor(40, 40, 40);
+  doc.setFontSize(9); doc.setFont('helvetica','bold');
+  doc.text('Producto:', 14, 30);  doc.setFont('helvetica','normal'); doc.text(skuStr.slice(0,70), 36, 30);
+  doc.setFont('helvetica','bold');
+  doc.text('Plataforma:', 14, 36); doc.setFont('helvetica','normal'); doc.text(plataforma, 36, 36);
+  doc.setFont('helvetica','bold');
+  doc.text('Centro:', 110, 30);    doc.setFont('helvetica','normal'); doc.text(centro, 126, 30);
+
+  // ── Parámetros ────────────────────────────────────────────────────────
+  doc.autoTable({
+    startY: 42,
+    head: [['Parámetro de entrada', 'Valor']],
+    body: [
+      ['PVP con IVA ($)',               '$' + (parseFloat(v('rcPvpIva'))||0).toFixed(2)],
+      ['Tasa IVA (%)',                   v('rcTasaIva') + '%'],
+      ['Costo de producto sin IVA ($)',  '$' + (parseFloat(v('rcCosto'))||0).toFixed(2)],
+      ['% Comisión Marketplace',         v('rcComision') + '%'],
+      ['% Logística / Envío',            v('rcLogistica') + '%'],
+      ['% Publicidad (ACOS)',            v('rcPublicidad') + '%'],
+    ],
+    styles:           { fontSize: 9, cellPadding: 2.5 },
+    headStyles:       { fillColor: [79,60,201], textColor: 255, fontStyle:'bold' },
+    alternateRowStyles: { fillColor: [248,248,252] },
+    columnStyles:     { 0: { cellWidth: 90 }, 1: { cellWidth: 50 } },
+    tableWidth:       140,
+    margin:           { left: 14 },
+  });
+
+  // ── Color del semáforo ────────────────────────────────────────────────
+  var rentPct   = parseFloat(g('rcRentPct')) || 0;
+  var isSafe    = rentPct >= 17;
+  var isAmber   = rentPct >= 14 && rentPct < 17;
+  var rowFill   = isSafe ? [220,252,231] : isAmber ? [254,243,199] : [254,226,226];
+  var rowTxt    = isSafe ? [22,101,52]   : isAmber ? [92,56,0]     : [153,27,27];
+
+  // ── Tabla de resultados ───────────────────────────────────────────────
+  doc.autoTable({
+    startY: doc.lastAutoTable.finalY + 7,
+    head: [['Concepto', 'Con IVA', 'Sin IVA', '% PVP']],
+    body: [
+      ['Rentabilidad Bruta',       g('rcBrutaIva'),       g('rcBrutaSiva'),       g('rcBrutaPct')],
+      ['Rentabilidad Neta',        g('rcRentIva'),        g('rcRentSiva'),        g('rcRentPct')],
+      ['Ingresos por venta',       g('rcIngIva'),         g('rcIngSiva'),         '100.0%'],
+      ['CMV — Costo mercancía', g('rcCmvIva'),       g('rcCmvSiva'),         g('rcCmvPct')],
+      ['Costos de venta (total)',  g('rcCostosTotalIva'), g('rcCostosTotalSiva'), g('rcCostosTotalPct')],
+      ['  Comisión Marketplace',   g('rcMarkIva'),        g('rcMarkSiva'),        g('rcMarkPct')],
+      ['  Logística / Envío',      g('rcLogIva'),         g('rcLogSiva'),         g('rcLogPct')],
+      ['  Publicidad (ACOS)',      g('rcPubIva'),         g('rcPubSiva'),         g('rcPubPct')],
+    ],
+    styles:           { fontSize: 9, cellPadding: 2.5 },
+    headStyles:       { fillColor: [79,60,201], textColor: 255, fontStyle:'bold' },
+    alternateRowStyles: { fillColor: [248,248,252] },
+    didParseCell: function(data) {
+      if (data.section === 'body' && data.row.index === 0) { // Bruta — bold
+        data.cell.styles.fontStyle = 'bold';
+      }
+      if (data.section === 'body' && data.row.index === 1) { // Neta — color semáforo
+        data.cell.styles.fontStyle  = 'bold';
+        data.cell.styles.fillColor  = rowFill;
+        data.cell.styles.textColor  = rowTxt;
+      }
+    },
+    margin: { left: 14, right: 14 },
+  });
+
+  // ── Semáforo ─────────────────────────────────────────────────────────
+  var y = doc.lastAutoTable.finalY + 7;
+  doc.setFillColor(rowFill[0], rowFill[1], rowFill[2]);
+  doc.roundedRect(14, y, 182, 11, 2, 2, 'F');
+  doc.setTextColor(rowTxt[0], rowTxt[1], rowTxt[2]);
+  doc.setFontSize(10); doc.setFont('helvetica','bold');
+  doc.text('Semáforo: ' + g('rcSemaforoTxt') + '  ' + g('rcSemaforoPct'), 19, y + 7.5);
+
+  // ── Pie de página ─────────────────────────────────────────────────────
+  doc.setTextColor(180, 180, 180);
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text('DirectorOS  —  Generado el ' + fecha, 14, 288);
+
+  // ── Guardar ───────────────────────────────────────────────────────────
+  var slug    = skuStr.replace(/[^a-zA-Z0-9]/g,'_').slice(0,20);
+  var dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  doc.save('Rentabilidad_' + slug + '_' + dateStr + '.pdf');
+  showToast('PDF descargado','success');
 }
 
 function calcularRent() {
