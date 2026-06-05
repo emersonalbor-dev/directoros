@@ -5567,7 +5567,9 @@ function scGetStockEntry(siglas, codigo) {
   return null;
 }
 
-function scToggleLen(el, pies, metros) {
+function scToggleLen(el) {
+  var pies = el.dataset.pies;
+  var metros = el.dataset.metros;
   if (el.dataset.unit === 'pies') {
     el.textContent = metros + ' m';
     el.dataset.unit = 'metros';
@@ -5579,7 +5581,7 @@ function scToggleLen(el, pies, metros) {
     el.dataset.unit = 'pies';
     el.style.color = '';
     el.style.borderColor = '';
-    el.title = 'Clic para convertir a metros';
+    el.title = 'Clic: pies ↔ metros';
   }
 }
 
@@ -5725,7 +5727,7 @@ function scFiltrar() {
         return '<div style="padding:4px 0;border-bottom:1px solid var(--border)">'
           +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">'
           +'<span style="font-weight:600;font-family:monospace;font-size:10px;color:var(--maraga-dark)">'+s.sku+'</span>'
-          +(lenLabel?'<span onclick="scToggleLen(this,\''+lenPies+'\',\''+lenMetros+'\')" data-unit="pies" title="Clic para convertir a metros" style="cursor:pointer;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px;color:var(--muted);user-select:none" onmouseover="this.style.borderColor=\'var(--maraga)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'+lenLabel+'</span>':'')
+          +(lenLabel?'<span onclick="scToggleLen(this)" data-pies="'+lenPies+'" data-metros="'+lenMetros+'" data-unit="pies" title="Clic: pies ↔ metros" style="cursor:pointer;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px;color:var(--muted);user-select:none">'+lenLabel+'</span>':'')
           +'<strong style="font-size:11px">'+s.total+'</strong>'
           +centroToggle
           +'</div>'
