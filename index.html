@@ -5711,10 +5711,14 @@ function scFiltrar() {
     var match = dSug !== '—' && p[5] === dSug;
     var rowClass = match ? ' class="sc-match"' : '';
     var stEntry = scGetStockEntry(p[7], p[6]);
-    var stockData = stEntry ? stEntry.centros : null;
-    var stockTotal = stEntry ? stEntry.total : 0;
+    var stockDataRaw = stEntry ? stEntry.centros : null;
+    // Si hay filtro de centro, mostrar solo ese centro
+    var stockData = stockDataRaw ? (centro
+      ? Object.fromEntries(Object.entries(stockDataRaw).filter(function(e){ return e[0].toUpperCase()===centro.toUpperCase(); }))
+      : stockDataRaw) : null;
+    var stockTotal = stockData ? Object.values(stockData).reduce(function(a,b){return a+b;},0) : 0;
     var stockHtml;
-    if (!stockData) {
+    if (!stockData || Object.keys(stockData).length===0) {
       stockHtml = '<span style="color:var(--muted);font-size:11px">—</span>';
     } else if (stockTotal === 0) {
       stockHtml = '<span style="color:var(--red);font-size:11px;font-weight:600">Sin mat. prima</span>';
@@ -5742,9 +5746,14 @@ function scFiltrar() {
       sortedSkus.forEach(function(s) {
         var lm = s.sku.match(/-(\d+\.?\d*)$/);
         s._lenPies = lm ? parseFloat(lm[1]) : 0;
+        // Si hay filtro de centro, solo contar ese centro
+        var centrosActivos = centro
+          ? Object.fromEntries(Object.entries(s.centros).filter(function(e){ return e[0].toUpperCase()===centro.toUpperCase(); }))
+          : s.centros;
+        s._centrosActivos = centrosActivos;
         s._piezasTotal = s._lenPies > 0
-          ? Object.values(s.centros).reduce(function(acc,q){ return acc + Math.floor(q / s._lenPies); }, 0)
-          : s.total;
+          ? Object.values(centrosActivos).reduce(function(acc,q){ return acc + Math.floor(q / s._lenPies); }, 0)
+          : Object.values(centrosActivos).reduce(function(a,b){return a+b;},0);
       });
       sortedSkus.sort(function(a,b){ return b._piezasTotal - a._piezasTotal; });
       skuListHtml = sortedSkus.map(function(s, si) {
@@ -5753,17 +5762,17 @@ function scFiltrar() {
         var lenLabel = lenPies ? lenPies+' pies' : '';
         var piezasTotal = s._piezasTotal;
         var cid = 'scskuc_' + p[6].replace(/[^a-zA-Z0-9]/g,'_') + '_' + si;
-        var centrosRows = Object.entries(s.centros).map(function(e){
+        var centrosRows = Object.entries(s._centrosActivos).map(function(e){
           var matPies = e[1];
           var piezas = lenPies > 0 ? Math.floor(matPies / lenPies) : matPies;
-          var centro = e[0].charAt(0).toUpperCase()+e[0].slice(1).toLowerCase();
+          var centroLabel = e[0].charAt(0).toUpperCase()+e[0].slice(1).toLowerCase();
           return '<div style="display:flex;justify-content:space-between;gap:12px;padding:2px 0">'
-            +'<span style="color:var(--muted)">'+centro+'</span>'
+            +'<span style="color:var(--muted)">'+centroLabel+'</span>'
             +'<div style="text-align:right">'
             +'<strong>'+piezas+' pzas</strong>'
             +'<span style="color:var(--muted);margin-left:5px">('+matPies+' pies)</span>'
             +'</div></div>';
-        }).filter(function(r,i){ return Object.values(s.centros)[i] > 0; }).join('');
+        }).filter(function(r,i){ return Object.values(s._centrosActivos)[i] > 0; }).join('');
         var centroToggle = centrosRows
           ? '<button onclick="scToggleStock(\''+cid+'\')" title="Ver por centro" style="background:none;border:none;cursor:pointer;padding:1px 3px;border-radius:3px;color:var(--muted);display:inline-flex;align-items:center" onmouseover="this.style.color=\'var(--maraga)\'" onmouseout="this.style.color=\'var(--muted)\'"><i id="'+cid+'_ico" class="ti ti-building-warehouse" style="font-size:11px"></i></button>'
             +'<div id="'+cid+'" style="display:none;margin-top:3px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:10px">'+centrosRows+'</div>'
