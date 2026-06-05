@@ -1947,6 +1947,19 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                         <option value="">— Todos —</option>
                       </select>
                     </div>
+                    <div style="grid-column:1/-1">
+                      <label class="calc-label" style="font-size:10px"><i class="ti ti-building-warehouse" style="font-size:10px"></i> Centro suministrador</label>
+                      <select class="calc-input" id="scCentro" onchange="scFiltrar()" style="font-size:11px;padding:5px 8px">
+                        <option value="">— Todos los centros —</option>
+                        <option value="GUADALAJARA">Guadalajara</option>
+                        <option value="MEXICO">México</option>
+                        <option value="Monterrey">Monterrey</option>
+                        <option value="QUERETARO">Querétaro</option>
+                        <option value="REYNOSA">Reynosa</option>
+                        <option value="TIJUANA">Tijuana</option>
+                        <option value="LEON">León</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
                 <button class="btn" onclick="scFiltrar()" style="width:100%;justify-content:center;gap:7px;margin-top:4px">
@@ -5635,6 +5648,7 @@ function scFiltrar() {
   var ancho   = document.getElementById('scAncho').value;
   var espesor = document.getElementById('scEspesor').value;
   var dienteF = document.getElementById('scDienteFilter').value;
+  var centro  = document.getElementById('scCentro').value;
 
   // 3. Cada dropdown muestra solo las opciones válidas dado lo que los OTROS dos tienen seleccionado
   var anchoDisp  = _scAnchoOrder.filter(function(v){
@@ -5655,12 +5669,27 @@ function scFiltrar() {
   ancho   = document.getElementById('scAncho').value;
   espesor = document.getElementById('scEspesor').value;
   dienteF = document.getElementById('scDienteFilter').value;
+  centro  = document.getElementById('scCentro').value;
 
   // 4. Resultado final
   var res = base.filter(function(p) {
     if (ancho   && p[2] !== ancho)   return false;
     if (espesor && p[3] !== espesor) return false;
     if (dienteF && p[5] !== dienteF) return false;
+    if (centro) {
+      // Solo mostrar si el producto tiene materia prima en ese centro
+      _scBuildStIdx();
+      var siglas = p[7]; var codeNum = (p[6]||'').replace(/^A/,'');
+      var key = /^[A-Z]+-$/.test(siglas||'') ? siglas+codeNum : '';
+      var entry = (key && _SC_STIDX[key]) ? _SC_STIDX[key]
+                : (typeof STOCK!=='undefined' && STOCK[p[6]]) ? {centros:STOCK[p[6]]} : null;
+      if (!entry) return false;
+      // Busca coincidencia de centro (case-insensitive)
+      var found = Object.keys(entry.centros).some(function(c) {
+        return c.toUpperCase() === centro.toUpperCase() && entry.centros[c] > 0;
+      });
+      if (!found) return false;
+    }
     return true;
   });
   // Sort: matching dientes first
