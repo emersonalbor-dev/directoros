@@ -5691,20 +5691,26 @@ function scFiltrar() {
     if (stEntry && stEntry.skus && stEntry.skus.length > 0) {
       // Sort skus by total desc
       var sortedSkus = stEntry.skus.slice().sort(function(a,b){return b.total-a.total;});
-      skuListHtml = sortedSkus.map(function(s) {
-        // Parse length from SKU: e.g. "CL-50964-7.75" → "7.75 pies"
+      skuListHtml = sortedSkus.map(function(s, si) {
         var lenMatch = s.sku.match(/-(\d+\.?\d*)$/);
         var lenLabel = lenMatch ? lenMatch[1]+' pies' : '';
-        var centrosLine = Object.entries(s.centros).map(function(e){
-          return '<span style="color:var(--muted)">'+e[0].charAt(0).toUpperCase()+e[0].slice(1).toLowerCase()+':</span> '+e[1];
-        }).join(' &nbsp;');
+        var cid = 'scskuc_' + p[6].replace(/[^a-zA-Z0-9]/g,'_') + '_' + si;
+        var centrosRows = Object.entries(s.centros).map(function(e){
+          return '<div style="display:flex;justify-content:space-between;gap:12px;padding:1px 0">'
+            +'<span style="color:var(--muted)">'+e[0].charAt(0).toUpperCase()+e[0].slice(1).toLowerCase()+'</span>'
+            +'<strong>'+e[1]+'</strong></div>';
+        }).join('');
+        var centroToggle = centrosRows
+          ? '<button onclick="scToggleStock(\''+cid+'\')" title="Ver por centro" style="background:none;border:none;cursor:pointer;padding:1px 3px;border-radius:3px;color:var(--muted);display:inline-flex;align-items:center" onmouseover="this.style.color=\'var(--maraga)\'" onmouseout="this.style.color=\'var(--muted)\'"><i id="'+cid+'_ico" class="ti ti-building-warehouse" style="font-size:11px"></i></button>'
+            +'<div id="'+cid+'" style="display:none;margin-top:3px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:10px">'+centrosRows+'</div>'
+          : '';
         return '<div style="padding:4px 0;border-bottom:1px solid var(--border)">'
-          +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">'
           +'<span style="font-weight:600;font-family:monospace;font-size:10px;color:var(--maraga-dark)">'+s.sku+'</span>'
           +(lenLabel?'<span style="background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px;color:var(--muted)">'+lenLabel+'</span>':'')
           +'<strong style="font-size:11px">'+s.total+'</strong>'
+          +centroToggle
           +'</div>'
-          +(centrosLine?'<div style="font-size:10px;color:var(--muted);margin-top:2px">'+centrosLine+'</div>':'')
           +'</div>';
       }).join('');
     }
