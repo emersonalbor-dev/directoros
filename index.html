@@ -5541,12 +5541,15 @@ function _scBuildStIdx() {
     var m = k.match(re);
     if (!m) return;
     var prefix = m[1];
-    if (!_SC_STIDX[prefix]) _SC_STIDX[prefix] = {centros:{}, total:0};
+    if (!_SC_STIDX[prefix]) _SC_STIDX[prefix] = {centros:{}, total:0, skus:[]};
     var cdat = STOCK[k];
+    var skuTotal = 0;
     Object.keys(cdat).forEach(function(c) {
       _SC_STIDX[prefix].centros[c] = (_SC_STIDX[prefix].centros[c]||0) + cdat[c];
       _SC_STIDX[prefix].total += cdat[c];
+      skuTotal += cdat[c];
     });
+    _SC_STIDX[prefix].skus.push({sku:k, centros:cdat, total:skuTotal});
   });
 }
 function scGetStockEntry(siglas, codigo) {
@@ -5682,8 +5685,35 @@ function scFiltrar() {
         +'</button></div>'
         +'<div id="'+uid+'" style="display:none;margin-top:5px;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;min-width:130px">'+centrosHtml+'</div>';
     }
+    // SKU detail list for Tipo S.C. column
+    var tipoUid = 'scsku_' + p[6].replace(/[^a-zA-Z0-9]/g,'_');
+    var skuListHtml = '';
+    if (stEntry && stEntry.skus && stEntry.skus.length > 0) {
+      // Sort skus by total desc
+      var sortedSkus = stEntry.skus.slice().sort(function(a,b){return b.total-a.total;});
+      skuListHtml = sortedSkus.map(function(s) {
+        // Parse length from SKU: e.g. "CL-50964-7.75" → "7.75 pies"
+        var lenMatch = s.sku.match(/-(\d+\.?\d*)$/);
+        var lenLabel = lenMatch ? lenMatch[1]+' pies' : '';
+        var centrosLine = Object.entries(s.centros).map(function(e){
+          return '<span style="color:var(--muted)">'+e[0].charAt(0).toUpperCase()+e[0].slice(1).toLowerCase()+':</span> '+e[1];
+        }).join(' &nbsp;');
+        return '<div style="padding:4px 0;border-bottom:1px solid var(--border)">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+          +'<span style="font-weight:600;font-family:monospace;font-size:10px;color:var(--maraga-dark)">'+s.sku+'</span>'
+          +(lenLabel?'<span style="background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px;color:var(--muted)">'+lenLabel+'</span>':'')
+          +'<strong style="font-size:11px">'+s.total+'</strong>'
+          +'</div>'
+          +(centrosLine?'<div style="font-size:10px;color:var(--muted);margin-top:2px">'+centrosLine+'</div>':'')
+          +'</div>';
+      }).join('');
+    }
+    var tipoBtn = skuListHtml
+      ? ' <button onclick="scToggleStock(\''+tipoUid+'\')" title="Ver SKUs en inventario" style="background:none;border:none;cursor:pointer;padding:1px 3px;border-radius:3px;color:var(--muted);vertical-align:middle;display:inline-flex;align-items:center" onmouseover="this.style.color=\'var(--maraga)\'" onmouseout="this.style.color=\'var(--muted)\'"><i id="'+tipoUid+'_ico" class="ti ti-barcode" style="font-size:12px"></i></button>'
+        +'<div id="'+tipoUid+'" style="display:none;margin-top:5px;font-size:11px;background:var(--paper);border:1px solid var(--border);border-radius:6px;padding:4px 8px;min-width:200px;max-width:280px">'+skuListHtml+'</div>'
+      : '';
     html += '<tr'+rowClass+'>';
-    html += '<td><span style="font-size:10px;color:var(--muted);display:block">' + (mpLabels[p[0]]||p[0]) + '</span>' + p[1] + '</td>';
+    html += '<td><span style="font-size:10px;color:var(--muted);display:block">' + (mpLabels[p[0]]||p[0]) + '</span>' + p[1] + tipoBtn + '</td>';
     html += '<td>' + p[2] + '</td>';
     html += '<td>' + (p[3]||'—') + '</td>';
     html += '<td>' + (match ? '<span class="sc-chip sc-chip-green">'+p[5]+' ✓</span>' : '<span class="sc-chip">'+p[5]+'</span>') + '</td>';
