@@ -5567,6 +5567,22 @@ function scGetStockEntry(siglas, codigo) {
   return null;
 }
 
+function scToggleLen(el, pies, metros) {
+  if (el.dataset.unit === 'pies') {
+    el.textContent = metros + ' m';
+    el.dataset.unit = 'metros';
+    el.style.color = 'var(--maraga-dark)';
+    el.style.borderColor = 'var(--maraga)';
+    el.title = 'Clic para volver a pies';
+  } else {
+    el.textContent = pies + ' pies';
+    el.dataset.unit = 'pies';
+    el.style.color = '';
+    el.style.borderColor = '';
+    el.title = 'Clic para convertir a metros';
+  }
+}
+
 function scToggleStock(id) {
   var el = document.getElementById(id);
   var ico = document.getElementById(id + '_ico');
@@ -5693,7 +5709,9 @@ function scFiltrar() {
       var sortedSkus = stEntry.skus.slice().sort(function(a,b){return b.total-a.total;});
       skuListHtml = sortedSkus.map(function(s, si) {
         var lenMatch = s.sku.match(/-(\d+\.?\d*)$/);
-        var lenLabel = lenMatch ? lenMatch[1]+' pies' : '';
+        var lenPies = lenMatch ? parseFloat(lenMatch[1]) : 0;
+        var lenMetros = lenPies ? (lenPies * 0.3048).toFixed(2) : '';
+        var lenLabel = lenPies ? lenPies+' pies' : '';
         var cid = 'scskuc_' + p[6].replace(/[^a-zA-Z0-9]/g,'_') + '_' + si;
         var centrosRows = Object.entries(s.centros).map(function(e){
           return '<div style="display:flex;justify-content:space-between;gap:12px;padding:1px 0">'
@@ -5707,7 +5725,7 @@ function scFiltrar() {
         return '<div style="padding:4px 0;border-bottom:1px solid var(--border)">'
           +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">'
           +'<span style="font-weight:600;font-family:monospace;font-size:10px;color:var(--maraga-dark)">'+s.sku+'</span>'
-          +(lenLabel?'<span style="background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px;color:var(--muted)">'+lenLabel+'</span>':'')
+          +(lenLabel?'<span onclick="scToggleLen(this,\''+lenPies+'\',\''+lenMetros+'\')" data-unit="pies" title="Clic para convertir a metros" style="cursor:pointer;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px;color:var(--muted);user-select:none" onmouseover="this.style.borderColor=\'var(--maraga)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'+lenLabel+'</span>':'')
           +'<strong style="font-size:11px">'+s.total+'</strong>'
           +centroToggle
           +'</div>'
