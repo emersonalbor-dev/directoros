@@ -5611,16 +5611,28 @@ function scFiltrar() {
     return;
   }
   var mpLabels = {Bimetalica:'Bimetálica',Carbon:'Ac. Carbón',Carburo:'Carburo'};
-  var html = '<table class="sc-table"><thead><tr><th>Tipo S.C.</th><th>Ancho</th><th>Espesor</th><th>Dientes/pulg.</th><th>Código</th></tr></thead><tbody>';
+  var html = '<table class="sc-table"><thead><tr><th>Tipo S.C.</th><th>Ancho</th><th>Espesor</th><th>Dientes/pulg.</th><th>Código</th><th>Inventario</th></tr></thead><tbody>';
   res.forEach(function(p) {
     var match = dSug !== '—' && p[5] === dSug;
     var rowClass = match ? ' class="sc-match"' : '';
+    var stockData = (typeof STOCK !== 'undefined' && STOCK[p[6]]) ? STOCK[p[6]] : null;
+    var stockTotal = stockData ? Object.values(stockData).reduce(function(a,b){return a+b;},0) : 0;
+    var stockHtml;
+    if (!stockData) {
+      stockHtml = '<span style="color:var(--muted);font-size:11px">—</span>';
+    } else if (stockTotal === 0) {
+      stockHtml = '<span style="color:var(--red);font-size:11px;font-weight:600">Sin stock</span>';
+    } else {
+      var centros = Object.entries(stockData).map(function(e){return '<span style="font-size:10px;color:var(--muted)">'+e[0].charAt(0).toUpperCase()+e[0].slice(1).toLowerCase()+':</span> <strong>'+e[1]+'</strong>';}).join(' &nbsp;');
+      stockHtml = '<div style="font-size:11px;color:var(--ink);font-weight:600;white-space:nowrap">'+stockTotal+' pzas</div><div style="font-size:10px;color:var(--muted);margin-top:2px">'+centros+'</div>';
+    }
     html += '<tr'+rowClass+'>';
     html += '<td><span style="font-size:10px;color:var(--muted);display:block">' + (mpLabels[p[0]]||p[0]) + '</span>' + p[1] + '</td>';
     html += '<td>' + p[2] + '</td>';
     html += '<td>' + (p[3]||'—') + '</td>';
     html += '<td>' + (match ? '<span class="sc-chip sc-chip-green">'+p[5]+' ✓</span>' : '<span class="sc-chip">'+p[5]+'</span>') + '</td>';
     html += '<td><span class="sc-chip">' + p[6] + '</span></td>';
+    html += '<td>'+stockHtml+'</td>';
     html += '</tr>';
   });
   html += '</tbody></table>';
