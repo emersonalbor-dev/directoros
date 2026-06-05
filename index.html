@@ -5688,16 +5688,16 @@ function scFiltrar() {
     if (!stockData) {
       stockHtml = '<span style="color:var(--muted);font-size:11px">—</span>';
     } else if (stockTotal === 0) {
-      stockHtml = '<span style="color:var(--red);font-size:11px;font-weight:600">Sin stock</span>';
+      stockHtml = '<span style="color:var(--red);font-size:11px;font-weight:600">Sin mat. prima</span>';
     } else {
       var uid = 'scst_' + p[6].replace(/[^a-zA-Z0-9]/g,'_');
       var centrosHtml = Object.entries(stockData).map(function(e){
         return '<div style="display:flex;justify-content:space-between;gap:14px;padding:2px 0">'
           +'<span style="color:var(--muted)">'+e[0].charAt(0).toUpperCase()+e[0].slice(1).toLowerCase()+'</span>'
-          +'<strong>'+e[1]+'</strong></div>';
+          +'<strong>'+e[1]+' pies</strong></div>';
       }).join('');
       stockHtml = '<div style="display:flex;align-items:center;gap:4px">'
-        +'<span style="font-size:11px;font-weight:600;color:var(--ink)">'+stockTotal+' pzas</span>'
+        +'<span style="font-size:11px;font-weight:600;color:var(--ink)">'+stockTotal+' pies</span>'
         +'<button onclick="scToggleStock(\''+uid+'\')" title="Ver por centro" style="background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:4px;color:var(--muted);display:inline-flex;align-items:center;transition:background .1s" onmouseover="this.style.background=\'var(--bg)\'" onmouseout="this.style.background=\'none\'">'
         +'<i id="'+uid+'_ico" class="ti ti-building-warehouse" style="font-size:13px"></i>'
         +'</button></div>'
@@ -5709,26 +5709,42 @@ function scFiltrar() {
     if (stEntry && stEntry.skus && stEntry.skus.length > 0) {
       // Sort skus by total desc
       var sortedSkus = stEntry.skus.slice().sort(function(a,b){return b.total-a.total;});
+      // Sort by calculated piezas desc (material_pies / longitud)
+      sortedSkus.forEach(function(s) {
+        var lm = s.sku.match(/-(\d+\.?\d*)$/);
+        s._lenPies = lm ? parseFloat(lm[1]) : 0;
+        s._piezasTotal = s._lenPies > 0
+          ? Object.values(s.centros).reduce(function(acc,q){ return acc + Math.floor(q / s._lenPies); }, 0)
+          : s.total;
+      });
+      sortedSkus.sort(function(a,b){ return b._piezasTotal - a._piezasTotal; });
       skuListHtml = sortedSkus.map(function(s, si) {
-        var lenMatch = s.sku.match(/-(\d+\.?\d*)$/);
-        var lenPies = lenMatch ? parseFloat(lenMatch[1]) : 0;
+        var lenPies = s._lenPies;
         var lenMetros = lenPies ? (lenPies * 0.3048).toFixed(2) : '';
         var lenLabel = lenPies ? lenPies+' pies' : '';
+        var piezasTotal = s._piezasTotal;
         var cid = 'scskuc_' + p[6].replace(/[^a-zA-Z0-9]/g,'_') + '_' + si;
         var centrosRows = Object.entries(s.centros).map(function(e){
-          return '<div style="display:flex;justify-content:space-between;gap:12px;padding:1px 0">'
-            +'<span style="color:var(--muted)">'+e[0].charAt(0).toUpperCase()+e[0].slice(1).toLowerCase()+'</span>'
-            +'<strong>'+e[1]+'</strong></div>';
-        }).join('');
+          var matPies = e[1];
+          var piezas = lenPies > 0 ? Math.floor(matPies / lenPies) : matPies;
+          var centro = e[0].charAt(0).toUpperCase()+e[0].slice(1).toLowerCase();
+          return '<div style="display:flex;justify-content:space-between;gap:12px;padding:2px 0">'
+            +'<span style="color:var(--muted)">'+centro+'</span>'
+            +'<div style="text-align:right">'
+            +'<strong>'+piezas+' pzas</strong>'
+            +'<span style="color:var(--muted);margin-left:5px">('+matPies+' pies)</span>'
+            +'</div></div>';
+        }).filter(function(r,i){ return Object.values(s.centros)[i] > 0; }).join('');
         var centroToggle = centrosRows
           ? '<button onclick="scToggleStock(\''+cid+'\')" title="Ver por centro" style="background:none;border:none;cursor:pointer;padding:1px 3px;border-radius:3px;color:var(--muted);display:inline-flex;align-items:center" onmouseover="this.style.color=\'var(--maraga)\'" onmouseout="this.style.color=\'var(--muted)\'"><i id="'+cid+'_ico" class="ti ti-building-warehouse" style="font-size:11px"></i></button>'
             +'<div id="'+cid+'" style="display:none;margin-top:3px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:10px">'+centrosRows+'</div>'
           : '';
+        var piezasColor = piezasTotal > 0 ? 'color:var(--green,#16a34a)' : 'color:var(--red)';
         return '<div style="padding:4px 0;border-bottom:1px solid var(--border)">'
           +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">'
           +'<span style="font-weight:600;font-family:monospace;font-size:10px;color:var(--maraga-dark)">'+s.sku+'</span>'
           +(lenLabel?'<span onclick="scToggleLen(this)" data-pies="'+lenPies+'" data-metros="'+lenMetros+'" data-unit="pies" title="Clic: pies ↔ metros" style="cursor:pointer;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px;color:var(--muted);user-select:none">'+lenLabel+'</span>':'')
-          +'<strong style="font-size:11px">'+s.total+'</strong>'
+          +'<strong style="font-size:11px;'+piezasColor+'">'+piezasTotal+' pzas</strong>'
           +centroToggle
           +'</div>'
           +'</div>';
