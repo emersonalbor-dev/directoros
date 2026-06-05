@@ -5530,6 +5530,17 @@ function scSugerirDientes() {
   el.textContent = best || '—';
 }
 
+function scToggleStock(id) {
+  var el = document.getElementById(id);
+  var ico = document.getElementById(id + '_ico');
+  var opening = el.style.display === 'none';
+  el.style.display = opening ? 'block' : 'none';
+  if (ico) {
+    ico.className = opening ? 'ti ti-building-warehouse' : 'ti ti-building-warehouse';
+    ico.style.color = opening ? 'var(--maraga)' : 'var(--muted)';
+  }
+}
+
 function scOnFormaChange() {
   var forma = parseInt(document.getElementById('scForma').value);
   var lbl = document.getElementById('scMedidaLabel');
@@ -5623,8 +5634,18 @@ function scFiltrar() {
     } else if (stockTotal === 0) {
       stockHtml = '<span style="color:var(--red);font-size:11px;font-weight:600">Sin stock</span>';
     } else {
-      var centros = Object.entries(stockData).map(function(e){return '<span style="font-size:10px;color:var(--muted)">'+e[0].charAt(0).toUpperCase()+e[0].slice(1).toLowerCase()+':</span> <strong>'+e[1]+'</strong>';}).join(' &nbsp;');
-      stockHtml = '<div style="font-size:11px;color:var(--ink);font-weight:600;white-space:nowrap">'+stockTotal+' pzas</div><div style="font-size:10px;color:var(--muted);margin-top:2px">'+centros+'</div>';
+      var uid = 'scst_' + p[6].replace(/[^a-zA-Z0-9]/g,'_');
+      var centrosHtml = Object.entries(stockData).map(function(e){
+        return '<div style="display:flex;justify-content:space-between;gap:14px;padding:2px 0">'
+          +'<span style="color:var(--muted)">'+e[0].charAt(0).toUpperCase()+e[0].slice(1).toLowerCase()+'</span>'
+          +'<strong>'+e[1]+'</strong></div>';
+      }).join('');
+      stockHtml = '<div style="display:flex;align-items:center;gap:4px">'
+        +'<span style="font-size:11px;font-weight:600;color:var(--ink)">'+stockTotal+' pzas</span>'
+        +'<button onclick="scToggleStock(\''+uid+'\')" title="Ver por centro" style="background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:4px;color:var(--muted);display:inline-flex;align-items:center;transition:background .1s" onmouseover="this.style.background=\'var(--bg)\'" onmouseout="this.style.background=\'none\'">'
+        +'<i id="'+uid+'_ico" class="ti ti-building-warehouse" style="font-size:13px"></i>'
+        +'</button></div>'
+        +'<div id="'+uid+'" style="display:none;margin-top:5px;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;min-width:130px">'+centrosHtml+'</div>';
     }
     html += '<tr'+rowClass+'>';
     html += '<td><span style="font-size:10px;color:var(--muted);display:block">' + (mpLabels[p[0]]||p[0]) + '</span>' + p[1] + '</td>';
