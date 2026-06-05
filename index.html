@@ -5677,7 +5677,7 @@ function scFiltrar() {
     return;
   }
   var mpLabels = {Bimetalica:'Bimetálica',Carbon:'Ac. Carbón',Carburo:'Carburo'};
-  var html = '<table class="sc-table"><thead><tr><th>Tipo S.C.</th><th>Ancho</th><th>Espesor</th><th>Dientes/pulg.</th><th>Código</th><th>Inventario</th></tr></thead><tbody>';
+  var html = '<table class="sc-table"><thead><tr><th>Ancho</th><th>Espesor</th><th>Dientes/pulg.</th><th>Código</th><th>Inventario</th><th>Tipo S.C.</th></tr></thead><tbody>';
   res.forEach(function(p) {
     var match = dSug !== '—' && p[5] === dSug;
     var rowClass = match ? ' class="sc-match"' : '';
@@ -5755,12 +5755,12 @@ function scFiltrar() {
         +'<div id="'+tipoUid+'" style="display:none;margin-top:5px;font-size:11px;background:var(--paper);border:1px solid var(--border);border-radius:6px;padding:4px 8px;min-width:200px;max-width:280px">'+skuListHtml+'</div>'
       : '';
     html += '<tr'+rowClass+'>';
-    html += '<td><span style="font-size:10px;color:var(--muted);display:block">' + (mpLabels[p[0]]||p[0]) + '</span>' + p[1] + tipoBtn + '</td>';
     html += '<td>' + p[2] + '</td>';
     html += '<td>' + (p[3]||'—') + '</td>';
     html += '<td>' + (match ? '<span class="sc-chip sc-chip-green">'+p[5]+' ✓</span>' : '<span class="sc-chip">'+p[5]+'</span>') + '</td>';
     html += '<td><span class="sc-chip">' + p[6] + '</span></td>';
     html += '<td>'+stockHtml+'</td>';
+    html += '<td><span style="font-size:10px;color:var(--muted);display:block">' + (mpLabels[p[0]]||p[0]) + '</span>' + p[1] + tipoBtn + '</td>';
     html += '</tr>';
   });
   html += '</tbody></table>';
