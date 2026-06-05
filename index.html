@@ -5565,25 +5565,32 @@ function scFiltrar() {
     return true;
   });
 
-  // 2. Rebuild additional filter options from base set (keep current selections if still valid)
-  var prevAncho = document.getElementById('scAncho').value;
-  var prevEsp   = document.getElementById('scEspesor').value;
-  var prevDF    = document.getElementById('scDienteFilter').value;
-
-  var anchos   = _scAnchoOrder.filter(function(v){ return base.some(function(p){ return p[2]===v; }); });
-  var espesores= [...new Set(base.map(function(p){return p[3];}).filter(Boolean))].sort();
-  var dientes  = [...new Set(base.map(function(p){return p[5];}).filter(Boolean))];
-
-  _scRebuildSelect('scAncho',       anchos,   prevAncho);
-  _scRebuildSelect('scEspesor',     espesores, prevEsp);
-  _scRebuildSelect('scDienteFilter',dientes,   prevDF);
-
-  // 3. Read (possibly reset) additional filter values
+  // 2. Leer selecciones actuales de filtros adicionales
   var ancho   = document.getElementById('scAncho').value;
   var espesor = document.getElementById('scEspesor').value;
   var dienteF = document.getElementById('scDienteFilter').value;
 
-  // 4. Final filtered set
+  // 3. Cada dropdown muestra solo las opciones válidas dado lo que los OTROS dos tienen seleccionado
+  var anchoDisp  = _scAnchoOrder.filter(function(v){
+    return base.some(function(p){ return p[2]===v && (!espesor||p[3]===espesor) && (!dienteF||p[5]===dienteF); });
+  });
+  var espDisp = [...new Set(base.filter(function(p){
+    return (!ancho||p[2]===ancho) && (!dienteF||p[5]===dienteF);
+  }).map(function(p){return p[3];}).filter(Boolean))].sort();
+  var dienteDisp = [...new Set(base.filter(function(p){
+    return (!ancho||p[2]===ancho) && (!espesor||p[3]===espesor);
+  }).map(function(p){return p[5];}).filter(Boolean))];
+
+  _scRebuildSelect('scAncho',        anchoDisp,  ancho);
+  _scRebuildSelect('scEspesor',      espDisp,    espesor);
+  _scRebuildSelect('scDienteFilter', dienteDisp, dienteF);
+
+  // Re-leer por si algún valor quedó inválido y se reseteó
+  ancho   = document.getElementById('scAncho').value;
+  espesor = document.getElementById('scEspesor').value;
+  dienteF = document.getElementById('scDienteFilter').value;
+
+  // 4. Resultado final
   var res = base.filter(function(p) {
     if (ancho   && p[2] !== ancho)   return false;
     if (espesor && p[3] !== espesor) return false;
