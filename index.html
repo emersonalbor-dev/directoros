@@ -352,6 +352,26 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 
 .dash-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .activity-list { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+
+/* ===== VENTAS POR PLATAFORMA ===== */
+.ventas-plat-section { margin-top: 18px; }
+.ventas-plat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 4px; }
+.ventas-plat-card { border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: var(--paper); position: relative; overflow: hidden; transition: box-shadow .15s; }
+.ventas-plat-card:hover { box-shadow: var(--shadow); }
+.ventas-plat-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.ventas-plat-ico { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ventas-plat-name { font-size: 13px; font-weight: 600; }
+.ventas-plat-badge-plat { font-size: 10px; font-weight: 500; padding: 1px 7px; border-radius: 4px; margin-top: 2px; display: inline-block; }
+.ventas-plat-total { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); line-height: 1; }
+.ventas-plat-sub { font-size: 11px; color: var(--muted); margin: 3px 0 10px; }
+.ventas-plat-stats { display: flex; gap: 16px; flex-wrap: wrap; padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+.ventas-plat-stat { font-size: 11px; color: var(--muted); }
+.ventas-plat-stat strong { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
+.ventas-plat-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.ventas-plat-top-titulo { font-size: 11px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 68%; }
+.ventas-plat-top-val { font-size: 11px; font-weight: 600; color: var(--maraga-dark); white-space: nowrap; }
+.ventas-plat-empty { color: var(--muted); font-size: 12px; padding: 28px 0; text-align: center; }
+.ventas-mes-sel { font-size: 11px; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); cursor: pointer; }
 .activity-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .activity-item:last-child { border-bottom: none; padding-bottom: 0; }
 .activity-item:first-child { padding-top: 0; }
@@ -1547,6 +1567,24 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
               </div>
             </div>
             <div id="activityList"></div>
+          </div>
+        </div>
+
+        <!-- ===== VENTAS POR PLATAFORMA ===== -->
+        <div class="ventas-plat-section">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title"><i class="ti ti-device-analytics" style="margin-right:6px;color:var(--maraga)"></i>Ventas del mes por plataforma</div>
+                <div class="chart-subtitle" id="ventas-mes-label">Mayo 2026</div>
+              </div>
+              <select class="ventas-mes-sel" id="ventasMesSel" onchange="renderVentasPlat(this.value)">
+                <option value="2026-05">Mayo 2026</option>
+                <option value="2026-04">Abril 2026</option>
+                <option value="2026-03">Marzo 2026</option>
+              </select>
+            </div>
+            <div class="ventas-plat-grid" id="ventasPlataformaGrid"></div>
           </div>
         </div>
       </div>
@@ -3625,6 +3663,101 @@ function renderCharts(wsHours) {
       }
     });
   }
+
+  renderVentasPlat(document.getElementById('ventasMesSel') ? document.getElementById('ventasMesSel').value : '2026-05');
+}
+
+/* ===== VENTAS POR PLATAFORMA ===== */
+var VENTAS_PLAT_DATA = {
+  '2026-05': {
+    mercadolibre: {
+      total: 972585.42,
+      ordenes: 907,
+      unidades: 1052,
+      top: [
+        { titulo: 'Soldadura Electrodo 6013 1/8 Maraga 20kg', ingresos: 58391.70 },
+        { titulo: 'Clavos Pistola Neumática Maraga 2" 9000pz', ingresos: 57026.69 },
+        { titulo: 'Disco Diamante Corte Metal 14"', ingresos: 47029.40 },
+        { titulo: 'Clavos Pistola Neumática Maraga 2½" 9000pz', ingresos: 46748.00 },
+        { titulo: 'Cortadora Metal Maraga 2400W 14"', ingresos: 44437.53 }
+      ]
+    }
+  }
+};
+
+var MESES_LABEL = {
+  '2026-01':'Enero 2026','2026-02':'Febrero 2026','2026-03':'Marzo 2026',
+  '2026-04':'Abril 2026','2026-05':'Mayo 2026','2026-06':'Junio 2026',
+  '2026-07':'Julio 2026','2026-08':'Agosto 2026','2026-09':'Septiembre 2026',
+  '2026-10':'Octubre 2026','2026-11':'Noviembre 2026','2026-12':'Diciembre 2026'
+};
+
+function fmtPesos(n) {
+  if (n >= 1000000) return '$' + (n/1000000).toFixed(2) + 'M';
+  if (n >= 1000) return '$' + (n/1000).toFixed(1) + 'K';
+  return '$' + n.toFixed(0);
+}
+
+function renderVentasPlat(mes) {
+  var lbl = document.getElementById('ventas-mes-label');
+  if (lbl) lbl.textContent = MESES_LABEL[mes] || mes;
+  var grid = document.getElementById('ventasPlataformaGrid');
+  if (!grid) return;
+
+  var data = VENTAS_PLAT_DATA[mes] || {};
+  var ml = data.mercadolibre;
+
+  var mlCard = ml
+    ? '<div class="ventas-plat-card" style="background:linear-gradient(135deg,#fffdf5 0%,var(--paper) 100%);border-color:#ffe0a0">' +
+        '<div class="ventas-plat-logo">' +
+          '<div class="ventas-plat-ico" style="background:#FFE600">' +
+            '<svg width="20" height="20" viewBox="0 0 64 64" fill="none"><ellipse cx="32" cy="32" rx="30" ry="30" fill="#FFE600"/><path d="M14 32 C14 22 22 14 32 14 C42 14 50 22 50 32" stroke="#3483FA" stroke-width="5" fill="none" stroke-linecap="round"/><circle cx="32" cy="38" r="7" fill="#3483FA"/></svg>' +
+          '</div>' +
+          '<div>' +
+            '<div class="ventas-plat-name">Mercado Libre</div>' +
+            '<span class="ventas-plat-badge-plat" style="background:#fff3e0;color:#e65100">🏆 Vendedor Platino</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="ventas-plat-total">' + fmtPesos(ml.total) + '</div>' +
+        '<div class="ventas-plat-sub">MXN en ventas — ' + (MESES_LABEL[mes]||mes) + '</div>' +
+        '<div class="ventas-plat-stats">' +
+          '<div class="ventas-plat-stat"><strong>' + ml.ordenes.toLocaleString() + '</strong>Órdenes</div>' +
+          '<div class="ventas-plat-stat"><strong>' + ml.unidades.toLocaleString() + '</strong>Unidades</div>' +
+          '<div class="ventas-plat-stat"><strong>$' + Math.round(ml.total/ml.ordenes).toLocaleString() + '</strong>Ticket prom.</div>' +
+        '</div>' +
+        '<div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Top productos</div>' +
+        ml.top.map(function(p) {
+          return '<div class="ventas-plat-top-row">' +
+            '<div class="ventas-plat-top-titulo">' + p.titulo + '</div>' +
+            '<div class="ventas-plat-top-val">' + fmtPesos(p.ingresos) + '</div>' +
+          '</div>';
+        }).join('') +
+      '</div>'
+    : '<div class="ventas-plat-card">' +
+        '<div class="ventas-plat-logo">' +
+          '<div class="ventas-plat-ico" style="background:#FFE600"><svg width="20" height="20" viewBox="0 0 64 64"><ellipse cx="32" cy="32" rx="30" ry="30" fill="#FFE600"/><path d="M14 32 C14 22 22 14 32 14 C42 14 50 22 50 32" stroke="#3483FA" stroke-width="5" fill="none" stroke-linecap="round"/><circle cx="32" cy="38" r="7" fill="#3483FA"/></svg></div>' +
+          '<div class="ventas-plat-name">Mercado Libre</div>' +
+        '</div>' +
+        '<div class="ventas-plat-empty"><i class="ti ti-database-off"></i><br>Sin datos para ' + (MESES_LABEL[mes]||mes) + '</div>' +
+      '</div>';
+
+  var webCard = '<div class="ventas-plat-card" style="opacity:.55">' +
+    '<div class="ventas-plat-logo">' +
+      '<div class="ventas-plat-ico" style="background:var(--maraga-bg)"><i class="ti ti-world" style="color:var(--maraga);font-size:18px"></i></div>' +
+      '<div class="ventas-plat-name">Sitio Web / Directo</div>' +
+    '</div>' +
+    '<div class="ventas-plat-empty"><i class="ti ti-plug-x"></i><br>Sin integración aún</div>' +
+  '</div>';
+
+  var waCard = '<div class="ventas-plat-card" style="opacity:.55">' +
+    '<div class="ventas-plat-logo">' +
+      '<div class="ventas-plat-ico" style="background:#e8f5e9"><i class="ti ti-brand-whatsapp" style="color:#388e3c;font-size:18px"></i></div>' +
+      '<div class="ventas-plat-name">WhatsApp / B2B</div>' +
+    '</div>' +
+    '<div class="ventas-plat-empty"><i class="ti ti-plug-x"></i><br>Sin integración aún</div>' +
+  '</div>';
+
+  grid.innerHTML = mlCard + webCard + waCard;
 }
 
 /* ===== CALENDAR ===== */
