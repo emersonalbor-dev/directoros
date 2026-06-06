@@ -372,6 +372,12 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 .ventas-plat-top-val { font-size: 11px; font-weight: 600; color: var(--maraga-dark); white-space: nowrap; }
 .ventas-plat-empty { color: var(--muted); font-size: 12px; padding: 28px 0; text-align: center; }
 .ventas-mes-sel { font-size: 11px; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); cursor: pointer; }
+.mes-filter-bar { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+.mes-filter-label { font-size:11px; color:var(--muted); font-weight:600; letter-spacing:.05em; text-transform:uppercase; white-space:nowrap; }
+.mes-pills { display:flex; gap:5px; flex-wrap:wrap; }
+.mes-pill { font-size:12px; font-weight:500; padding:5px 13px; border-radius:20px; border:1px solid var(--line); background:var(--paper); color:var(--muted); cursor:pointer; transition:all .15s; line-height:1.4; }
+.mes-pill:hover { border-color:var(--maraga); color:var(--maraga-dark); background:var(--maraga-bg); }
+.mes-pill.active { background:var(--maraga); color:#fff; border-color:var(--maraga); font-weight:600; }
 .activity-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .activity-item:last-child { border-bottom: none; padding-bottom: 0; }
 .activity-item:first-child { padding-top: 0; }
@@ -1488,10 +1494,23 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           </div>
         </div>
 
+        <!-- FILTRO MES GLOBAL -->
+        <div class="mes-filter-bar">
+          <span class="mes-filter-label">Mes</span>
+          <div class="mes-pills">
+            <button class="mes-pill" data-mes="2026-01" onclick="setDashMes('2026-01')">Ene 26</button>
+            <button class="mes-pill" data-mes="2026-02" onclick="setDashMes('2026-02')">Feb 26</button>
+            <button class="mes-pill" data-mes="2026-03" onclick="setDashMes('2026-03')">Mar 26</button>
+            <button class="mes-pill" data-mes="2026-04" onclick="setDashMes('2026-04')">Abr 26</button>
+            <button class="mes-pill active" data-mes="2026-05" onclick="setDashMes('2026-05')">May 26</button>
+            <button class="mes-pill" data-mes="2026-06" onclick="setDashMes('2026-06')">Jun 26 ⚠</button>
+          </div>
+        </div>
+
         <div class="kpi-grid">
           <div class="kpi-card">
             <div class="kpi-card-row">
-              <div class="kpi-label">Venta Maraga (mes)</div>
+              <div class="kpi-label" id="kpi-sales-label">Venta ML · Mayo 2026</div>
               <div class="kpi-icon" style="background:var(--maraga-bg)"><i class="ti ti-trending-up" style="color:var(--maraga-dark)"></i></div>
             </div>
             <div class="kpi-value" id="kpi-sales">$0.0M</div>
@@ -1578,14 +1597,6 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 <div class="chart-title"><i class="ti ti-device-analytics" style="margin-right:6px;color:var(--maraga)"></i>Ventas del mes por plataforma</div>
                 <div class="chart-subtitle" id="ventas-mes-label">Mayo 2026</div>
               </div>
-              <select class="ventas-mes-sel" id="ventasMesSel" onchange="renderVentasPlat(this.value)">
-                <option value="2026-06">Junio 2026 ⚠</option>
-                <option value="2026-05" selected>Mayo 2026</option>
-                <option value="2026-04">Abril 2026</option>
-                <option value="2026-03">Marzo 2026</option>
-                <option value="2026-02">Febrero 2026</option>
-                <option value="2026-01">Enero 2026</option>
-              </select>
             </div>
             <div class="ventas-plat-grid" id="ventasPlataformaGrid"></div>
           </div>
@@ -3667,7 +3678,40 @@ function renderCharts(wsHours) {
     });
   }
 
-  renderVentasPlat(document.getElementById('ventasMesSel') ? document.getElementById('ventasMesSel').value : '2026-05');
+  setDashMes(dashMes);
+}
+
+/* ===== FILTRO MES GLOBAL ===== */
+var dashMes = '2026-05';
+
+function setDashMes(mes) {
+  dashMes = mes;
+
+  // Actualiza pills
+  document.querySelectorAll('.mes-pill').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.mes === mes);
+  });
+
+  // Actualiza KPI Ventas ML
+  var d = VENTAS_PLAT_DATA[mes];
+  var ml = d && d.mercadolibre;
+  var kpiSalesEl   = document.getElementById('kpi-sales');
+  var kpiLabelEl   = document.getElementById('kpi-sales-label');
+  var kpiBarEl     = document.getElementById('kpi-sales-bar');
+  var mesNombre    = MESES_LABEL[mes] || mes;
+
+  if (kpiLabelEl) kpiLabelEl.textContent = 'Venta ML · ' + mesNombre;
+
+  if (ml) {
+    if (kpiSalesEl) kpiSalesEl.textContent = fmtPesos(ml.total);
+    if (kpiBarEl) kpiBarEl.style.width = Math.min(100, ml.total / 10000000 * 100).toFixed(1) + '%';
+  } else {
+    if (kpiSalesEl) kpiSalesEl.textContent = '—';
+    if (kpiBarEl) kpiBarEl.style.width = '0%';
+  }
+
+  // Sincroniza sección ventas por plataforma
+  renderVentasPlat(mes);
 }
 
 /* ===== VENTAS POR PLATAFORMA ===== */
