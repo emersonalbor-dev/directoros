@@ -1579,9 +1579,12 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 <div class="chart-subtitle" id="ventas-mes-label">Mayo 2026</div>
               </div>
               <select class="ventas-mes-sel" id="ventasMesSel" onchange="renderVentasPlat(this.value)">
-                <option value="2026-05">Mayo 2026</option>
-                <option value="2026-04">Abril 2026</option>
-                <option value="2026-03">Marzo 2026</option>
+                <option value="2026-06">Junio 2026 ⚠</option>
+                <option value="2026-05" selected>Mayo 2026</option>
+                <option value="2026-04">Abril 2026 ⚠</option>
+                <option value="2026-03">Marzo 2026 ⚠</option>
+                <option value="2026-02">Febrero 2026 ⚠</option>
+                <option value="2026-01">Enero 2026</option>
               </select>
             </div>
             <div class="ventas-plat-grid" id="ventasPlataformaGrid"></div>
@@ -3669,17 +3672,76 @@ function renderCharts(wsHours) {
 
 /* ===== VENTAS POR PLATAFORMA ===== */
 var VENTAS_PLAT_DATA = {
+  '2026-01': {
+    mercadolibre: {
+      total: 1010045.84, ordenes: 1127, unidades: 1253, ticketPromedio: 896,
+      top: [
+        { titulo: 'Careta Electrónica Free450 Sombra 11', ingresos: 239712.90 },
+        { titulo: 'Máquina Soldar Arc160 160A', ingresos: 170887.14 },
+        { titulo: 'Disco Diamante Corte Metal 14"', ingresos: 82885.60 },
+        { titulo: 'Cortadora Metal 2400W 14"', ingresos: 64726.38 },
+        { titulo: 'Clavos Pistola 2" 9000pz', ingresos: 42979.15 }
+      ]
+    }
+  },
+  '2026-02': {
+    mercadolibre: {
+      total: 33459.39, ordenes: 44, unidades: 53, ticketPromedio: 760, parcial: true,
+      top: [
+        { titulo: 'Soldadura 6013 1/8 Maraga 5kg', ingresos: 6759.44 },
+        { titulo: 'Careta Electrónica Free450', ingresos: 5130.00 },
+        { titulo: 'Clavos Pistola 2½" 9000pz', ingresos: 3596.00 },
+        { titulo: 'Máquina Soldar Arc160 160A', ingresos: 3119.22 },
+        { titulo: 'Cortadora Metal 2400W 14"', ingresos: 2921.92 }
+      ]
+    }
+  },
+  '2026-03': {
+    mercadolibre: {
+      total: 49598.34, ordenes: 44, unidades: 48, ticketPromedio: 1127, parcial: true,
+      top: [
+        { titulo: 'Pistola Clavos Maraga Coil80', ingresos: 9978.00 },
+        { titulo: 'Clavos Pistola 2" 9000pz', ingresos: 9790.00 },
+        { titulo: 'Careta Electrónica Free450', ingresos: 5130.00 },
+        { titulo: 'Cortadora Metal 2400W 14"', ingresos: 3299.00 },
+        { titulo: 'Máquina Soldar Arc160 160A', ingresos: 3119.22 }
+      ]
+    }
+  },
+  '2026-04': {
+    mercadolibre: {
+      total: 66356.31, ordenes: 46, unidades: 53, ticketPromedio: 1443, parcial: true,
+      top: [
+        { titulo: 'Pistola Clavos Bostitch 1½"-3"', ingresos: 15000.00 },
+        { titulo: 'Pistola Clavos Maraga CN70', ingresos: 14945.00 },
+        { titulo: 'Cortadora Metal 2400W 14"', ingresos: 6433.05 },
+        { titulo: 'Careta Electrónica Free450', ingresos: 5332.50 },
+        { titulo: 'Soldadura Electrodo 6013 1/8 20kg', ingresos: 5156.00 }
+      ]
+    }
+  },
   '2026-05': {
     mercadolibre: {
-      total: 972585.42,
-      ordenes: 907,
-      unidades: 1052,
+      total: 972585.42, ordenes: 907, unidades: 1052, ticketPromedio: 1072,
       top: [
         { titulo: 'Soldadura Electrodo 6013 1/8 Maraga 20kg', ingresos: 58391.70 },
         { titulo: 'Clavos Pistola Neumática Maraga 2" 9000pz', ingresos: 57026.69 },
         { titulo: 'Disco Diamante Corte Metal 14"', ingresos: 47029.40 },
         { titulo: 'Clavos Pistola Neumática Maraga 2½" 9000pz', ingresos: 46748.00 },
         { titulo: 'Cortadora Metal Maraga 2400W 14"', ingresos: 44437.53 }
+      ]
+    }
+  },
+  '2026-06': {
+    mercadolibre: {
+      total: 48154.34, ordenes: 45, unidades: 53, ticketPromedio: 1070,
+      parcial: true,
+      top: [
+        { titulo: 'Careta Electrónica Free450', ingresos: 10546.40 },
+        { titulo: 'Soldadora Arc200 200A', ingresos: 10078.32 },
+        { titulo: 'Careta Electrónica Sombra 9-13', ingresos: 7167.20 },
+        { titulo: 'Antorcha Tweco 300A 5m', ingresos: 5760.00 },
+        { titulo: 'Pistola Clavos Maraga CN70', ingresos: 4486.50 }
       ]
     }
   }
@@ -3718,8 +3780,9 @@ function renderVentasPlat(mes) {
             '<span class="ventas-plat-badge-plat" style="background:#fff3e0;color:#e65100">🏆 Vendedor Platino</span>' +
           '</div>' +
         '</div>' +
+        (ml.parcial ? '<div style="display:inline-flex;align-items:center;gap:5px;background:#fff3e0;border:1px solid #ffcc80;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;color:#e65100;margin-bottom:8px"><i class="ti ti-alert-triangle" style="font-size:11px"></i>Datos parciales — mes en curso</div>' : '') +
         '<div class="ventas-plat-total">' + fmtPesos(ml.total) + '</div>' +
-        '<div class="ventas-plat-sub">MXN en ventas — ' + (MESES_LABEL[mes]||mes) + '</div>' +
+        '<div class="ventas-plat-sub">MXN en ventas — ' + (MESES_LABEL[mes]||mes) + (ml.parcial ? ' (parcial)' : '') + '</div>' +
         '<div class="ventas-plat-stats">' +
           '<div class="ventas-plat-stat"><strong>' + ml.ordenes.toLocaleString() + '</strong>Órdenes</div>' +
           '<div class="ventas-plat-stat"><strong>' + ml.unidades.toLocaleString() + '</strong>Unidades</div>' +
