@@ -355,7 +355,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 
 /* ===== VENTAS POR PLATAFORMA ===== */
 .ventas-plat-section { margin-top: 18px; }
-.ventas-plat-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-top: 4px; }
+.ventas-plat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 4px; }
 .ventas-plat-card { border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: var(--paper); position: relative; overflow: hidden; transition: box-shadow .15s; }
 .ventas-plat-card:hover { box-shadow: var(--shadow); }
 .ventas-plat-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -3704,6 +3704,7 @@ function setDashMes(mes) {
   var d = VENTAS_PLAT_DATA[mes];
   var ml  = d && d.mercadolibre;
   var amz = d && d.amazon;
+  var wmt = d && d.walmart;
   var kpiSalesEl     = document.getElementById('kpi-sales');
   var kpiLabelEl     = document.getElementById('kpi-sales-label');
   var kpiBarMlEl     = document.getElementById('kpi-sales-bar');
@@ -3711,24 +3712,28 @@ function setDashMes(mes) {
   var kpiBreakdownEl = document.getElementById('kpi-plat-breakdown');
   var mesNombre      = MESES_LABEL[mes] || mes;
   var META = 10000000;
+  var USD_MXN = 17.5; // tipo de cambio aprox
 
   if (kpiLabelEl) kpiLabelEl.textContent = 'Ventas Totales · ' + mesNombre;
 
   var mlTotal  = ml  ? ml.total  : 0;
   var amzTotal = amz ? amz.total : 0;
-  var total    = mlTotal + amzTotal;
+  var wmtMxn   = wmt ? wmt.total * USD_MXN : 0; // convertir USD→MXN para total
+  var total    = mlTotal + amzTotal + wmtMxn;
 
   if (total > 0) {
     if (kpiSalesEl) kpiSalesEl.textContent = fmtPesos(total);
     var mlPct  = Math.min(100, mlTotal  / META * 100);
-    var amzPct = Math.min(100 - mlPct, amzTotal / META * 100);
+    var amzPct = Math.min(100 - mlPct,  amzTotal / META * 100);
+    var wmtPct = Math.min(100 - mlPct - amzPct, wmtMxn / META * 100);
     if (kpiBarMlEl)  kpiBarMlEl.style.width  = mlPct.toFixed(1)  + '%';
     if (kpiBarAmzEl) kpiBarAmzEl.style.width = amzPct.toFixed(1) + '%';
     // Chips de plataforma
     if (kpiBreakdownEl) {
       var chips = '';
       if (mlTotal  > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:var(--maraga)"></div>ML&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mlTotal) + '</span></div>';
-      if (amzTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#FF9900"></div>Amazon&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(amzTotal) + '</span></div>';
+      if (amzTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#FF9900"></div>Amz&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(amzTotal) + '</span></div>';
+      if (wmtMxn   > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#0071CE"></div>Wmt&nbsp;<span class="kpi-plat-chip-val">' + fmtUSD(wmt.total) + '</span></div>';
       kpiBreakdownEl.innerHTML = chips;
     }
   } else {
@@ -3745,6 +3750,7 @@ function setDashMes(mes) {
 /* ===== VENTAS POR PLATAFORMA ===== */
 var VENTAS_PLAT_DATA = {
   '2026-01': {
+    walmart: null,
     mercadolibre: {
       total: 1010045.84, ordenes: 1127, unidades: 1253, ticketPromedio: 896,
       top: [
@@ -3757,6 +3763,7 @@ var VENTAS_PLAT_DATA = {
     }
   },
   '2026-02': {
+    walmart: null,
     mercadolibre: {
       total: 1257004.94, ordenes: 1229, unidades: 1369, ticketPromedio: 1023,
       top: [
@@ -3769,6 +3776,12 @@ var VENTAS_PLAT_DATA = {
     }
   },
   '2026-03': {
+    walmart: {
+      total: 53, ordenes: 1, unidades: 1, ticketPromedio: 53, currency: 'USD',
+      top: [
+        { titulo: 'Coil Nails 2", Gauge 0.092", 9000 pz', ingresos: 53 }
+      ]
+    },
     mercadolibre: {
       total: 1051857.93, ordenes: 982, unidades: 1147, ticketPromedio: 1071,
       top: [
@@ -3781,6 +3794,13 @@ var VENTAS_PLAT_DATA = {
     }
   },
   '2026-04': {
+    walmart: {
+      total: 132, ordenes: 2, unidades: 2, ticketPromedio: 66, currency: 'USD',
+      top: [
+        { titulo: 'Coil Nails 3", Gauge 0.113", 5,400 pz', ingresos: 79 },
+        { titulo: 'Coil Nails 2", Gauge 0.092", 9000 pz', ingresos: 53 }
+      ]
+    },
     mercadolibre: {
       total: 1066916.27, ordenes: 871, unidades: 997, ticketPromedio: 1225,
       top: [
@@ -3793,6 +3813,12 @@ var VENTAS_PLAT_DATA = {
     }
   },
   '2026-05': {
+    walmart: {
+      total: 106, ordenes: 2, unidades: 2, ticketPromedio: 53, currency: 'USD',
+      top: [
+        { titulo: 'Coil Nails 2", Gauge 0.092", 9000 pz', ingresos: 106 }
+      ]
+    },
     mercadolibre: {
       total: 972585.42, ordenes: 907, unidades: 1052, ticketPromedio: 1072,
       top: [
@@ -3824,9 +3850,10 @@ var VENTAS_PLAT_DATA = {
         { titulo: 'Clavos Pistola Neumática 2" 9000pz', ingresos: 14596.86 }
       ]
     },
+    walmart: null,
     amazon: {
       total: 29345.52, ordenes: 54, unidades: 58, ticketPromedio: 543,
-      parcial: true, parcialLabel: 'al 6 de junio',
+      parcial: true, parcialLabel: 'al 7 de junio',
       top: [
         { titulo: 'Soldadora Inversora 110/220V, 200 Amp', ingresos: 9958 },
         { titulo: 'Esmeriladora 4-1/2 Pulgadas 800W', ingresos: 7034 },
@@ -3849,6 +3876,10 @@ function fmtPesos(n) {
   if (n >= 1000000) return '$' + (n/1000000).toFixed(2) + 'M';
   if (n >= 1000) return '$' + (n/1000).toFixed(1) + 'K';
   return '$' + n.toFixed(0);
+}
+function fmtUSD(n) {
+  if (n >= 1000) return 'USD $' + (n/1000).toFixed(1) + 'K';
+  return 'USD $' + n.toFixed(0);
 }
 
 function renderVentasPlat(mes) {
@@ -3939,15 +3970,68 @@ function renderVentasPlat(mes) {
         '</div>' +
       '</div>';
 
-  var webCard = '<div class="ventas-plat-card" style="opacity:.5">' +
+  /* ---- WALMART CARD ---- */
+  var wmt = data.walmart;
+  var wmtLogoSvg = '<svg width="22" height="22" viewBox="0 0 64 64" fill="none"><rect width="64" height="64" rx="10" fill="#0071CE"/><g transform="translate(32,32)">' +
+    '<rect x="-3" y="-16" width="6" height="11" rx="3" fill="#FFC220"/>' +
+    '<rect x="-3" y="5" width="6" height="11" rx="3" fill="#FFC220"/>' +
+    '<rect x="5" y="-3" width="11" height="6" rx="3" fill="#FFC220"/>' +
+    '<rect x="-16" y="-3" width="11" height="6" rx="3" fill="#FFC220"/>' +
+    '<rect x="2" y="-14" width="6" height="11" rx="3" fill="#FFC220" transform="rotate(45 5 -8.5)"/>' +
+    '<rect x="-8" y="3" width="6" height="11" rx="3" fill="#FFC220" transform="rotate(45 -5 8.5)"/>' +
+    '<rect x="3" y="2" width="11" height="6" rx="3" fill="#FFC220" transform="rotate(45 8.5 5)"/>' +
+    '<rect x="-14" y="-8" width="11" height="6" rx="3" fill="#FFC220" transform="rotate(45 -8.5 -5)"/>' +
+  '</g></svg>';
+
+  var wmtCard = wmt
+    ? '<div class="ventas-plat-card" style="background:linear-gradient(135deg,#f0f7ff 0%,var(--paper) 100%);border-color:#90caf9">' +
+        '<div class="ventas-plat-logo">' +
+          '<div class="ventas-plat-ico" style="background:#0071CE">' + wmtLogoSvg + '</div>' +
+          '<div>' +
+            '<div class="ventas-plat-name">Walmart</div>' +
+            '<span class="ventas-plat-badge-plat" style="background:#e3f2fd;color:#0071CE">🏪 Walmart.com US</span>' +
+          '</div>' +
+        '</div>' +
+        (wmt.parcial ? '<div style="display:inline-flex;align-items:center;gap:5px;background:#e3f2fd;border:1px solid #90caf9;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;color:#0071CE;margin-bottom:8px"><i class="ti ti-alert-triangle" style="font-size:11px"></i>Parcial — mes en curso</div>' : '') +
+        '<div class="ventas-plat-total" style="font-size:22px">' + fmtUSD(wmt.total) + '</div>' +
+        '<div class="ventas-plat-sub">en ventas — ' + (MESES_LABEL[mes]||mes) + '</div>' +
+        '<div class="ventas-plat-stats">' +
+          '<div class="ventas-plat-stat"><strong>' + wmt.ordenes.toLocaleString() + '</strong>Órdenes</div>' +
+          '<div class="ventas-plat-stat"><strong>' + wmt.unidades.toLocaleString() + '</strong>Unidades</div>' +
+          '<div class="ventas-plat-stat"><strong>USD $' + Math.round(wmt.ticketPromedio) + '</strong>Ticket</div>' +
+        '</div>' +
+        '<div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Top productos</div>' +
+        (wmt.top || []).map(function(p) {
+          return '<div class="ventas-plat-top-row">' +
+            '<div class="ventas-plat-top-titulo">' + p.titulo + '</div>' +
+            '<div class="ventas-plat-top-val">$' + p.ingresos.toFixed(0) + '</div>' +
+          '</div>';
+        }).join('') +
+      '</div>'
+    : '<div class="ventas-plat-card" style="border:1.5px dashed #90caf9;background:linear-gradient(135deg,#f0f7ff 0%,var(--paper) 100%)">' +
+        '<div class="ventas-plat-logo">' +
+          '<div class="ventas-plat-ico" style="background:#0071CE">' + wmtLogoSvg + '</div>' +
+          '<div>' +
+            '<div class="ventas-plat-name">Walmart</div>' +
+            '<span style="font-size:10px;color:var(--muted)">Walmart.com US</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="ventas-plat-empty" style="color:#0071CE">' +
+          '<i class="ti ti-minus" style="font-size:20px;margin-bottom:4px;display:block"></i>' +
+          '<strong style="font-size:12px">Sin ventas este mes</strong>' +
+          '<div style="font-size:10px;color:var(--muted);margin-top:6px">Canal en crecimiento</div>' +
+        '</div>' +
+      '</div>';
+
+  var webCard = '<div class="ventas-plat-card" style="opacity:.4">' +
     '<div class="ventas-plat-logo">' +
-      '<div class="ventas-plat-ico" style="background:var(--maraga-bg)"><i class="ti ti-world" style="color:var(--maraga);font-size:18px"></i></div>' +
-      '<div class="ventas-plat-name">Sitio Web / Directo</div>' +
+      '<div class="ventas-plat-ico" style="background:var(--paper-2)"><i class="ti ti-world" style="color:var(--muted);font-size:18px"></i></div>' +
+      '<div class="ventas-plat-name" style="color:var(--muted)">Sitio Web / Directo</div>' +
     '</div>' +
     '<div class="ventas-plat-empty"><i class="ti ti-plug-x"></i><br>Sin integración aún</div>' +
   '</div>';
 
-  var waCard = '<div class="ventas-plat-card" style="opacity:.5">' +
+  var waCard = '<div class="ventas-plat-card" style="opacity:.4">' +
     '<div class="ventas-plat-logo">' +
       '<div class="ventas-plat-ico" style="background:#e8f5e9"><i class="ti ti-brand-whatsapp" style="color:#388e3c;font-size:18px"></i></div>' +
       '<div class="ventas-plat-name">WhatsApp / B2B</div>' +
@@ -3955,7 +4039,7 @@ function renderVentasPlat(mes) {
     '<div class="ventas-plat-empty"><i class="ti ti-plug-x"></i><br>Sin integración aún</div>' +
   '</div>';
 
-  grid.innerHTML = mlCard + amzCard + webCard + waCard;
+  grid.innerHTML = mlCard + amzCard + wmtCard + webCard + waCard;
 }
 
 /* ===== CALENDAR ===== */
