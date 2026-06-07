@@ -1508,8 +1508,8 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             <button class="mes-pill" data-mes="2026-02" onclick="setDashMes('2026-02')">Feb 26</button>
             <button class="mes-pill" data-mes="2026-03" onclick="setDashMes('2026-03')">Mar 26</button>
             <button class="mes-pill" data-mes="2026-04" onclick="setDashMes('2026-04')">Abr 26</button>
-            <button class="mes-pill active" data-mes="2026-05" onclick="setDashMes('2026-05')">May 26</button>
-            <button class="mes-pill" data-mes="2026-06" onclick="setDashMes('2026-06')">Jun 26 ⚠</button>
+            <button class="mes-pill" data-mes="2026-05" onclick="setDashMes('2026-05')">May 26</button>
+            <button class="mes-pill" data-mes="2026-06" onclick="setDashMes('2026-06')">Jun 26</button>
           </div>
         </div>
 
@@ -3701,9 +3701,18 @@ function renderCharts(wsHours) {
 }
 
 /* ===== FILTRO MES GLOBAL ===== */
-var dashMes = '2026-05';
+// Calcula el mes actual en zona horaria MX (UTC-6)
+var dashMes = (function() {
+  var _d = new Date(Date.now() - 6 * 60 * 60 * 1000);
+  return _d.getUTCFullYear() + '-' + String(_d.getUTCMonth() + 1).padStart(2, '0');
+})();
 
 function setDashMes(mes) {
+  // Si el mes no tiene datos, usar el más reciente disponible
+  if (!VENTAS_PLAT_DATA[mes]) {
+    var keys = Object.keys(VENTAS_PLAT_DATA).sort();
+    mes = keys[keys.length - 1] || mes;
+  }
   dashMes = mes;
 
   // Actualiza pills
