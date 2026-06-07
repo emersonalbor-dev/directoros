@@ -355,7 +355,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 
 /* ===== VENTAS POR PLATAFORMA ===== */
 .ventas-plat-section { margin-top: 18px; }
-.ventas-plat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 4px; }
+.ventas-plat-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-top: 4px; }
 .ventas-plat-card { border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: var(--paper); position: relative; overflow: hidden; transition: box-shadow .15s; }
 .ventas-plat-card:hover { box-shadow: var(--shadow); }
 .ventas-plat-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -3848,7 +3848,51 @@ function renderVentasPlat(mes) {
         '<div class="ventas-plat-empty"><i class="ti ti-database-off"></i><br>Sin datos para ' + (MESES_LABEL[mes]||mes) + '</div>' +
       '</div>';
 
-  var webCard = '<div class="ventas-plat-card" style="opacity:.55">' +
+  /* ---- AMAZON CARD ---- */
+  var amz = data.amazon;
+  var amzLogoSvg = '<svg width="22" height="22" viewBox="0 0 64 64" fill="none"><rect width="64" height="64" rx="10" fill="#FF9900"/><text x="32" y="38" text-anchor="middle" font-size="30" font-family="Arial Black,Arial" fill="white" font-weight="900">a</text><path d="M13 50 Q32 60 51 50" stroke="white" stroke-width="4" fill="none" stroke-linecap="round"/><polygon points="48,46 51,50 54,46" fill="white"/></svg>';
+
+  var amzCard = amz
+    ? '<div class="ventas-plat-card" style="background:linear-gradient(135deg,#fff9f0 0%,var(--paper) 100%);border-color:#ffcc80">' +
+        '<div class="ventas-plat-logo">' +
+          '<div class="ventas-plat-ico" style="background:#FF9900">' + amzLogoSvg + '</div>' +
+          '<div>' +
+            '<div class="ventas-plat-name">Amazon</div>' +
+            '<span class="ventas-plat-badge-plat" style="background:#fff3e0;color:#e65100">' + (amz.badge || '🏪 Seller Central') + '</span>' +
+          '</div>' +
+        '</div>' +
+        (amz.parcial ? '<div style="display:inline-flex;align-items:center;gap:5px;background:#fff3e0;border:1px solid #ffcc80;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;color:#e65100;margin-bottom:8px"><i class="ti ti-alert-triangle" style="font-size:11px"></i>Parcial' + (amz.parcialLabel ? ' — ' + amz.parcialLabel : ' — mes en curso') + '</div>' : '') +
+        '<div class="ventas-plat-total">' + fmtPesos(amz.total) + '</div>' +
+        '<div class="ventas-plat-sub">MXN en ventas — ' + (MESES_LABEL[mes]||mes) + (amz.parcial ? (amz.parcialLabel ? ' (' + amz.parcialLabel + ')' : ' (parcial)') : '') + '</div>' +
+        '<div class="ventas-plat-stats">' +
+          '<div class="ventas-plat-stat"><strong>' + amz.ordenes.toLocaleString() + '</strong>Órdenes</div>' +
+          '<div class="ventas-plat-stat"><strong>' + amz.unidades.toLocaleString() + '</strong>Unidades</div>' +
+          '<div class="ventas-plat-stat"><strong>$' + Math.round(amz.total/amz.ordenes).toLocaleString() + '</strong>Ticket prom.</div>' +
+        '</div>' +
+        '<div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Top productos</div>' +
+        (amz.top || []).map(function(p) {
+          return '<div class="ventas-plat-top-row">' +
+            '<div class="ventas-plat-top-titulo">' + p.titulo + '</div>' +
+            '<div class="ventas-plat-top-val">' + fmtPesos(p.ingresos) + '</div>' +
+          '</div>';
+        }).join('') +
+      '</div>'
+    : '<div class="ventas-plat-card" style="border:1.5px dashed #ffb347;background:linear-gradient(135deg,#fff8f0 0%,var(--paper) 100%)">' +
+        '<div class="ventas-plat-logo">' +
+          '<div class="ventas-plat-ico" style="background:#FF9900">' + amzLogoSvg + '</div>' +
+          '<div>' +
+            '<div class="ventas-plat-name">Amazon</div>' +
+            '<span style="font-size:10px;color:var(--muted)">A24B1WSUDNVDQM</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="ventas-plat-empty" style="color:#e65100">' +
+          '<i class="ti ti-refresh" style="font-size:20px;margin-bottom:4px;display:block"></i>' +
+          '<strong style="font-size:12px">Conectar Porter MCP</strong>' +
+          '<div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5">Reinicia Claude Code para<br>activar el servidor Porter</div>' +
+        '</div>' +
+      '</div>';
+
+  var webCard = '<div class="ventas-plat-card" style="opacity:.5">' +
     '<div class="ventas-plat-logo">' +
       '<div class="ventas-plat-ico" style="background:var(--maraga-bg)"><i class="ti ti-world" style="color:var(--maraga);font-size:18px"></i></div>' +
       '<div class="ventas-plat-name">Sitio Web / Directo</div>' +
@@ -3856,7 +3900,7 @@ function renderVentasPlat(mes) {
     '<div class="ventas-plat-empty"><i class="ti ti-plug-x"></i><br>Sin integración aún</div>' +
   '</div>';
 
-  var waCard = '<div class="ventas-plat-card" style="opacity:.55">' +
+  var waCard = '<div class="ventas-plat-card" style="opacity:.5">' +
     '<div class="ventas-plat-logo">' +
       '<div class="ventas-plat-ico" style="background:#e8f5e9"><i class="ti ti-brand-whatsapp" style="color:#388e3c;font-size:18px"></i></div>' +
       '<div class="ventas-plat-name">WhatsApp / B2B</div>' +
@@ -3864,7 +3908,7 @@ function renderVentasPlat(mes) {
     '<div class="ventas-plat-empty"><i class="ti ti-plug-x"></i><br>Sin integración aún</div>' +
   '</div>';
 
-  grid.innerHTML = mlCard + webCard + waCard;
+  grid.innerHTML = mlCard + amzCard + webCard + waCard;
 }
 
 /* ===== CALENDAR ===== */
