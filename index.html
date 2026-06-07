@@ -3778,14 +3778,14 @@ var VENTAS_PLAT_DATA = {
   },
   '2026-06': {
     mercadolibre: {
-      total: 48154.34, ordenes: 45, unidades: 53, ticketPromedio: 1070,
-      parcial: true,
+      total: 256777.37, ordenes: 264, unidades: 290, ticketPromedio: 973,
+      parcial: true, parcialLabel: 'al 6 de junio',
       top: [
-        { titulo: 'Careta Electrónica Free450', ingresos: 10546.40 },
-        { titulo: 'Soldadora Arc200 200A', ingresos: 10078.32 },
-        { titulo: 'Careta Electrónica Sombra 9-13', ingresos: 7167.20 },
-        { titulo: 'Antorcha Tweco 300A 5m', ingresos: 5760.00 },
-        { titulo: 'Pistola Clavos Maraga CN70', ingresos: 4486.50 }
+        { titulo: 'Soldadora Inverter Arc300DV 300A', ingresos: 48596.40 },
+        { titulo: 'Careta Electrónica Free450 Sombra 11', ingresos: 36385.08 },
+        { titulo: 'Soldadora Inversora Arc200 200A', ingresos: 25195.80 },
+        { titulo: 'Pistola Clavos Maraga CN70', ingresos: 16737.30 },
+        { titulo: 'Clavos Pistola Neumática 2" 9000pz', ingresos: 14596.86 }
       ]
     }
   }
@@ -3824,9 +3824,9 @@ function renderVentasPlat(mes) {
             '<span class="ventas-plat-badge-plat" style="background:#fff3e0;color:#e65100">🏆 Vendedor Platino</span>' +
           '</div>' +
         '</div>' +
-        (ml.parcial ? '<div style="display:inline-flex;align-items:center;gap:5px;background:#fff3e0;border:1px solid #ffcc80;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;color:#e65100;margin-bottom:8px"><i class="ti ti-alert-triangle" style="font-size:11px"></i>Datos parciales — mes en curso</div>' : '') +
+        (ml.parcial ? '<div style="display:inline-flex;align-items:center;gap:5px;background:#fff3e0;border:1px solid #ffcc80;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;color:#e65100;margin-bottom:8px"><i class="ti ti-alert-triangle" style="font-size:11px"></i>Parcial' + (ml.parcialLabel ? ' — ' + ml.parcialLabel : ' — mes en curso') + '</div>' : '') +
         '<div class="ventas-plat-total">' + fmtPesos(ml.total) + '</div>' +
-        '<div class="ventas-plat-sub">MXN en ventas — ' + (MESES_LABEL[mes]||mes) + (ml.parcial ? ' (parcial)' : '') + '</div>' +
+        '<div class="ventas-plat-sub">MXN en ventas — ' + (MESES_LABEL[mes]||mes) + (ml.parcial ? (ml.parcialLabel ? ' (' + ml.parcialLabel + ')' : ' (parcial)') : '') + '</div>' +
         '<div class="ventas-plat-stats">' +
           '<div class="ventas-plat-stat"><strong>' + ml.ordenes.toLocaleString() + '</strong>Órdenes</div>' +
           '<div class="ventas-plat-stat"><strong>' + ml.unidades.toLocaleString() + '</strong>Unidades</div>' +
