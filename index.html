@@ -1578,6 +1578,37 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           </div>
         </div>
 
+        <!-- ===== CHATS WHATSAPP ===== -->
+        <div class="ventas-plat-section" id="chatsWaSection">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:-3px;margin-right:6px"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.94 9.94 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.94 7.94 0 01-4.076-1.124l-.292-.174-3.028.9.9-3.028-.174-.292A7.94 7.94 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8zm4.406-5.845c-.241-.12-1.428-.704-1.649-.784-.221-.08-.382-.12-.543.12-.161.24-.622.785-.763.945-.14.161-.282.181-.523.06-.241-.12-1.018-.375-1.939-1.196-.716-.639-1.2-1.429-1.34-1.67-.14-.24-.015-.37.105-.49.108-.107.241-.281.362-.422.12-.14.161-.241.241-.402.08-.161.04-.302-.02-.422-.06-.12-.543-1.308-.743-1.79-.196-.47-.396-.406-.543-.414l-.462-.008c-.161 0-.422.06-.643.302-.221.241-.845.826-.845 2.014 0 1.187.865 2.334.985 2.494.12.161 1.703 2.601 4.127 3.647.577.249 1.027.397 1.378.508.579.185 1.107.159 1.524.097.465-.07 1.428-.584 1.629-1.148.2-.563.2-1.046.14-1.148-.06-.1-.221-.16-.462-.281z"/></svg>
+                  Chats de WhatsApp <span id="chatsWaBadge" style="display:none;background:#25D366;color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:6px;vertical-align:1px"></span>
+                </div>
+                <div class="chart-subtitle">Conversaciones recientes vía Mara · <span id="chatsWaNumero">8183092141</span></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <a href="https://wa.me/528183092141" target="_blank" rel="noopener"
+                  style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;border:1.5px solid #25D366;background:transparent;color:#25D366;font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;transition:all .2s"
+                  onmouseover="this.style.background='#25D366';this.style.color='#fff'"
+                  onmouseout="this.style.background='transparent';this.style.color='#25D366'">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.94 9.94 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+                  Abrir WhatsApp
+                </a>
+                <button onclick="cargarChatsWa()" id="btnRefreshChats"
+                  style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;border:1.5px solid var(--maraga);background:transparent;color:var(--maraga);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s"
+                  onmouseover="this.style.background='var(--maraga)';this.style.color='#fff'"
+                  onmouseout="this.style.background='transparent';this.style.color='var(--maraga)'">
+                  <i class="ti ti-refresh" id="chatsWaRefreshIcon"></i> Actualizar
+                </button>
+              </div>
+            </div>
+            <div id="chatsWaList" style="margin-top:4px"></div>
+          </div>
+        </div>
+
         <div class="charts-row">
           <div class="chart-card">
             <div class="chart-header">
@@ -7793,6 +7824,104 @@ chartScript.onload = () => {
   if (state.currentUser) renderDashboard();
 };
 document.head.appendChild(chartScript);
+</script>
+
+<!-- ═══════════════════ CHATS WHATSAPP JS ═══════════════════ -->
+<script>
+(function(){
+  function _fmtTel(raw) {
+    // "whatsapp:+521XXXXXXXXXX" → "XXX XXX XXXX"
+    var t = raw.replace(/^whatsapp:/i,'').replace(/^\+52/,'').replace(/\D/g,'');
+    if (t.length === 12) t = t.slice(2); // quitar 521 → 10 dígitos
+    if (t.length === 11 && t[0]==='1') t = t.slice(1);
+    if (t.length === 10) return t.slice(0,3)+' '+t.slice(3,6)+' '+t.slice(6);
+    return raw.replace('whatsapp:','');
+  }
+
+  function _waLink(raw) {
+    var t = raw.replace(/^whatsapp:/i,'').replace(/[^\d+]/g,'');
+    if (!t.startsWith('+')) t = '+52' + t.replace(/^\D*/,'');
+    return 'https://wa.me/' + t.replace('+','');
+  }
+
+  function _timeAgo(iso) {
+    var diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+    if (diff < 60) return 'hace ' + diff + 's';
+    if (diff < 3600) return 'hace ' + Math.floor(diff/60) + 'm';
+    if (diff < 86400) return 'hace ' + Math.floor(diff/3600) + 'h';
+    if (diff < 172800) return 'ayer';
+    return new Date(iso).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+  }
+
+  function _renderChats(data) {
+    var list = document.getElementById('chatsWaList');
+    var badge = document.getElementById('chatsWaBadge');
+    var chats = data.chats || [];
+    var pendientes = data.pendientes || 0;
+
+    if (pendientes > 0) {
+      badge.textContent = pendientes + ' pendiente' + (pendientes>1?'s':'');
+      badge.style.display = 'inline';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    if (!chats.length) {
+      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Sin conversaciones aún</div>';
+      return;
+    }
+
+    list.innerHTML = chats.map(function(c){
+      var tel = _fmtTel(c.telefono);
+      var link = _waLink(c.telefono);
+      var preview = (c.ultimo_mensaje || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      if (preview.length > 72) preview = preview.slice(0,72) + '…';
+      var time = _timeAgo(c.timestamp);
+      var isUser = c.role === 'user';
+      var dot = isUser
+        ? '<span style="width:8px;height:8px;border-radius:50%;background:#25D366;flex-shrink:0;margin-top:5px" title="Pendiente de respuesta"></span>'
+        : '<span style="width:8px;height:8px;border-radius:50%;background:#cbd5e0;flex-shrink:0;margin-top:5px" title="Respondido"></span>';
+      var prefix = isUser ? '' : '<span style="color:var(--muted);font-size:11px">Mara: </span>';
+      return [
+        '<a href="'+link+'" target="_blank" rel="noopener" style="display:flex;align-items:flex-start;gap:10px;padding:10px 4px;border-bottom:1px solid #f0f2f5;text-decoration:none;color:inherit;transition:background .15s;border-radius:8px"',
+        ' onmouseover="this.style.background=\'#f8fffe\'" onmouseout="this.style.background=\'transparent\'">',
+        '  <div style="width:38px;height:38px;border-radius:50%;background:#e1f5ee;display:flex;align-items:center;justify-content:center;flex-shrink:0">',
+        '    <svg width="20" height="20" viewBox="0 0 24 24" fill="#25D366"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.94 9.94 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>',
+        '  </div>',
+        '  <div style="flex:1;min-width:0">',
+        '    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">',
+        '      <span style="font-weight:600;font-size:13px;color:#1a202c">'+tel+'</span>',
+        '      <span style="font-size:11px;color:var(--muted);white-space:nowrap;margin-left:8px">'+time+'</span>',
+        '    </div>',
+        '    <div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+prefix+preview+'</div>',
+        '  </div>',
+        '  '+dot,
+        '</a>'
+      ].join('');
+    }).join('');
+  }
+
+  window.cargarChatsWa = async function() {
+    var icon = document.getElementById('chatsWaRefreshIcon');
+    var list = document.getElementById('chatsWaList');
+    if (icon) icon.style.animation = 'spin 1s linear infinite';
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px">Cargando…</div>';
+    try {
+      var res = await fetch(VENTAS_API_BASE + '/api/chats/whatsapp', {signal: AbortSignal.timeout(15000)});
+      var data = await res.json();
+      _renderChats(data);
+    } catch(e) {
+      list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px">Error al cargar chats</div>';
+    }
+    if (icon) icon.style.animation = '';
+  };
+
+  // Cargar automáticamente cuando el usuario entra al dashboard
+  document.addEventListener('DOMContentLoaded', function() {
+    // Esperar a que el estado de sesión se resuelva, luego cargar
+    setTimeout(cargarChatsWa, 1800);
+  });
+})();
 </script>
 
 <!-- ═══════════════════ MARA CHAT WIDGET ═══════════════════ -->
