@@ -1522,7 +1522,8 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             <div class="kpi-plat-breakdown" id="kpi-plat-breakdown"></div>
             <div class="kpi-progress" style="display:flex;gap:1px">
               <div class="kpi-progress-bar" id="kpi-sales-bar" style="background:var(--maraga);width:0%;border-radius:4px 0 0 4px;flex-shrink:0"></div>
-              <div class="kpi-progress-bar" id="kpi-sales-bar-amz" style="background:#FF9900;width:0%;border-radius:0 4px 4px 0;flex-shrink:0"></div>
+              <div class="kpi-progress-bar" id="kpi-sales-bar-amz" style="background:#FF9900;width:0%;flex-shrink:0"></div>
+              <div class="kpi-progress-bar" id="kpi-sales-bar-wmt" style="background:#0071CE;width:0%;border-radius:0 4px 4px 0;flex-shrink:0"></div>
             </div>
           </div>
           <div class="kpi-card">
@@ -3709,37 +3710,39 @@ function setDashMes(mes) {
   var kpiLabelEl     = document.getElementById('kpi-sales-label');
   var kpiBarMlEl     = document.getElementById('kpi-sales-bar');
   var kpiBarAmzEl    = document.getElementById('kpi-sales-bar-amz');
+  var kpiBarWmtEl    = document.getElementById('kpi-sales-bar-wmt');
   var kpiBreakdownEl = document.getElementById('kpi-plat-breakdown');
   var mesNombre      = MESES_LABEL[mes] || mes;
   var META = 10000000;
-  var USD_MXN = 17.5; // tipo de cambio aprox
 
   if (kpiLabelEl) kpiLabelEl.textContent = 'Ventas Totales · ' + mesNombre;
 
   var mlTotal  = ml  ? ml.total  : 0;
   var amzTotal = amz ? amz.total : 0;
-  var wmtMxn   = wmt ? wmt.total * USD_MXN : 0; // convertir USD→MXN para total
-  var total    = mlTotal + amzTotal + wmtMxn;
+  var wmtTotal = wmt ? wmt.total : 0; // Walmart MX ya está en MXN
+  var total    = mlTotal + amzTotal + wmtTotal;
 
   if (total > 0) {
     if (kpiSalesEl) kpiSalesEl.textContent = fmtPesos(total);
     var mlPct  = Math.min(100, mlTotal  / META * 100);
     var amzPct = Math.min(100 - mlPct,  amzTotal / META * 100);
-    var wmtPct = Math.min(100 - mlPct - amzPct, wmtMxn / META * 100);
+    var wmtPct = Math.min(100 - mlPct - amzPct, wmtTotal / META * 100);
     if (kpiBarMlEl)  kpiBarMlEl.style.width  = mlPct.toFixed(1)  + '%';
     if (kpiBarAmzEl) kpiBarAmzEl.style.width = amzPct.toFixed(1) + '%';
+    if (kpiBarWmtEl) kpiBarWmtEl.style.width = wmtPct.toFixed(1) + '%';
     // Chips de plataforma
     if (kpiBreakdownEl) {
       var chips = '';
       if (mlTotal  > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:var(--maraga)"></div>ML&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mlTotal) + '</span></div>';
       if (amzTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#FF9900"></div>Amz&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(amzTotal) + '</span></div>';
-      if (wmtMxn   > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#0071CE"></div>Wmt&nbsp;<span class="kpi-plat-chip-val">' + fmtUSD(wmt.total) + '</span></div>';
+      if (wmtTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#0071CE"></div>Wmt&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(wmtTotal) + '</span></div>';
       kpiBreakdownEl.innerHTML = chips;
     }
   } else {
     if (kpiSalesEl) kpiSalesEl.textContent = '—';
     if (kpiBarMlEl)  kpiBarMlEl.style.width  = '0%';
     if (kpiBarAmzEl) kpiBarAmzEl.style.width = '0%';
+    if (kpiBarWmtEl) kpiBarWmtEl.style.width = '0%';
     if (kpiBreakdownEl) kpiBreakdownEl.innerHTML = '';
   }
 
@@ -3776,12 +3779,7 @@ var VENTAS_PLAT_DATA = {
     }
   },
   '2026-03': {
-    walmart: {
-      total: 53, ordenes: 1, unidades: 1, ticketPromedio: 53, currency: 'USD',
-      top: [
-        { titulo: 'Coil Nails 2", Gauge 0.092", 9000 pz', ingresos: 53 }
-      ]
-    },
+    walmart: null,
     mercadolibre: {
       total: 1051857.93, ordenes: 982, unidades: 1147, ticketPromedio: 1071,
       top: [
@@ -3794,13 +3792,7 @@ var VENTAS_PLAT_DATA = {
     }
   },
   '2026-04': {
-    walmart: {
-      total: 132, ordenes: 2, unidades: 2, ticketPromedio: 66, currency: 'USD',
-      top: [
-        { titulo: 'Coil Nails 3", Gauge 0.113", 5,400 pz', ingresos: 79 },
-        { titulo: 'Coil Nails 2", Gauge 0.092", 9000 pz', ingresos: 53 }
-      ]
-    },
+    walmart: null,
     mercadolibre: {
       total: 1066916.27, ordenes: 871, unidades: 997, ticketPromedio: 1225,
       top: [
@@ -3814,9 +3806,13 @@ var VENTAS_PLAT_DATA = {
   },
   '2026-05': {
     walmart: {
-      total: 106, ordenes: 2, unidades: 2, ticketPromedio: 53, currency: 'USD',
+      total: 260984.95, ordenes: 70, unidades: 114, ticketPromedio: 3728, currency: 'MXN',
       top: [
-        { titulo: 'Coil Nails 2", Gauge 0.092", 9000 pz', ingresos: 106 }
+        { titulo: 'Pistola de clavos MARAGA CN70 1 3/4 a 2 3/4 pulgadas', ingresos: 87962 },
+        { titulo: 'Ref. Semisintético 7030 D 208 Litros Maraga', ingresos: 41214.8 },
+        { titulo: 'Soldadora Inversora 200 amp, 127V / 220V, Maraga', ingresos: 37572 },
+        { titulo: 'Soldadora Inversora MARAGA 200 Amperes ARC200 110V/220V', ingresos: 31322 },
+        { titulo: 'Cortadora de Metales 2,400W + Disco Diamante 14"', ingresos: 28088 }
       ]
     },
     mercadolibre: {
@@ -3850,7 +3846,17 @@ var VENTAS_PLAT_DATA = {
         { titulo: 'Clavos Pistola Neumática 2" 9000pz', ingresos: 14596.86 }
       ]
     },
-    walmart: null,
+    walmart: {
+      total: 14461.44, ordenes: 9, unidades: 11, ticketPromedio: 1607, currency: 'MXN',
+      parcial: true, parcialLabel: 'al 6 de junio',
+      top: [
+        { titulo: 'Soldadora Inversora MARAGA 200 Amperes ARC200 110V/220V', ingresos: 6499 },
+        { titulo: 'Cortadora de Metales 2,400W + Disco Diamante 14"', ingresos: 2299 },
+        { titulo: 'Soldadora Inversora 200 amp, 127V / 220V, Maraga', ingresos: 2069 },
+        { titulo: 'Esmeriladora Angular 800W MARAGA 4-1/2" 120V', ingresos: 1599 },
+        { titulo: 'Serrucho Recto 18 Plg 10 Dpp Pvc/Abs Lenox 20980', ingresos: 1015 }
+      ]
+    },
     amazon: {
       total: 29345.52, ordenes: 54, unidades: 58, ticketPromedio: 543,
       parcial: true, parcialLabel: 'al 7 de junio',
@@ -3989,22 +3995,22 @@ function renderVentasPlat(mes) {
           '<div class="ventas-plat-ico" style="background:#0071CE">' + wmtLogoSvg + '</div>' +
           '<div>' +
             '<div class="ventas-plat-name">Walmart</div>' +
-            '<span class="ventas-plat-badge-plat" style="background:#e3f2fd;color:#0071CE">🏪 Walmart.com US</span>' +
+            '<span class="ventas-plat-badge-plat" style="background:#e3f2fd;color:#0071CE">🏪 Walmart.com.mx</span>' +
           '</div>' +
         '</div>' +
-        (wmt.parcial ? '<div style="display:inline-flex;align-items:center;gap:5px;background:#e3f2fd;border:1px solid #90caf9;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;color:#0071CE;margin-bottom:8px"><i class="ti ti-alert-triangle" style="font-size:11px"></i>Parcial — mes en curso</div>' : '') +
-        '<div class="ventas-plat-total" style="font-size:22px">' + fmtUSD(wmt.total) + '</div>' +
+        (wmt.parcial ? '<div style="display:inline-flex;align-items:center;gap:5px;background:#e3f2fd;border:1px solid #90caf9;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;color:#0071CE;margin-bottom:8px"><i class="ti ti-alert-triangle" style="font-size:11px"></i>Parcial — ' + (wmt.parcialLabel||'mes en curso') + '</div>' : '') +
+        '<div class="ventas-plat-total" style="font-size:22px">' + fmtPesos(wmt.total) + '</div>' +
         '<div class="ventas-plat-sub">en ventas — ' + (MESES_LABEL[mes]||mes) + '</div>' +
         '<div class="ventas-plat-stats">' +
           '<div class="ventas-plat-stat"><strong>' + wmt.ordenes.toLocaleString() + '</strong>Órdenes</div>' +
           '<div class="ventas-plat-stat"><strong>' + wmt.unidades.toLocaleString() + '</strong>Unidades</div>' +
-          '<div class="ventas-plat-stat"><strong>USD $' + Math.round(wmt.ticketPromedio) + '</strong>Ticket</div>' +
+          '<div class="ventas-plat-stat"><strong>' + fmtPesos(wmt.ticketPromedio) + '</strong>Ticket</div>' +
         '</div>' +
         '<div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Top productos</div>' +
         (wmt.top || []).map(function(p) {
           return '<div class="ventas-plat-top-row">' +
             '<div class="ventas-plat-top-titulo">' + p.titulo + '</div>' +
-            '<div class="ventas-plat-top-val">$' + p.ingresos.toFixed(0) + '</div>' +
+            '<div class="ventas-plat-top-val">' + fmtPesos(p.ingresos) + '</div>' +
           '</div>';
         }).join('') +
       '</div>'
@@ -4013,7 +4019,7 @@ function renderVentasPlat(mes) {
           '<div class="ventas-plat-ico" style="background:#0071CE">' + wmtLogoSvg + '</div>' +
           '<div>' +
             '<div class="ventas-plat-name">Walmart</div>' +
-            '<span style="font-size:10px;color:var(--muted)">Walmart.com US</span>' +
+            '<span style="font-size:10px;color:var(--muted)">Walmart.com.mx</span>' +
           '</div>' +
         '</div>' +
         '<div class="ventas-plat-empty" style="color:#0071CE">' +
