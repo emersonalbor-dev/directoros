@@ -378,6 +378,10 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 .mes-pill { font-size:12px; font-weight:500; padding:5px 13px; border-radius:20px; border:1px solid var(--line); background:var(--paper); color:var(--muted); cursor:pointer; transition:all .15s; line-height:1.4; }
 .mes-pill:hover { border-color:var(--maraga); color:var(--maraga-dark); background:var(--maraga-bg); }
 .mes-pill.active { background:var(--maraga); color:#fff; border-color:var(--maraga); font-weight:600; }
+.kpi-plat-breakdown { display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; margin-bottom:2px; min-height:18px; }
+.kpi-plat-chip { display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--muted); white-space:nowrap; }
+.kpi-plat-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.kpi-plat-chip-val { font-weight:600; color:var(--ink); }
 .activity-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .activity-item:last-child { border-bottom: none; padding-bottom: 0; }
 .activity-item:first-child { padding-top: 0; }
@@ -1510,12 +1514,16 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
         <div class="kpi-grid">
           <div class="kpi-card">
             <div class="kpi-card-row">
-              <div class="kpi-label" id="kpi-sales-label">Venta ML · Mayo 2026</div>
+              <div class="kpi-label" id="kpi-sales-label">Ventas Totales · Mayo 2026</div>
               <div class="kpi-icon" style="background:var(--maraga-bg)"><i class="ti ti-trending-up" style="color:var(--maraga-dark)"></i></div>
             </div>
             <div class="kpi-value" id="kpi-sales">$0.0M</div>
-            <div class="kpi-sub">Meta: $10.0M MXN</div>
-            <div class="kpi-progress"><div class="kpi-progress-bar" id="kpi-sales-bar" style="background:var(--maraga);width:0%"></div></div>
+            <div class="kpi-sub" id="kpi-sales-sub">Meta: $10.0M MXN</div>
+            <div class="kpi-plat-breakdown" id="kpi-plat-breakdown"></div>
+            <div class="kpi-progress" style="display:flex;gap:1px">
+              <div class="kpi-progress-bar" id="kpi-sales-bar" style="background:var(--maraga);width:0%;border-radius:4px 0 0 4px;flex-shrink:0"></div>
+              <div class="kpi-progress-bar" id="kpi-sales-bar-amz" style="background:#FF9900;width:0%;border-radius:0 4px 4px 0;flex-shrink:0"></div>
+            </div>
           </div>
           <div class="kpi-card">
             <div class="kpi-card-row">
@@ -3692,22 +3700,42 @@ function setDashMes(mes) {
     btn.classList.toggle('active', btn.dataset.mes === mes);
   });
 
-  // Actualiza KPI Ventas ML
+  // Actualiza KPI Ventas Totales (ML + Amazon + otras)
   var d = VENTAS_PLAT_DATA[mes];
-  var ml = d && d.mercadolibre;
-  var kpiSalesEl   = document.getElementById('kpi-sales');
-  var kpiLabelEl   = document.getElementById('kpi-sales-label');
-  var kpiBarEl     = document.getElementById('kpi-sales-bar');
-  var mesNombre    = MESES_LABEL[mes] || mes;
+  var ml  = d && d.mercadolibre;
+  var amz = d && d.amazon;
+  var kpiSalesEl     = document.getElementById('kpi-sales');
+  var kpiLabelEl     = document.getElementById('kpi-sales-label');
+  var kpiBarMlEl     = document.getElementById('kpi-sales-bar');
+  var kpiBarAmzEl    = document.getElementById('kpi-sales-bar-amz');
+  var kpiBreakdownEl = document.getElementById('kpi-plat-breakdown');
+  var mesNombre      = MESES_LABEL[mes] || mes;
+  var META = 10000000;
 
-  if (kpiLabelEl) kpiLabelEl.textContent = 'Venta ML · ' + mesNombre;
+  if (kpiLabelEl) kpiLabelEl.textContent = 'Ventas Totales · ' + mesNombre;
 
-  if (ml) {
-    if (kpiSalesEl) kpiSalesEl.textContent = fmtPesos(ml.total);
-    if (kpiBarEl) kpiBarEl.style.width = Math.min(100, ml.total / 10000000 * 100).toFixed(1) + '%';
+  var mlTotal  = ml  ? ml.total  : 0;
+  var amzTotal = amz ? amz.total : 0;
+  var total    = mlTotal + amzTotal;
+
+  if (total > 0) {
+    if (kpiSalesEl) kpiSalesEl.textContent = fmtPesos(total);
+    var mlPct  = Math.min(100, mlTotal  / META * 100);
+    var amzPct = Math.min(100 - mlPct, amzTotal / META * 100);
+    if (kpiBarMlEl)  kpiBarMlEl.style.width  = mlPct.toFixed(1)  + '%';
+    if (kpiBarAmzEl) kpiBarAmzEl.style.width = amzPct.toFixed(1) + '%';
+    // Chips de plataforma
+    if (kpiBreakdownEl) {
+      var chips = '';
+      if (mlTotal  > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:var(--maraga)"></div>ML&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mlTotal) + '</span></div>';
+      if (amzTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#FF9900"></div>Amazon&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(amzTotal) + '</span></div>';
+      kpiBreakdownEl.innerHTML = chips;
+    }
   } else {
     if (kpiSalesEl) kpiSalesEl.textContent = '—';
-    if (kpiBarEl) kpiBarEl.style.width = '0%';
+    if (kpiBarMlEl)  kpiBarMlEl.style.width  = '0%';
+    if (kpiBarAmzEl) kpiBarAmzEl.style.width = '0%';
+    if (kpiBreakdownEl) kpiBreakdownEl.innerHTML = '';
   }
 
   // Sincroniza sección ventas por plataforma
