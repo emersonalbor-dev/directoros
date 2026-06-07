@@ -1557,6 +1557,27 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           </div>
         </div>
 
+        <!-- ===== VENTAS POR PLATAFORMA ===== -->
+        <div class="ventas-plat-section">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title"><i class="ti ti-device-analytics" style="margin-right:6px;color:var(--maraga)"></i>Ventas del mes por plataforma</div>
+                <div class="chart-subtitle" id="ventas-mes-label">Mayo 2026</div>
+              </div>
+              <button id="btnActualizarVentas" onclick="actualizarVentas()"
+                style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:1.5px solid var(--maraga);background:transparent;color:var(--maraga);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s"
+                onmouseover="this.style.background='var(--maraga)';this.style.color='#fff'"
+                onmouseout="this.style.background='transparent';this.style.color='var(--maraga)'">
+                <i class="ti ti-refresh" id="btnActualizarIcon"></i>
+                <span id="btnActualizarLabel">Actualizar</span>
+              </button>
+            </div>
+            <div id="ventasActualizadoAt" style="font-size:10px;color:var(--muted);margin-bottom:8px;display:none"></div>
+            <div class="ventas-plat-grid" id="ventasPlataformaGrid"></div>
+          </div>
+        </div>
+
         <div class="charts-row">
           <div class="chart-card">
             <div class="chart-header">
@@ -1597,27 +1618,6 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
               </div>
             </div>
             <div id="activityList"></div>
-          </div>
-        </div>
-
-        <!-- ===== VENTAS POR PLATAFORMA ===== -->
-        <div class="ventas-plat-section">
-          <div class="chart-card">
-            <div class="chart-header">
-              <div>
-                <div class="chart-title"><i class="ti ti-device-analytics" style="margin-right:6px;color:var(--maraga)"></i>Ventas del mes por plataforma</div>
-                <div class="chart-subtitle" id="ventas-mes-label">Mayo 2026</div>
-              </div>
-              <button id="btnActualizarVentas" onclick="actualizarVentas()"
-                style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:1.5px solid var(--maraga);background:transparent;color:var(--maraga);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s"
-                onmouseover="this.style.background='var(--maraga)';this.style.color='#fff'"
-                onmouseout="this.style.background='transparent';this.style.color='var(--maraga)'">
-                <i class="ti ti-refresh" id="btnActualizarIcon"></i>
-                <span id="btnActualizarLabel">Actualizar</span>
-              </button>
-            </div>
-            <div id="ventasActualizadoAt" style="font-size:10px;color:var(--muted);margin-bottom:8px;display:none"></div>
-            <div class="ventas-plat-grid" id="ventasPlataformaGrid"></div>
           </div>
         </div>
       </div>
