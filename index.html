@@ -3884,14 +3884,14 @@ var VENTAS_PLAT_DATA = {
   },
   '2026-06': {
     mercadolibre: {
-      total: 284008, ordenes: 278, unidades: 306, ticketPromedio: 1022,
+      total: 286135, ordenes: 282, unidades: 310, ticketPromedio: 1015,
       parcial: true, parcialLabel: 'al 7 de junio',
       top: [
-        { titulo: 'Soldadora Inverter Arc300DV 300A', ingresos: 48596.40, unidades: 4 },
-        { titulo: 'Careta Electrónica Free450 Sombra 11', ingresos: 36912.40, unidades: 70 },
-        { titulo: 'Soldadora Inversora Arc200 200A', ingresos: 25195.80, unidades: 5 },
-        { titulo: 'Pistola Clavos Maraga CN70', ingresos: 16737.30, unidades: 4 },
-        { titulo: 'Clavos Pistola Neumática 2" 9000pz', ingresos: 14596.86, unidades: 19 }
+        { titulo: 'Soldadora Inverter Arc300DV 300A', ingresos: 53996, unidades: 4 },
+        { titulo: 'Careta Electrónica Free450 Sombra 11', ingresos: 50400, unidades: 72 },
+        { titulo: 'Soldadora Inversora Arc200 200A', ingresos: 29995, unidades: 5 },
+        { titulo: 'Pistola Clavos Maraga CN70', ingresos: 29885, unidades: 4 },
+        { titulo: 'Careta Para Soldar Sombra Ajustable 9-13', ingresos: 21080, unidades: 16 }
       ]
     },
     walmart: {
@@ -4133,9 +4133,23 @@ async function actualizarVentas() {
     // Inyectar datos frescos en el objeto global
     var mes = data.mes;
     if (!VENTAS_PLAT_DATA[mes]) VENTAS_PLAT_DATA[mes] = {};
-    if (data.walmart)       VENTAS_PLAT_DATA[mes].walmart       = data.walmart;
-    if (data.mercadolibre)  VENTAS_PLAT_DATA[mes].mercadolibre  = data.mercadolibre;
-    if (data.amazon)        VENTAS_PLAT_DATA[mes].amazon         = data.amazon;
+
+    // Walmart y Amazon: sobreescribir directo (Railway los calcula igual que los dashboards)
+    if (data.walmart)  VENTAS_PLAT_DATA[mes].walmart = data.walmart;
+    if (data.amazon)   VENTAS_PLAT_DATA[mes].amazon  = data.amazon;
+
+    // MercadoLibre: el API indexa órdenes con ~5 min de retraso vs el dashboard,
+    // por lo que siempre devuelve un poco menos que "Ventas brutas" del seller center.
+    // Regla: actualizar ordenes/unidades/top desde el API,
+    // pero conservar el total más alto que ya tengamos para no "desactualizar".
+    if (data.mercadolibre) {
+      var cur = VENTAS_PLAT_DATA[mes].mercadolibre || {};
+      var fresh = data.mercadolibre;
+      VENTAS_PLAT_DATA[mes].mercadolibre = Object.assign({}, fresh, {
+        total:          Math.max(cur.total || 0, fresh.total || 0),
+        ticketPromedio: Math.max(cur.ticketPromedio || 0, fresh.ticketPromedio || 0)
+      });
+    }
 
     // Re-renderizar sección
     renderVentasPlat(dashMes);
