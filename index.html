@@ -7794,5 +7794,162 @@ chartScript.onload = () => {
 };
 document.head.appendChild(chartScript);
 </script>
+
+<!-- ═══════════════════ MARA CHAT WIDGET ═══════════════════ -->
+<style>
+@keyframes maraTypingDot{0%,60%,100%{transform:translateY(0);opacity:.35}30%{transform:translateY(-5px);opacity:1}}
+#mara-fab{position:fixed;bottom:28px;right:28px;z-index:9999;width:58px;height:58px;border-radius:50%;background:var(--maraga);box-shadow:0 4px 22px rgba(29,158,117,.45);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .2s,box-shadow .2s;border:none}
+#mara-fab:hover{transform:scale(1.1);box-shadow:0 6px 30px rgba(29,158,117,.65)}
+#mara-chat-panel{display:none;position:fixed;bottom:100px;right:28px;z-index:9998;width:360px;height:520px;background:#fff;border-radius:18px;box-shadow:0 10px 48px rgba(0,0,0,.18);flex-direction:column;overflow:hidden;font-family:var(--font-main,'Inter',sans-serif)}
+#mara-messages{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:10px;background:#f0f2f5;scroll-behavior:smooth}
+#mara-messages::-webkit-scrollbar{width:4px}
+#mara-messages::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px}
+.mara-bubble-wrap{display:flex;align-items:flex-end;gap:7px}
+.mara-bubble-wrap.user{justify-content:flex-end}
+.mara-bubble{padding:9px 13px;font-size:13px;line-height:1.5;max-width:260px;word-break:break-word}
+.mara-bubble.bot{background:#fff;border-radius:18px 18px 18px 4px;color:#1a202c;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.mara-bubble.user{background:var(--maraga);border-radius:18px 18px 4px 18px;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.mara-avatar{width:28px;height:28px;border-radius:50%;background:var(--maraga);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+</style>
+
+<!-- Botón flotante -->
+<button id="mara-fab" onclick="maraToggle()" title="Hablar con Mara" aria-label="Abrir chat con Mara">
+  <svg id="mara-fab-icon-chat" width="28" height="28" viewBox="0 0 24 24" fill="white" style="display:block"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.94 9.94 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.94 7.94 0 01-4.076-1.124l-.292-.174-3.028.9.9-3.028-.174-.292A7.94 7.94 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8zm4.406-5.845c-.241-.12-1.428-.704-1.649-.784-.221-.08-.382-.12-.543.12-.161.24-.622.785-.763.945-.14.161-.282.181-.523.06-.241-.12-1.018-.375-1.939-1.196-.716-.639-1.2-1.429-1.34-1.67-.14-.24-.015-.37.105-.49.108-.107.241-.281.362-.422.12-.14.161-.241.241-.402.08-.161.04-.302-.02-.422-.06-.12-.543-1.308-.743-1.79-.196-.47-.396-.406-.543-.414l-.462-.008c-.161 0-.422.06-.643.302-.221.241-.845.826-.845 2.014 0 1.187.865 2.334.985 2.494.12.161 1.703 2.601 4.127 3.647.577.249 1.027.397 1.378.508.579.185 1.107.159 1.524.097.465-.07 1.428-.584 1.629-1.148.2-.563.2-1.046.14-1.148-.06-.1-.221-.16-.462-.281z"/></svg>
+  <svg id="mara-fab-icon-close" width="22" height="22" viewBox="0 0 24 24" fill="white" style="display:none"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+</button>
+
+<!-- Panel de chat -->
+<div id="mara-chat-panel">
+  <!-- Header -->
+  <div style="background:var(--maraga);padding:13px 15px;display:flex;align-items:center;gap:10px;flex-shrink:0">
+    <div class="mara-avatar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.94 9.94 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+    </div>
+    <div style="flex:1;min-width:0">
+      <div style="color:#fff;font-weight:700;font-size:14px;line-height:1.2">Mara</div>
+      <div style="color:rgba(255,255,255,.75);font-size:11px" id="mara-status-label">Asistente de Maraga ✦</div>
+    </div>
+    <button onclick="maraToggle()" style="background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;font-size:22px;line-height:1;padding:2px 4px;border-radius:4px" title="Cerrar">×</button>
+  </div>
+
+  <!-- Mensajes -->
+  <div id="mara-messages"></div>
+
+  <!-- Indicador de escritura -->
+  <div id="mara-typing-wrap" style="display:none;padding:0 12px 8px;background:#f0f2f5;flex-shrink:0">
+    <div style="background:#fff;border-radius:18px 18px 18px 4px;padding:10px 14px;display:inline-flex;gap:5px;align-items:center;box-shadow:0 1px 2px rgba(0,0,0,.1)">
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--maraga);display:inline-block;animation:maraTypingDot 1s infinite 0s"></span>
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--maraga);display:inline-block;animation:maraTypingDot 1s infinite .2s"></span>
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--maraga);display:inline-block;animation:maraTypingDot 1s infinite .4s"></span>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div style="padding:10px 12px;background:#fff;border-top:1px solid #e9ecef;display:flex;gap:8px;align-items:center;flex-shrink:0">
+    <input id="mara-chat-input" type="text" placeholder="Pregunta a Mara…" autocomplete="off"
+      style="flex:1;border:1.5px solid #e2e8f0;border-radius:24px;padding:9px 15px;font-size:13px;outline:none;transition:border-color .2s;font-family:inherit"
+      onfocus="this.style.borderColor='var(--maraga)'"
+      onblur="this.style.borderColor='#e2e8f0'"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();maraSend()}">
+    <button onclick="maraSend()" id="mara-send-btn"
+      style="width:38px;height:38px;border-radius:50%;background:var(--maraga);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s"
+      onmouseover="this.style.background='var(--maraga-dark)'"
+      onmouseout="this.style.background='var(--maraga)'"
+      title="Enviar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var _open = false, _greeted = false, _sending = false;
+
+  window.maraToggle = function() {
+    _open = !_open;
+    var panel = document.getElementById('mara-chat-panel');
+    var iconChat = document.getElementById('mara-fab-icon-chat');
+    var iconClose = document.getElementById('mara-fab-icon-close');
+    panel.style.display = _open ? 'flex' : 'none';
+    iconChat.style.display = _open ? 'none' : 'block';
+    iconClose.style.display = _open ? 'block' : 'none';
+    if (_open) {
+      if (!_greeted) {
+        _greeted = true;
+        _appendBot('¡Hola! Soy Mara 👋 Puedo ayudarte con ventas, inventario, clientes y más de Maraga. ¿En qué te puedo ayudar?');
+      }
+      setTimeout(function(){ document.getElementById('mara-chat-input').focus(); }, 120);
+    }
+  };
+
+  function _escapeHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/\n/g,'<br>');
+  }
+
+  function _appendBot(text) {
+    var msgs = document.getElementById('mara-messages');
+    var wrap = document.createElement('div');
+    wrap.className = 'mara-bubble-wrap';
+    wrap.innerHTML =
+      '<div class="mara-avatar"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.94 9.94 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg></div>' +
+      '<div class="mara-bubble bot">' + _escapeHtml(text) + '</div>';
+    msgs.appendChild(wrap);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function _appendUser(text) {
+    var msgs = document.getElementById('mara-messages');
+    var wrap = document.createElement('div');
+    wrap.className = 'mara-bubble-wrap user';
+    wrap.innerHTML = '<div class="mara-bubble user">' + _escapeHtml(text) + '</div>';
+    msgs.appendChild(wrap);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function _setTyping(on) {
+    document.getElementById('mara-typing-wrap').style.display = on ? 'block' : 'none';
+    document.getElementById('mara-status-label').textContent = on ? 'escribiendo…' : 'Asistente de Maraga ✦';
+    if (on) {
+      var msgs = document.getElementById('mara-messages');
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+  }
+
+  window.maraSend = async function() {
+    if (_sending) return;
+    var input = document.getElementById('mara-chat-input');
+    var msg = (input.value || '').trim();
+    if (!msg) return;
+    input.value = '';
+    _sending = true;
+    _appendUser(msg);
+    _setTyping(true);
+    document.getElementById('mara-send-btn').disabled = true;
+    try {
+      var res = await fetch(VENTAS_API_BASE + '/api/chat', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({mensaje: msg, usuario: 'director-dashboard'}),
+        signal: AbortSignal.timeout(45000)
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var data = await res.json();
+      _setTyping(false);
+      _appendBot(data.respuesta || 'No tengo respuesta disponible.');
+    } catch(e) {
+      _setTyping(false);
+      _appendBot('Lo siento, no pude conectarme en este momento. Intenta de nuevo en unos segundos.');
+    }
+    _sending = false;
+    document.getElementById('mara-send-btn').disabled = false;
+    input.focus();
+  };
+})();
+</script>
+<!-- ════════════════════════════════════════════════════════ -->
 </body>
 </html>
