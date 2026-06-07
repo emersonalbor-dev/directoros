@@ -1608,7 +1608,15 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 <div class="chart-title"><i class="ti ti-device-analytics" style="margin-right:6px;color:var(--maraga)"></i>Ventas del mes por plataforma</div>
                 <div class="chart-subtitle" id="ventas-mes-label">Mayo 2026</div>
               </div>
+              <button id="btnActualizarVentas" onclick="actualizarVentas()"
+                style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:1.5px solid var(--maraga);background:transparent;color:var(--maraga);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s"
+                onmouseover="this.style.background='var(--maraga)';this.style.color='#fff'"
+                onmouseout="this.style.background='transparent';this.style.color='var(--maraga)'">
+                <i class="ti ti-refresh" id="btnActualizarIcon"></i>
+                <span id="btnActualizarLabel">Actualizar</span>
+              </button>
             </div>
+            <div id="ventasActualizadoAt" style="font-size:10px;color:var(--muted);margin-bottom:8px;display:none"></div>
             <div class="ventas-plat-grid" id="ventasPlataformaGrid"></div>
           </div>
         </div>
@@ -4098,6 +4106,74 @@ function renderVentasPlat(mes) {
   '</div>';
 
   grid.innerHTML = mlCard + amzCard + wmtCard + webCard + waCard;
+}
+
+/* ===== ACTUALIZAR VENTAS (botón tiempo real) ===== */
+var VENTAS_API_BASE = 'https://maraga-whatsapp-agent-production.up.railway.app';
+
+async function actualizarVentas() {
+  var btn   = document.getElementById('btnActualizarVentas');
+  var icon  = document.getElementById('btnActualizarIcon');
+  var label = document.getElementById('btnActualizarLabel');
+  var atDiv = document.getElementById('ventasActualizadoAt');
+  if (!btn || btn.disabled) return;
+
+  // Estado: cargando
+  btn.disabled = true;
+  btn.style.opacity = '0.7';
+  icon.className  = 'ti ti-loader-2';
+  icon.style.animation = 'spin 1s linear infinite';
+  label.textContent = 'Actualizando…';
+
+  try {
+    var res = await fetch(VENTAS_API_BASE + '/api/ventas/mes-actual', { signal: AbortSignal.timeout(60000) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var data = await res.json();
+
+    // Inyectar datos frescos en el objeto global
+    var mes = data.mes;
+    if (!VENTAS_PLAT_DATA[mes]) VENTAS_PLAT_DATA[mes] = {};
+    if (data.walmart)       VENTAS_PLAT_DATA[mes].walmart       = data.walmart;
+    if (data.mercadolibre)  VENTAS_PLAT_DATA[mes].mercadolibre  = data.mercadolibre;
+    if (data.amazon)        VENTAS_PLAT_DATA[mes].amazon         = data.amazon;
+
+    // Re-renderizar sección
+    renderVentasPlat(dashMes);
+
+    // Mostrar timestamp
+    if (atDiv && data.actualizado_at) {
+      var d = new Date(data.actualizado_at);
+      atDiv.style.display = 'block';
+      atDiv.textContent   = 'Última actualización: ' + d.toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'}) + ' · ' + d.toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+    }
+
+    // Estado: éxito
+    icon.className  = 'ti ti-check';
+    icon.style.animation = '';
+    label.textContent = '¡Listo!';
+    btn.style.background = 'var(--maraga)';
+    btn.style.color = '#fff';
+    setTimeout(function() {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.background = 'transparent';
+      btn.style.color = 'var(--maraga)';
+      icon.className  = 'ti ti-refresh';
+      label.textContent = 'Actualizar';
+    }, 3000);
+
+  } catch (err) {
+    console.error('Error actualizando ventas:', err);
+    icon.className  = 'ti ti-alert-triangle';
+    icon.style.animation = '';
+    label.textContent = 'Error — reintentar';
+    btn.style.opacity = '1';
+    btn.disabled = false;
+    setTimeout(function() {
+      icon.className  = 'ti ti-refresh';
+      label.textContent = 'Actualizar';
+    }, 4000);
+  }
 }
 
 /* ===== CALENDAR ===== */
