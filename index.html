@@ -3757,7 +3757,7 @@ var VENTAS_PLAT_DATA = {
   '2026-01': {
     walmart: null,
     mercadolibre: {
-      total: 1010045.84, ordenes: 1127, unidades: 1253, ticketPromedio: 896,
+      total: 1010045.84, ordenes: 1127, unidades: 1253, ticketPromedio: 896, skus: 58,
       top: [
         { titulo: 'Careta Electrónica Free450 Sombra 11', ingresos: 239712.90 },
         { titulo: 'Máquina Soldar Arc160 160A', ingresos: 170887.14 },
@@ -3770,7 +3770,7 @@ var VENTAS_PLAT_DATA = {
   '2026-02': {
     walmart: null,
     mercadolibre: {
-      total: 1257004.94, ordenes: 1229, unidades: 1369, ticketPromedio: 1023,
+      total: 1257004.94, ordenes: 1229, unidades: 1369, ticketPromedio: 1023, skus: 64,
       top: [
         { titulo: 'Máquina Soldar Arc160 160A', ingresos: 242513.52 },
         { titulo: 'Careta Electrónica Free450 Sombra 11', ingresos: 100876.00 },
@@ -3783,7 +3783,7 @@ var VENTAS_PLAT_DATA = {
   '2026-03': {
     walmart: null,
     mercadolibre: {
-      total: 1051857.93, ordenes: 982, unidades: 1147, ticketPromedio: 1071,
+      total: 1051857.93, ordenes: 982, unidades: 1147, ticketPromedio: 1071, skus: 54,
       top: [
         { titulo: 'Máquina Soldar Arc160 160A', ingresos: 199630.08 },
         { titulo: 'Careta Electrónica Free450 Sombra 11', ingresos: 132870.00 },
@@ -3796,7 +3796,7 @@ var VENTAS_PLAT_DATA = {
   '2026-04': {
     walmart: null,
     mercadolibre: {
-      total: 1066916.27, ordenes: 871, unidades: 997, ticketPromedio: 1225,
+      total: 1066916.27, ordenes: 871, unidades: 997, ticketPromedio: 1225, skus: 49,
       top: [
         { titulo: 'Máquina Soldar Arc160 160A', ingresos: 136864.38 },
         { titulo: 'Clavadora Pallets Bostitch 2-3/4"', ingresos: 122766.00 },
@@ -3808,7 +3808,7 @@ var VENTAS_PLAT_DATA = {
   },
   '2026-05': {
     walmart: {
-      total: 260984.95, ordenes: 70, unidades: 114, ticketPromedio: 3728, currency: 'MXN',
+      total: 260984.95, ordenes: 70, unidades: 114, ticketPromedio: 3728, currency: 'MXN', skus: 11,
       top: [
         { titulo: 'Pistola de clavos MARAGA CN70 1 3/4 a 2 3/4 pulgadas', ingresos: 87962, unidades: 38 },
         { titulo: 'Ref. Semisintético 7030 D 208 Litros Maraga', ingresos: 41214.8, unidades: 1 },
@@ -3818,7 +3818,7 @@ var VENTAS_PLAT_DATA = {
       ]
     },
     mercadolibre: {
-      total: 972585.42, ordenes: 907, unidades: 1052, ticketPromedio: 1072,
+      total: 972585.42, ordenes: 907, unidades: 1052, ticketPromedio: 1072, skus: 57,
       top: [
         { titulo: 'Soldadura Electrodo 6013 1/8 Maraga 20kg', ingresos: 58391.70 },
         { titulo: 'Clavos Pistola Neumática Maraga 2" 9000pz', ingresos: 57026.69 },
@@ -3828,7 +3828,7 @@ var VENTAS_PLAT_DATA = {
       ]
     },
     amazon: {
-      total: 1644.27, ordenes: 6, unidades: 6, ticketPromedio: 274,
+      total: 1644.27, ordenes: 6, unidades: 6, ticketPromedio: 274, skus: 2,
       parcial: true, parcialLabel: 'datos parciales',
       top: [
         { titulo: 'Esmeriladora 4-1/2 Pulgadas 800W', ingresos: 449 },
@@ -3838,7 +3838,7 @@ var VENTAS_PLAT_DATA = {
   },
   '2026-06': {
     mercadolibre: {
-      total: 256777.37, ordenes: 264, unidades: 290, ticketPromedio: 973,
+      total: 256777.37, ordenes: 264, unidades: 290, ticketPromedio: 973, skus: 36,
       parcial: true, parcialLabel: 'al 6 de junio',
       top: [
         { titulo: 'Soldadora Inverter Arc300DV 300A', ingresos: 48596.40, unidades: 4 },
@@ -3849,7 +3849,7 @@ var VENTAS_PLAT_DATA = {
       ]
     },
     walmart: {
-      total: 14461.44, ordenes: 9, unidades: 11, ticketPromedio: 1607, currency: 'MXN',
+      total: 14461.44, ordenes: 9, unidades: 11, ticketPromedio: 1607, currency: 'MXN', skus: 7,
       parcial: true, parcialLabel: 'al 6 de junio',
       top: [
         { titulo: 'Soldadora Inversora MARAGA 200 Amperes ARC200 110V/220V', ingresos: 6499, unidades: 1 },
@@ -3860,7 +3860,7 @@ var VENTAS_PLAT_DATA = {
       ]
     },
     amazon: {
-      total: 29345.52, ordenes: 54, unidades: 58, ticketPromedio: 543,
+      total: 29345.52, ordenes: 54, unidades: 58, ticketPromedio: 543, skus: 13,
       parcial: true, parcialLabel: 'al 7 de junio',
       top: [
         { titulo: 'Soldadora Inversora 110/220V, 200 Amp', ingresos: 9958 },
@@ -3916,6 +3916,7 @@ function renderVentasPlat(mes) {
         '<div class="ventas-plat-stats">' +
           '<div class="ventas-plat-stat"><strong>' + ml.ordenes.toLocaleString() + '</strong>Órdenes</div>' +
           '<div class="ventas-plat-stat"><strong>' + ml.unidades.toLocaleString() + '</strong>Unidades</div>' +
+          (ml.skus != null ? '<div class="ventas-plat-stat"><strong>' + ml.skus + '</strong>SKUs</div>' : '') +
           '<div class="ventas-plat-stat"><strong>$' + Math.round(ml.total/ml.ordenes).toLocaleString() + '</strong>Ticket prom.</div>' +
         '</div>' +
         '<div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Top productos</div>' +
@@ -3956,6 +3957,7 @@ function renderVentasPlat(mes) {
         '<div class="ventas-plat-stats">' +
           '<div class="ventas-plat-stat"><strong>' + amz.ordenes.toLocaleString() + '</strong>Órdenes</div>' +
           '<div class="ventas-plat-stat"><strong>' + amz.unidades.toLocaleString() + '</strong>Unidades</div>' +
+          (amz.skus != null ? '<div class="ventas-plat-stat"><strong>' + amz.skus + '</strong>SKUs</div>' : '') +
           '<div class="ventas-plat-stat"><strong>$' + Math.round(amz.total/amz.ordenes).toLocaleString() + '</strong>Ticket prom.</div>' +
         '</div>' +
         '<div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Top productos</div>' +
@@ -4012,6 +4014,7 @@ function renderVentasPlat(mes) {
         '<div class="ventas-plat-stats">' +
           '<div class="ventas-plat-stat"><strong>' + wmt.ordenes.toLocaleString() + '</strong>Órdenes</div>' +
           '<div class="ventas-plat-stat"><strong>' + wmt.unidades.toLocaleString() + '</strong>Unidades</div>' +
+          (wmt.skus != null ? '<div class="ventas-plat-stat"><strong>' + wmt.skus + '</strong>SKUs</div>' : '') +
           '<div class="ventas-plat-stat"><strong>' + fmtPesos(wmt.ticketPromedio) + '</strong>Ticket</div>' +
         '</div>' +
         '<div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Top productos</div>' +
