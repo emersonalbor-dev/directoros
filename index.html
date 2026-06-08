@@ -4194,8 +4194,8 @@ async function actualizarVentas() {
     if (data.amazon)       VENTAS_PLAT_DATA[mes].amazon       = data.amazon;
     if (data.mercadolibre) VENTAS_PLAT_DATA[mes].mercadolibre = data.mercadolibre;
 
-    // Re-renderizar tarjetas
-    renderVentasPlat(dashMes);
+    // Re-renderizar TODO: tarjetas + KPI principal + barras + chips de totales
+    setDashMes(mes);
 
     // Chips resumen por marketplace
     var chips = [];
@@ -4254,6 +4254,14 @@ async function actualizarVentas() {
     }, 5000);
   }
 }
+
+/* ===== AUTO-REFRESH VENTAS (cada 10 min) ===== */
+(function() {
+  // Primera llamada al cargar la página (2 s de delay para no bloquear render)
+  setTimeout(actualizarVentas, 2000);
+  // Repetir cada 10 minutos
+  setInterval(actualizarVentas, 10 * 60 * 1000);
+})();
 
 /* ===== CALENDAR ===== */
 function _calInitDate() {
