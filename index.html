@@ -1573,7 +1573,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 <span id="btnActualizarLabel">Actualizar</span>
               </button>
             </div>
-            <div id="ventasActualizadoAt" style="font-size:10px;color:var(--muted);margin-bottom:8px;display:none"></div>
+            <div id="ventasActualizadoAt" style="font-size:11px;color:var(--muted);margin-bottom:8px;display:none;align-items:center;gap:4px;flex-wrap:wrap;line-height:1.6"></div>
             <div class="ventas-plat-grid" id="ventasPlataformaGrid"></div>
           </div>
         </div>
@@ -4151,6 +4151,13 @@ function renderVentasPlat(mes) {
 /* ===== ACTUALIZAR VENTAS (botón tiempo real) ===== */
 var VENTAS_API_BASE = 'https://maraga-whatsapp-agent-production.up.railway.app';
 
+function _fmtK(n) {
+  n = Number(n) || 0;
+  if (n >= 1000000) return '$' + (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return '$' + Math.round(n/1000) + 'K';
+  return '$' + Math.round(n);
+}
+
 async function actualizarVentas() {
   var btn   = document.getElementById('btnActualizarVentas');
   var icon  = document.getElementById('btnActualizarIcon');
@@ -4160,30 +4167,38 @@ async function actualizarVentas() {
 
   // Estado: cargando
   btn.disabled = true;
-  btn.style.opacity = '0.7';
-  icon.className  = 'ti ti-loader-2';
+  btn.style.opacity = '0.8';
+  icon.className = 'ti ti-loader-2';
   icon.style.animation = 'spin 1s linear infinite';
-  label.textContent = 'Actualizando…';
+  label.textContent = 'Consultando APIs…';
+
+  if (atDiv) {
+    atDiv.style.display = 'flex';
+    atDiv.innerHTML =
+      '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite;margin-right:4px;color:var(--maraga)"></i>' +
+      '<span style="color:var(--maraga)">Obteniendo datos en tiempo real de Walmart · MercadoLibre · Amazon…</span>';
+  }
 
   try {
-    var res = await fetch(VENTAS_API_BASE + '/api/ventas/mes-actual', { signal: AbortSignal.timeout(60000) });
+    var res = await fetch(VENTAS_API_BASE + '/api/ventas/mes-actual', {
+      signal: AbortSignal.timeout(60000)
+    });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     var data = await res.json();
 
-    // Inyectar datos frescos en el objeto global
     var mes = data.mes;
     if (!VENTAS_PLAT_DATA[mes]) VENTAS_PLAT_DATA[mes] = {};
 
-    // Walmart y Amazon: sobreescribir directo (Railway los calcula igual que los dashboards)
-    if (data.walmart)  VENTAS_PLAT_DATA[mes].walmart = data.walmart;
-    if (data.amazon)   VENTAS_PLAT_DATA[mes].amazon  = data.amazon;
+    // Walmart: datos frescos de la API de Walmart MX
+    if (data.walmart) VENTAS_PLAT_DATA[mes].walmart = data.walmart;
 
-    // MercadoLibre: el API indexa órdenes con ~5 min de retraso vs el dashboard,
-    // por lo que siempre devuelve un poco menos que "Ventas brutas" del seller center.
-    // Regla: actualizar ordenes/unidades/top desde el API,
-    // pero conservar el total más alto que ya tengamos para no "desactualizar".
+    // Amazon: desde caché en Railway (requiere AWS keys para SP-API directo)
+    if (data.amazon)  VENTAS_PLAT_DATA[mes].amazon  = data.amazon;
+
+    // MercadoLibre: la API tiene ~5 min de lag vs Seller Center.
+    // Se conserva el total más alto, pero se actualizan órdenes, unidades y top productos.
     if (data.mercadolibre) {
-      var cur = VENTAS_PLAT_DATA[mes].mercadolibre || {};
+      var cur   = VENTAS_PLAT_DATA[mes].mercadolibre || {};
       var fresh = data.mercadolibre;
       VENTAS_PLAT_DATA[mes].mercadolibre = Object.assign({}, fresh, {
         total:          Math.max(cur.total || 0, fresh.total || 0),
@@ -4191,42 +4206,64 @@ async function actualizarVentas() {
       });
     }
 
-    // Re-renderizar sección
+    // Re-renderizar tarjetas
     renderVentasPlat(dashMes);
 
-    // Mostrar timestamp
-    if (atDiv && data.actualizado_at) {
-      var d = new Date(data.actualizado_at);
-      atDiv.style.display = 'block';
-      atDiv.textContent   = 'Última actualización: ' + d.toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'}) + ' · ' + d.toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+    // Chips resumen por marketplace
+    var chips = [];
+    if (data.walmart)
+      chips.push('<span style="background:#e3f2fd;color:#0071CE;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px">' +
+        '🏪 Walmart ' + data.walmart.ordenes + ' órd · ' + _fmtK(data.walmart.total) + '</span>');
+    if (data.mercadolibre)
+      chips.push('<span style="background:#fff9e0;color:#c9a000;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px">' +
+        '🟡 ML ' + data.mercadolibre.ordenes + ' órd · ' + _fmtK(data.mercadolibre.total) + '</span>');
+    if (data.amazon)
+      chips.push('<span style="background:#fff3e0;color:#c75000;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px">' +
+        '🟠 Amazon ' + (data.amazon.ordenes||0) + ' órd · ' + _fmtK(data.amazon.total) + '</span>');
+
+    var d   = data.actualizado_at ? new Date(data.actualizado_at) : new Date();
+    var hora = d.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+
+    if (atDiv) {
+      atDiv.style.display = 'flex';
+      atDiv.innerHTML =
+        '<i class="ti ti-circle-check" style="color:var(--maraga);margin-right:4px"></i>' +
+        '<strong style="color:var(--maraga)">Datos en tiempo real · ' + hora + '</strong>' +
+        (chips.length ? '&nbsp;&nbsp;' + chips.join('&nbsp;') : '');
     }
 
     // Estado: éxito
-    icon.className  = 'ti ti-check';
+    icon.className = 'ti ti-check';
     icon.style.animation = '';
-    label.textContent = '¡Listo!';
+    label.textContent = '¡Actualizado!';
     btn.style.background = 'var(--maraga)';
     btn.style.color = '#fff';
+    btn.style.opacity = '1';
     setTimeout(function() {
       btn.disabled = false;
-      btn.style.opacity = '1';
       btn.style.background = 'transparent';
       btn.style.color = 'var(--maraga)';
-      icon.className  = 'ti ti-refresh';
+      icon.className = 'ti ti-refresh';
       label.textContent = 'Actualizar';
-    }, 3000);
+    }, 6000);
 
   } catch (err) {
     console.error('Error actualizando ventas:', err);
-    icon.className  = 'ti ti-alert-triangle';
+    icon.className = 'ti ti-alert-triangle';
     icon.style.animation = '';
     label.textContent = 'Error — reintentar';
     btn.style.opacity = '1';
     btn.disabled = false;
+    if (atDiv) {
+      atDiv.style.display = 'flex';
+      atDiv.innerHTML =
+        '<i class="ti ti-alert-triangle" style="color:#e65100;margin-right:4px"></i>' +
+        '<span style="color:#e65100">Error al conectar con la API: ' + err.message + '</span>';
+    }
     setTimeout(function() {
-      icon.className  = 'ti ti-refresh';
+      icon.className = 'ti ti-refresh';
       label.textContent = 'Actualizar';
-    }, 4000);
+    }, 5000);
   }
 }
 
