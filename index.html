@@ -4189,22 +4189,10 @@ async function actualizarVentas() {
     var mes = data.mes;
     if (!VENTAS_PLAT_DATA[mes]) VENTAS_PLAT_DATA[mes] = {};
 
-    // Walmart: datos frescos de la API de Walmart MX
-    if (data.walmart) VENTAS_PLAT_DATA[mes].walmart = data.walmart;
-
-    // Amazon: desde caché en Railway (requiere AWS keys para SP-API directo)
-    if (data.amazon)  VENTAS_PLAT_DATA[mes].amazon  = data.amazon;
-
-    // MercadoLibre: la API tiene ~5 min de lag vs Seller Center.
-    // Se conserva el total más alto, pero se actualizan órdenes, unidades y top productos.
-    if (data.mercadolibre) {
-      var cur   = VENTAS_PLAT_DATA[mes].mercadolibre || {};
-      var fresh = data.mercadolibre;
-      VENTAS_PLAT_DATA[mes].mercadolibre = Object.assign({}, fresh, {
-        total:          Math.max(cur.total || 0, fresh.total || 0),
-        ticketPromedio: Math.max(cur.ticketPromedio || 0, fresh.ticketPromedio || 0)
-      });
-    }
+    // Sobreescribir con datos frescos en tiempo real de cada marketplace
+    if (data.walmart)      VENTAS_PLAT_DATA[mes].walmart      = data.walmart;
+    if (data.amazon)       VENTAS_PLAT_DATA[mes].amazon       = data.amazon;
+    if (data.mercadolibre) VENTAS_PLAT_DATA[mes].mercadolibre = data.mercadolibre;
 
     // Re-renderizar tarjetas
     renderVentasPlat(dashMes);
