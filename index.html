@@ -4255,13 +4255,9 @@ async function actualizarVentas() {
   }
 }
 
-/* ===== AUTO-REFRESH VENTAS (cada 10 min) ===== */
-(function() {
-  // Primera llamada al cargar la página (2 s de delay para no bloquear render)
-  setTimeout(actualizarVentas, 2000);
-  // Repetir cada 10 minutos
-  setInterval(actualizarVentas, 10 * 60 * 1000);
-})();
+/* ===== AUTO-REFRESH VENTAS — desactivado: usar botón "Actualizar" ===== */
+// El auto-refresh se desactivó porque la API puede devolver valores distintos
+// al Seller Center en tiempo real. Usar el botón "Actualizar" para refrescar.
 
 /* ===== CALENDAR ===== */
 function _calInitDate() {
