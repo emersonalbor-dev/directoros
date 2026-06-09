@@ -3936,13 +3936,13 @@ var VENTAS_PLAT_DATA = {
     },
     walmart: {
       total: 14461.44, ordenes: 9, unidades: 11, ticketPromedio: 1607, currency: 'MXN', skus: 7,
-      parcial: true, parcialLabel: 'al 7 de junio',
+      parcial: true, parcialLabel: 'al 8 de junio',
       top: [
-        { titulo: 'Soldadora Inversora MARAGA ARC200 110V/220V', ingresos: 6499, unidades: 1 },
-        { titulo: 'Cortadora de Metales 2,400W + Disco Diamante 14"', ingresos: 2299, unidades: 1 },
-        { titulo: 'Soldadora Inversora 200 amp, 127V / 220V', ingresos: 2069, unidades: 1 },
+        { titulo: 'Soldadora Inversora MARAGA 200 Amperes ARC200 110V/220V', ingresos: 6499, unidades: 1 },
+        { titulo: 'MARAGA Cortadora de Metales 2,400W + Disco de Diamante 14"', ingresos: 2299, unidades: 1 },
+        { titulo: 'Soldadora Inversora 200 amp, 127V / 220V, Maraga, MMA y LIFT TIG', ingresos: 2069, unidades: 1 },
         { titulo: 'Esmeriladora Angular 800W MARAGA 4-1/2" 120V', ingresos: 1599, unidades: 3 },
-        { titulo: 'Serrucho Recto 18 Plg Lenox 20980', ingresos: 1015, unidades: 2 }
+        { titulo: 'Serrucho Recto 18 Plg 10 Dpp Lenox 20980', ingresos: 1015, unidades: 2 }
       ]
     },
     amazon: {
@@ -4202,9 +4202,15 @@ async function actualizarVentas() {
     if (data.walmart)
       chips.push('<span style="background:#e3f2fd;color:#0071CE;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px">' +
         '🏪 Walmart ' + data.walmart.ordenes + ' órd · ' + _fmtK(data.walmart.total) + '</span>');
+    else if (data.walmart_error)
+      chips.push('<span style="background:#fdecea;color:#c62828;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px" title="' + data.walmart_error + '">' +
+        '⚠️ Walmart sin conexión</span>');
     if (data.mercadolibre)
       chips.push('<span style="background:#fff9e0;color:#c9a000;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px">' +
         '🟡 ML ' + data.mercadolibre.ordenes + ' órd · ' + _fmtK(data.mercadolibre.total) + '</span>');
+    else if (data.ml_error)
+      chips.push('<span style="background:#fdecea;color:#c62828;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px" title="' + data.ml_error + '">' +
+        '⚠️ ML sin conexión</span>');
     if (data.amazon)
       chips.push('<span style="background:#fff3e0;color:#c75000;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px">' +
         '🟠 Amazon ' + (data.amazon.ordenes||0) + ' órd · ' + _fmtK(data.amazon.total) + '</span>');
