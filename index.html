@@ -4197,6 +4197,17 @@ async function actualizarVentas() {
     // Re-renderizar TODO: tarjetas + KPI principal + barras + chips de totales
     setDashMes(mes);
 
+    // Guardar en localStorage para persistir al refrescar la página
+    try {
+      localStorage.setItem('ventas_cache_v2', JSON.stringify({
+        mes: mes,
+        ts: Date.now(),
+        walmart:      data.walmart      || null,
+        amazon:       data.amazon       || null,
+        mercadolibre: data.mercadolibre || null,
+      }));
+    } catch(e) { /* storage lleno o modo privado — ignorar */ }
+
     // Chips resumen por marketplace
     var chips = [];
     if (data.walmart)
@@ -4261,9 +4272,43 @@ async function actualizarVentas() {
   }
 }
 
-/* ===== AUTO-REFRESH VENTAS — desactivado: usar botón "Actualizar" ===== */
-// El auto-refresh se desactivó porque la API puede devolver valores distintos
-// al Seller Center en tiempo real. Usar el botón "Actualizar" para refrescar.
+/* ===== CARGA INICIAL DE VENTAS ===== */
+// 1) Al cargar la página: restaura datos del localStorage (si tiene < 8 h)
+// 2) Luego auto-fetch silencioso en background para tener datos frescos
+(function initVentasCarga() {
+  // — Paso 1: restaurar caché inmediatamente —
+  try {
+    var raw = localStorage.getItem('ventas_cache_v2');
+    if (raw) {
+      var c = JSON.parse(raw);
+      var edadHoras = (Date.now() - (c.ts || 0)) / 3600000;
+      if (edadHoras < 8 && c.mes) {
+        if (!VENTAS_PLAT_DATA[c.mes]) VENTAS_PLAT_DATA[c.mes] = {};
+        if (c.walmart)      VENTAS_PLAT_DATA[c.mes].walmart      = c.walmart;
+        if (c.amazon)       VENTAS_PLAT_DATA[c.mes].amazon       = c.amazon;
+        if (c.mercadolibre) VENTAS_PLAT_DATA[c.mes].mercadolibre = c.mercadolibre;
+        setDashMes(c.mes);
+        // Mostrar banda "datos guardados · HH:MM"
+        var atDiv = document.getElementById('ventasActualizadoAt');
+        if (atDiv) {
+          var hCache = new Date(c.ts).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+          atDiv.style.display = 'flex';
+          atDiv.innerHTML =
+            '<i class="ti ti-database" style="color:var(--muted);margin-right:4px"></i>' +
+            '<span style="color:var(--muted)">Datos guardados · ' + hCache + ' — actualizando…</span>';
+        }
+      }
+    }
+  } catch(e) {}
+
+  // — Paso 2: auto-fetch silencioso (1.5 s de retraso para que DOM esté listo) —
+  setTimeout(function() {
+    // Llama actualizarVentas sin que el botón esté bloqueado
+    var btn = document.getElementById('btnActualizarVentas');
+    if (btn) btn.disabled = false;
+    actualizarVentas();
+  }, 1500);
+})();
 
 /* ===== CALENDAR ===== */
 function _calInitDate() {
