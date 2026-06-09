@@ -4224,7 +4224,10 @@ async function actualizarVentas() {
         '⚠️ ML sin conexión</span>');
     if (data.amazon)
       chips.push('<span style="background:#fff3e0;color:#c75000;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px">' +
-        '🟠 Amazon ' + (data.amazon.ordenes||0) + ' órd · ' + _fmtK(data.amazon.total) + '</span>');
+        (data.amazon_error ? '🟠 Amazon (caché) ' : '🟠 Amazon ') + (data.amazon.ordenes||0) + ' órd · ' + _fmtK(data.amazon.total) + '</span>');
+    else if (data.amazon_error)
+      chips.push('<span style="background:#fdecea;color:#c62828;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px" title="' + data.amazon_error + '">' +
+        '⚠️ Amazon sin conexión</span>');
 
     var d   = data.actualizado_at ? new Date(data.actualizado_at) : new Date();
     var hora = d.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
