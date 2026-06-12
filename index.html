@@ -1586,21 +1586,6 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           </div>
         </div>
 
-        <!-- ===== TOP SKUs CANAL DIRECTO ===== -->
-        <div class="ventas-plat-section">
-          <div class="chart-card">
-            <div class="chart-header">
-              <div>
-                <div class="chart-title"><i class="ti ti-chart-bar-popular" style="margin-right:6px;color:#e74c3c"></i>Top SKUs con Venta — Canal Directo</div>
-                <div class="chart-subtitle" id="skuDirectoMesLabel">Mayo 2026</div>
-              </div>
-            </div>
-            <div style="position:relative;height:250px">
-              <canvas id="skuDirectoChart"></canvas>
-            </div>
-          </div>
-        </div>
-
         <!-- ===== CHATS WHATSAPP ===== -->
         <div class="ventas-plat-section" id="chatsWaSection">
           <div class="chart-card">
@@ -3839,7 +3824,6 @@ function setDashMes(mes) {
 
   // Sincroniza sección ventas por plataforma
   renderVentasPlat(mes);
-  renderSkuDirectoChart(mes);
 }
 
 /* ===== VENTAS POR PLATAFORMA ===== */
@@ -4380,74 +4364,6 @@ function _fmtK(n) {
   if (n >= 1000000) return '$' + (n/1000000).toFixed(1) + 'M';
   if (n >= 1000)    return '$' + Math.round(n/1000) + 'K';
   return '$' + Math.round(n);
-}
-
-var _skuDirectoChartInstance = null;
-function renderSkuDirectoChart(mes) {
-  var d = VENTAS_PLAT_DATA[mes] || {};
-  var mmx = d.maraga_mx;
-  var ttk = d.tiktok;
-
-  var allProds = {};
-  if (mmx && mmx.top) mmx.top.forEach(function(p) { allProds[p.titulo] = { mmx: p.ingresos, ttk: 0 }; });
-  if (ttk && ttk.top) ttk.top.forEach(function(p) {
-    if (allProds[p.titulo]) allProds[p.titulo].ttk = p.ingresos;
-    else allProds[p.titulo] = { mmx: 0, ttk: p.ingresos };
-  });
-
-  var sorted = Object.keys(allProds).map(function(k) {
-    return { titulo: k, mmx: allProds[k].mmx, ttk: allProds[k].ttk, total: allProds[k].mmx + allProds[k].ttk };
-  }).sort(function(a, b) { return b.total - a.total; }).slice(0, 8);
-
-  var labels = [], mmxVals = [], ttkVals = [];
-  sorted.forEach(function(p) {
-    labels.push(p.titulo.length > 30 ? p.titulo.slice(0, 30) + '…' : p.titulo);
-    mmxVals.push(p.mmx);
-    ttkVals.push(p.ttk);
-  });
-
-  var lbl = document.getElementById('skuDirectoMesLabel');
-  if (lbl) lbl.textContent = MESES_LABEL[mes] || mes;
-
-  var canvas = document.getElementById('skuDirectoChart');
-  if (!canvas || !window.Chart) return;
-
-  if (_skuDirectoChartInstance) { _skuDirectoChartInstance.destroy(); _skuDirectoChartInstance = null; }
-
-  _skuDirectoChartInstance = new Chart(canvas, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [
-        { label: 'MARAGA MX', data: mmxVals, backgroundColor: '#e74c3c', borderRadius: 3 },
-        { label: 'TikTok',    data: ttkVals, backgroundColor: '#555',    borderRadius: 3 }
-      ]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 11 }, color: '#888' } },
-        tooltip: {
-          callbacks: {
-            label: function(ctx) { return ' ' + ctx.dataset.label + ': ' + _fmtK(ctx.raw); }
-          }
-        }
-      },
-      scales: {
-        x: {
-          stacked: false,
-          ticks: { color: '#888', font: { size: 11 }, callback: function(v) { return _fmtK(v); } },
-          grid: { color: 'rgba(136,135,128,.1)' }
-        },
-        y: {
-          ticks: { color: '#888', font: { size: 11 } },
-          grid: { display: false }
-        }
-      }
-    }
-  });
 }
 
 async function actualizarVentas() {
