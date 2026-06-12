@@ -1527,14 +1527,6 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
               <div class="kpi-progress-bar" id="kpi-sales-bar-amz" style="background:#FF9900;width:0%;flex-shrink:0"></div>
               <div class="kpi-progress-bar" id="kpi-sales-bar-wmt" style="background:#0071CE;width:0%;border-radius:0 4px 4px 0;flex-shrink:0"></div>
             </div>
-            <div style="font-size:10px;color:var(--muted);margin:5px 0 2px;display:flex;justify-content:space-between;align-items:center">
-              <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#e74c3c;margin-right:3px;vertical-align:-1px"></span>MARAGA MX&nbsp;&nbsp;<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#333;margin-right:3px;vertical-align:-1px"></span>TikTok</span>
-              <span id="kpi-direct-meta-val" style="font-weight:600">Meta: $200K</span>
-            </div>
-            <div class="kpi-progress" style="display:flex;gap:1px">
-              <div class="kpi-progress-bar" id="kpi-sales-bar-mmx" style="background:#e74c3c;width:0%;border-radius:4px 0 0 4px;flex-shrink:0"></div>
-              <div class="kpi-progress-bar" id="kpi-sales-bar-ttk" style="background:#333;width:0%;border-radius:0 4px 4px 0;flex-shrink:0"></div>
-            </div>
           </div>
           <div class="kpi-card">
             <div class="kpi-card-row">
@@ -3759,7 +3751,7 @@ function setDashMes(mes) {
     btn.classList.toggle('active', btn.dataset.mes === mes);
   });
 
-  // Actualiza KPI Ventas Totales (ML + Amazon + Walmart + MARAGA MX + TikTok)
+  // Actualiza KPI Ventas Totales (ML + Amazon + Walmart)
   var d = VENTAS_PLAT_DATA[mes];
   var ml  = d && d.mercadolibre;
   var amz = d && d.amazon;
@@ -3770,46 +3762,31 @@ function setDashMes(mes) {
   var kpiBarMlEl     = document.getElementById('kpi-sales-bar');
   var kpiBarAmzEl    = document.getElementById('kpi-sales-bar-amz');
   var kpiBarWmtEl    = document.getElementById('kpi-sales-bar-wmt');
-  var kpiBarMmxEl    = document.getElementById('kpi-sales-bar-mmx');
-  var kpiBarTtkEl    = document.getElementById('kpi-sales-bar-ttk');
   var kpiBreakdownEl = document.getElementById('kpi-plat-breakdown');
-  var kpiDirectMetaEl = document.getElementById('kpi-direct-meta-val');
   var mesNombre      = MESES_LABEL[mes] || mes;
-  var META        = 10000000;
-  var META_DIRECT = 200000;
+  var META = 10000000;
 
   if (kpiLabelEl) kpiLabelEl.textContent = 'Ventas Totales · ' + mesNombre;
 
   var mlTotal  = ml  ? ml.total  : 0;
   var amzTotal = amz ? amz.total : 0;
   var wmtTotal = wmt ? wmt.total : 0;
-  var mmxTotal = d && d.maraga_mx ? d.maraga_mx.total : 0;
-  var ttkTotal = d && d.tiktok    ? d.tiktok.total    : 0;
-  var total    = mlTotal + amzTotal + wmtTotal + mmxTotal + ttkTotal;
-  var directTotal = mmxTotal + ttkTotal;
+  var total    = mlTotal + amzTotal + wmtTotal;
 
   if (total > 0) {
     if (kpiSalesEl) kpiSalesEl.textContent = fmtPesos(total);
-    if (kpiSubEl) kpiSubEl.textContent = 'Meta ML/Amz/Wmt: $10.0M MXN';
-    var directPct = Math.round(directTotal / META_DIRECT * 100);
-    if (kpiDirectMetaEl) kpiDirectMetaEl.textContent = 'Meta: $200K (' + directPct + '%)';
+    if (kpiSubEl) kpiSubEl.textContent = 'Meta: $10.0M MXN';
     var mlPct  = Math.min(100, mlTotal  / META * 100);
     var amzPct = Math.min(100 - mlPct,  amzTotal / META * 100);
     var wmtPct = Math.min(100 - mlPct - amzPct, wmtTotal / META * 100);
-    var mmxPct = Math.min(100, mmxTotal / META_DIRECT * 100);
-    var ttkPct = Math.min(100 - mmxPct, ttkTotal / META_DIRECT * 100);
     if (kpiBarMlEl)  kpiBarMlEl.style.width  = mlPct.toFixed(1)  + '%';
     if (kpiBarAmzEl) kpiBarAmzEl.style.width = amzPct.toFixed(1) + '%';
     if (kpiBarWmtEl) kpiBarWmtEl.style.width = wmtPct.toFixed(1) + '%';
-    if (kpiBarMmxEl) kpiBarMmxEl.style.width = mmxPct.toFixed(1) + '%';
-    if (kpiBarTtkEl) kpiBarTtkEl.style.width = ttkPct.toFixed(1) + '%';
     if (kpiBreakdownEl) {
       var chips = '';
       if (mlTotal  > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:var(--maraga)"></div>ML&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mlTotal) + '</span></div>';
       if (amzTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#FF9900"></div>Amz&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(amzTotal) + '</span></div>';
       if (wmtTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#0071CE"></div>Wmt&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(wmtTotal) + '</span></div>';
-      if (mmxTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#e74c3c"></div>MMX&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mmxTotal) + '</span></div>';
-      if (ttkTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#333"></div>TikTok&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(ttkTotal) + '</span></div>';
       kpiBreakdownEl.innerHTML = chips;
     }
   } else {
@@ -3817,8 +3794,6 @@ function setDashMes(mes) {
     if (kpiBarMlEl)  kpiBarMlEl.style.width  = '0%';
     if (kpiBarAmzEl) kpiBarAmzEl.style.width = '0%';
     if (kpiBarWmtEl) kpiBarWmtEl.style.width = '0%';
-    if (kpiBarMmxEl) kpiBarMmxEl.style.width = '0%';
-    if (kpiBarTtkEl) kpiBarTtkEl.style.width = '0%';
     if (kpiBreakdownEl) kpiBreakdownEl.innerHTML = '';
   }
 
