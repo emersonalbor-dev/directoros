@@ -4146,20 +4146,33 @@ function renderVentasPlat(mes) {
   var maragaMxCard = mmx
     ? '<div class="ventas-plat-card" style="background:linear-gradient(135deg,#fff5f5 0%,var(--paper) 100%);border-color:#ffbdbd">' +
         '<div class="ventas-plat-logo">' +
-          '<div class="ventas-plat-ico" style="background:var(--maraga,#C0392B);color:#fff;font-size:15px;font-weight:700;font-family:\'Instrument Serif\',serif;display:flex;align-items:center;justify-content:center">M</div>' +
+          '<div class="ventas-plat-ico" style="background:var(--maraga,#C0392B);color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center">M</div>' +
           '<div>' +
             '<div class="ventas-plat-name">MARAGA MX</div>' +
             '<span class="ventas-plat-badge-plat" style="background:#fff0f0;color:#c0392b">🏪 Venta Directa</span>' +
           '</div>' +
         '</div>' +
-        (mmx.parcial ? '<div style="display:inline-flex;align-items:center;gap:5px;background:#fff0f0;border:1px solid #ffbdbd;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;color:#c0392b;margin-bottom:8px"><i class="ti ti-alert-triangle" style="font-size:11px"></i>Parcial — ' + (mmx.parcialLabel||'mes en curso') + '</div>' : '') +
+        (mmx.parcial ? '<div style="display:inline-flex;align-items:center;gap:5px;background:#fff0f0;border:1px solid #ffbdbd;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;color:#c0392b;margin-bottom:8px"><i class="ti ti-alert-triangle" style="font-size:11px"></i>Parcial' + (mmx.parcialLabel ? ' — ' + mmx.parcialLabel : ' — mes en curso') + '</div>' : '') +
         '<div class="ventas-plat-total" style="color:var(--maraga,#C0392B)">' + fmtPesos(mmx.total) + '</div>' +
-        '<div class="ventas-plat-sub">MXN en ventas — ' + (MESES_LABEL[mes]||mes) + (mmx.parcial ? ' (' + (mmx.parcialLabel||'parcial') + ')' : '') + '</div>' +
+        '<div class="ventas-plat-sub">MXN en ventas — ' + (MESES_LABEL[mes]||mes) + (mmx.parcial ? (mmx.parcialLabel ? ' (' + mmx.parcialLabel + ')' : ' (parcial)') : '') + '</div>' +
         '<div class="ventas-plat-stats">' +
-          '<div class="ventas-plat-stat"><strong>' + mmx.ordenes + '</strong>Pedidos</div>' +
+          '<div class="ventas-plat-stat"><strong>' + mmx.ordenes.toLocaleString() + '</strong>Órdenes</div>' +
+          (mmx.unidades != null ? '<div class="ventas-plat-stat"><strong>' + mmx.unidades.toLocaleString() + '</strong>Unidades</div>' : '') +
+          (mmx.skus != null ? '<div class="ventas-plat-stat"><strong>' + mmx.skus + '</strong>SKUs</div>' : '') +
           '<div class="ventas-plat-stat"><strong>' + fmtPesos(mmx.ticketPromedio) + '</strong>Ticket prom.</div>' +
-          '<div class="ventas-plat-stat"><strong>Tableau</strong>Fuente</div>' +
         '</div>' +
+        '<div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Top productos</div>' +
+        (mmx.top && mmx.top.length
+          ? mmx.top.map(function(p) {
+              return '<div class="ventas-plat-top-row">' +
+                '<div class="ventas-plat-top-titulo">' + p.titulo + '</div>' +
+                '<div class="ventas-plat-top-right">' +
+                  '<span class="ventas-plat-top-val">' + fmtPesos(p.ingresos) + '</span>' +
+                  (p.unidades != null ? '<span class="ventas-plat-top-uds">' + p.unidades.toLocaleString() + ' uds</span>' : '') +
+                '</div>' +
+              '</div>';
+            }).join('')
+          : '<div style="font-size:11px;color:var(--muted);padding:6px 0 2px">Sin desglose de productos</div>') +
       '</div>'
     : '<div class="ventas-plat-card" style="opacity:.4">' +
         '<div class="ventas-plat-logo">' +
@@ -4181,14 +4194,27 @@ function renderVentasPlat(mes) {
             '<span class="ventas-plat-badge-plat" style="background:#f5f5f5;color:#333">🎵 TikTok Shop MX</span>' +
           '</div>' +
         '</div>' +
-        (ttk.parcial ? '<div style="display:inline-flex;align-items:center;gap:5px;background:#f5f5f5;border:1px solid #bdbdbd;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;color:#333;margin-bottom:8px"><i class="ti ti-alert-triangle" style="font-size:11px"></i>Parcial — ' + (ttk.parcialLabel||'mes en curso') + '</div>' : '') +
-        '<div class="ventas-plat-total" style="color:#010101">' + fmtPesos(ttk.total) + '</div>' +
-        '<div class="ventas-plat-sub">MXN en ventas — ' + (MESES_LABEL[mes]||mes) + (ttk.parcial ? ' (' + (ttk.parcialLabel||'parcial') + ')' : '') + '</div>' +
+        (ttk.parcial ? '<div style="display:inline-flex;align-items:center;gap:5px;background:#f5f5f5;border:1px solid #bdbdbd;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;color:#333;margin-bottom:8px"><i class="ti ti-alert-triangle" style="font-size:11px"></i>Parcial' + (ttk.parcialLabel ? ' — ' + ttk.parcialLabel : ' — mes en curso') + '</div>' : '') +
+        '<div class="ventas-plat-total">' + fmtPesos(ttk.total) + '</div>' +
+        '<div class="ventas-plat-sub">MXN en ventas — ' + (MESES_LABEL[mes]||mes) + (ttk.parcial ? (ttk.parcialLabel ? ' (' + ttk.parcialLabel + ')' : ' (parcial)') : '') + '</div>' +
         '<div class="ventas-plat-stats">' +
-          '<div class="ventas-plat-stat"><strong>' + ttk.ordenes + '</strong>Pedidos</div>' +
+          '<div class="ventas-plat-stat"><strong>' + ttk.ordenes.toLocaleString() + '</strong>Órdenes</div>' +
+          (ttk.unidades != null ? '<div class="ventas-plat-stat"><strong>' + ttk.unidades.toLocaleString() + '</strong>Unidades</div>' : '') +
+          (ttk.skus != null ? '<div class="ventas-plat-stat"><strong>' + ttk.skus + '</strong>SKUs</div>' : '') +
           '<div class="ventas-plat-stat"><strong>' + fmtPesos(ttk.ticketPromedio) + '</strong>Ticket prom.</div>' +
-          '<div class="ventas-plat-stat"><strong>Tableau</strong>Fuente</div>' +
         '</div>' +
+        '<div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Top productos</div>' +
+        (ttk.top && ttk.top.length
+          ? ttk.top.map(function(p) {
+              return '<div class="ventas-plat-top-row">' +
+                '<div class="ventas-plat-top-titulo">' + p.titulo + '</div>' +
+                '<div class="ventas-plat-top-right">' +
+                  '<span class="ventas-plat-top-val">' + fmtPesos(p.ingresos) + '</span>' +
+                  (p.unidades != null ? '<span class="ventas-plat-top-uds">' + p.unidades.toLocaleString() + ' uds</span>' : '') +
+                '</div>' +
+              '</div>';
+            }).join('')
+          : '<div style="font-size:11px;color:var(--muted);padding:6px 0 2px">Sin desglose de productos</div>') +
       '</div>'
     : '<div class="ventas-plat-card" style="opacity:.4">' +
         '<div class="ventas-plat-logo">' +
