@@ -3822,7 +3822,9 @@ var VENTAS_PLAT_DATA = {
         { titulo: 'Cortadora Metal 2400W 14"', ingresos: 64726.38, unidades: 22 },
         { titulo: 'Clavos Pistola 2" 9000pz', ingresos: 42979.15, unidades: 51 }
       ]
-    }
+    },
+    maraga_mx: { total: 340600, ordenes: 34, ticketPromedio: 10018, currency: 'MXN' },
+    tiktok:    { total: 135,    ordenes: 1,  ticketPromedio: 135,   currency: 'MXN' }
   },
   '2026-02': {
     walmart: {
@@ -3844,7 +3846,9 @@ var VENTAS_PLAT_DATA = {
         { titulo: 'Soldadura Electrodo 6013 1/8 Maraga 20kg', ingresos: 67930.30, unidades: 55 },
         { titulo: 'Clavos Pistola Neumática 2" 9000pz', ingresos: 60688.00, unidades: 72 }
       ]
-    }
+    },
+    maraga_mx: { total: 251220, ordenes: 34, ticketPromedio: 7389, currency: 'MXN' },
+    tiktok:    { total: 4654,   ordenes: 1,  ticketPromedio: 4654,  currency: 'MXN' }
   },
   '2026-03': {
     walmart: {
@@ -3866,7 +3870,9 @@ var VENTAS_PLAT_DATA = {
         { titulo: 'Soldadura Electrodo 6013 1/8 Maraga 20kg', ingresos: 56329.30, unidades: 46 },
         { titulo: 'Soldadura 6013 1/8 Maraga 5kg', ingresos: 55286.00, unidades: 154 }
       ]
-    }
+    },
+    maraga_mx: { total: 307073, ordenes: 42, ticketPromedio: 7311, currency: 'MXN' },
+    tiktok:    { total: 13996,  ordenes: 1,  ticketPromedio: 13996, currency: 'MXN' }
   },
   '2026-04': {
     walmart: {
@@ -3888,7 +3894,9 @@ var VENTAS_PLAT_DATA = {
         { titulo: 'Clavos Pistola Neumática 2½" 9000pz', ingresos: 63829.00, unidades: 71 },
         { titulo: 'Pistola Clavos Maraga CN70', ingresos: 55801.00, unidades: 12 }
       ]
-    }
+    },
+    maraga_mx: { total: 352387, ordenes: 27, ticketPromedio: 13051, currency: 'MXN' },
+    tiktok:    { total: 3437,   ordenes: 1,  ticketPromedio: 3437,  currency: 'MXN' }
   },
   '2026-05': {
     walmart: {
@@ -3920,7 +3928,9 @@ var VENTAS_PLAT_DATA = {
         { titulo: 'Microalambre Soldar E71TGS-30 0.030" 3Kg', ingresos: 204, unidades: 1 },
         { titulo: 'Electrodo Soldadura 6013 1/8" 1kg', ingresos: 70, unidades: 1 }
       ]
-    }
+    },
+    maraga_mx: { total: 230173, ordenes: 28, ticketPromedio: 8220, currency: 'MXN' },
+    tiktok:    { total: 16778,  ordenes: 1,  ticketPromedio: 16778, currency: 'MXN' }
   },
   '2026-06': {
     mercadolibre: {
@@ -3955,7 +3965,9 @@ var VENTAS_PLAT_DATA = {
         { titulo: 'Hacksaw Frame 12" Lenox', ingresos: 1920, unidades: 4 },
         { titulo: 'Sierra Cinta 44-7/8" 10/14 TPI 3pz', ingresos: 1406, unidades: 2 }
       ]
-    }
+    },
+    maraga_mx: { total: 60042, ordenes: 10, ticketPromedio: 6004, currency: 'MXN', parcial: true, parcialLabel: 'al 11 de junio' },
+    tiktok:    { total: 719,   ordenes: 1,  ticketPromedio: 719,  currency: 'MXN', parcial: true, parcialLabel: 'al 11 de junio' }
   }
 };
 
@@ -4129,6 +4141,63 @@ function renderVentasPlat(mes) {
         '</div>' +
       '</div>';
 
+  /* ---- MARAGA MX CARD (venta directa) ---- */
+  var mmx = data.maraga_mx;
+  var maragaMxCard = mmx
+    ? '<div class="ventas-plat-card" style="background:linear-gradient(135deg,#fff5f5 0%,var(--paper) 100%);border-color:#ffbdbd">' +
+        '<div class="ventas-plat-logo">' +
+          '<div class="ventas-plat-ico" style="background:var(--maraga,#C0392B);color:#fff;font-size:15px;font-weight:700;font-family:\'Instrument Serif\',serif;display:flex;align-items:center;justify-content:center">M</div>' +
+          '<div>' +
+            '<div class="ventas-plat-name">MARAGA MX</div>' +
+            '<span class="ventas-plat-badge-plat" style="background:#fff0f0;color:#c0392b">🏪 Venta Directa</span>' +
+          '</div>' +
+        '</div>' +
+        (mmx.parcial ? '<div style="display:inline-flex;align-items:center;gap:5px;background:#fff0f0;border:1px solid #ffbdbd;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;color:#c0392b;margin-bottom:8px"><i class="ti ti-alert-triangle" style="font-size:11px"></i>Parcial — ' + (mmx.parcialLabel||'mes en curso') + '</div>' : '') +
+        '<div class="ventas-plat-total" style="color:var(--maraga,#C0392B)">' + fmtPesos(mmx.total) + '</div>' +
+        '<div class="ventas-plat-sub">MXN en ventas — ' + (MESES_LABEL[mes]||mes) + (mmx.parcial ? ' (' + (mmx.parcialLabel||'parcial') + ')' : '') + '</div>' +
+        '<div class="ventas-plat-stats">' +
+          '<div class="ventas-plat-stat"><strong>' + mmx.ordenes + '</strong>Pedidos</div>' +
+          '<div class="ventas-plat-stat"><strong>' + fmtPesos(mmx.ticketPromedio) + '</strong>Ticket prom.</div>' +
+          '<div class="ventas-plat-stat"><strong>Tableau</strong>Fuente</div>' +
+        '</div>' +
+      '</div>'
+    : '<div class="ventas-plat-card" style="opacity:.4">' +
+        '<div class="ventas-plat-logo">' +
+          '<div class="ventas-plat-ico" style="background:var(--maraga,#C0392B);color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center">M</div>' +
+          '<div class="ventas-plat-name">MARAGA MX</div>' +
+        '</div>' +
+        '<div class="ventas-plat-empty"><i class="ti ti-database-off"></i><br>Sin datos para ' + (MESES_LABEL[mes]||mes) + '</div>' +
+      '</div>';
+
+  /* ---- TIKTOK CARD ---- */
+  var ttk = data.tiktok;
+  var tiktokLogoSvg = '<svg width="20" height="20" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="9" fill="#010101"/><path d="M32.5 10c.5 3.2 2.5 5.6 5.5 6.3v4.4c-2 .2-3.9-.4-5.5-1.5v11c0 5.5-4.5 10-10 10s-10-4.5-10-10 4.5-10 10-10c.4 0 .7 0 1 .1v4.5c-.3-.1-.7-.1-1-.1-3 0-5.5 2.5-5.5 5.5S19.5 36 22.5 36s5.5-2.5 5.5-5.5V10h4.5z" fill="white"/><path d="M32.5 10c.5 3.2 2.5 5.6 5.5 6.3v4.4c-2 .2-3.9-.4-5.5-1.5v11c0 5.5-4.5 10-10 10s-10-4.5-10-10 4.5-10 10-10c.4 0 .7 0 1 .1v4.5c-.3-.1-.7-.1-1-.1-3 0-5.5 2.5-5.5 5.5S19.5 36 22.5 36s5.5-2.5 5.5-5.5V10h4.5z" fill="#69C9D0" fill-opacity=".5"/></svg>';
+  var tiktokCard = ttk
+    ? '<div class="ventas-plat-card" style="background:linear-gradient(135deg,#f5f5f5 0%,var(--paper) 100%);border-color:#bdbdbd">' +
+        '<div class="ventas-plat-logo">' +
+          '<div class="ventas-plat-ico" style="background:#010101">' + tiktokLogoSvg + '</div>' +
+          '<div>' +
+            '<div class="ventas-plat-name">TikTok Shop</div>' +
+            '<span class="ventas-plat-badge-plat" style="background:#f5f5f5;color:#333">🎵 TikTok Shop MX</span>' +
+          '</div>' +
+        '</div>' +
+        (ttk.parcial ? '<div style="display:inline-flex;align-items:center;gap:5px;background:#f5f5f5;border:1px solid #bdbdbd;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:600;color:#333;margin-bottom:8px"><i class="ti ti-alert-triangle" style="font-size:11px"></i>Parcial — ' + (ttk.parcialLabel||'mes en curso') + '</div>' : '') +
+        '<div class="ventas-plat-total" style="color:#010101">' + fmtPesos(ttk.total) + '</div>' +
+        '<div class="ventas-plat-sub">MXN en ventas — ' + (MESES_LABEL[mes]||mes) + (ttk.parcial ? ' (' + (ttk.parcialLabel||'parcial') + ')' : '') + '</div>' +
+        '<div class="ventas-plat-stats">' +
+          '<div class="ventas-plat-stat"><strong>' + ttk.ordenes + '</strong>Pedidos</div>' +
+          '<div class="ventas-plat-stat"><strong>' + fmtPesos(ttk.ticketPromedio) + '</strong>Ticket prom.</div>' +
+          '<div class="ventas-plat-stat"><strong>Tableau</strong>Fuente</div>' +
+        '</div>' +
+      '</div>'
+    : '<div class="ventas-plat-card" style="opacity:.4">' +
+        '<div class="ventas-plat-logo">' +
+          '<div class="ventas-plat-ico" style="background:#010101">' + tiktokLogoSvg + '</div>' +
+          '<div class="ventas-plat-name">TikTok Shop</div>' +
+        '</div>' +
+        '<div class="ventas-plat-empty"><i class="ti ti-database-off"></i><br>Sin datos para ' + (MESES_LABEL[mes]||mes) + '</div>' +
+      '</div>';
+
   var webCard = '<div class="ventas-plat-card" style="opacity:.4">' +
     '<div class="ventas-plat-logo">' +
       '<div class="ventas-plat-ico" style="background:var(--paper-2)"><i class="ti ti-world" style="color:var(--muted);font-size:18px"></i></div>' +
@@ -4145,7 +4214,7 @@ function renderVentasPlat(mes) {
     '<div class="ventas-plat-empty"><i class="ti ti-plug-x"></i><br>Sin integración aún</div>' +
   '</div>';
 
-  grid.innerHTML = mlCard + amzCard + wmtCard + webCard + waCard;
+  grid.innerHTML = mlCard + amzCard + wmtCard + maragaMxCard + tiktokCard + webCard + waCard;
 }
 
 /* ===== ACTUALIZAR VENTAS (botón tiempo real) ===== */
