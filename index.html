@@ -1527,6 +1527,14 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
               <div class="kpi-progress-bar" id="kpi-sales-bar-amz" style="background:#FF9900;width:0%;flex-shrink:0"></div>
               <div class="kpi-progress-bar" id="kpi-sales-bar-wmt" style="background:#0071CE;width:0%;border-radius:0 4px 4px 0;flex-shrink:0"></div>
             </div>
+            <div style="font-size:10px;color:var(--muted);margin:5px 0 2px;display:flex;justify-content:space-between;align-items:center">
+              <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#e74c3c;margin-right:3px;vertical-align:-1px"></span>MARAGA MX&nbsp;&nbsp;<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#333;margin-right:3px;vertical-align:-1px"></span>TikTok</span>
+              <span id="kpi-direct-meta-val" style="font-weight:600">Meta: $200K</span>
+            </div>
+            <div class="kpi-progress" style="display:flex;gap:1px">
+              <div class="kpi-progress-bar" id="kpi-sales-bar-mmx" style="background:#e74c3c;width:0%;border-radius:4px 0 0 4px;flex-shrink:0"></div>
+              <div class="kpi-progress-bar" id="kpi-sales-bar-ttk" style="background:#333;width:0%;border-radius:0 4px 4px 0;flex-shrink:0"></div>
+            </div>
           </div>
           <div class="kpi-card">
             <div class="kpi-card-row">
@@ -1575,6 +1583,21 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             </div>
             <div id="ventasActualizadoAt" style="font-size:11px;color:var(--muted);margin-bottom:8px;display:none;align-items:center;gap:4px;flex-wrap:wrap;line-height:1.6"></div>
             <div class="ventas-plat-grid" id="ventasPlataformaGrid"></div>
+          </div>
+        </div>
+
+        <!-- ===== TOP SKUs CANAL DIRECTO ===== -->
+        <div class="ventas-plat-section">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title"><i class="ti ti-chart-bar-popular" style="margin-right:6px;color:#e74c3c"></i>Top SKUs con Venta — Canal Directo</div>
+                <div class="chart-subtitle" id="skuDirectoMesLabel">Mayo 2026</div>
+              </div>
+            </div>
+            <div style="position:relative;height:250px">
+              <canvas id="skuDirectoChart"></canvas>
+            </div>
           </div>
         </div>
 
@@ -3751,41 +3774,57 @@ function setDashMes(mes) {
     btn.classList.toggle('active', btn.dataset.mes === mes);
   });
 
-  // Actualiza KPI Ventas Totales (ML + Amazon + otras)
+  // Actualiza KPI Ventas Totales (ML + Amazon + Walmart + MARAGA MX + TikTok)
   var d = VENTAS_PLAT_DATA[mes];
   var ml  = d && d.mercadolibre;
   var amz = d && d.amazon;
   var wmt = d && d.walmart;
   var kpiSalesEl     = document.getElementById('kpi-sales');
   var kpiLabelEl     = document.getElementById('kpi-sales-label');
+  var kpiSubEl       = document.getElementById('kpi-sales-sub');
   var kpiBarMlEl     = document.getElementById('kpi-sales-bar');
   var kpiBarAmzEl    = document.getElementById('kpi-sales-bar-amz');
   var kpiBarWmtEl    = document.getElementById('kpi-sales-bar-wmt');
+  var kpiBarMmxEl    = document.getElementById('kpi-sales-bar-mmx');
+  var kpiBarTtkEl    = document.getElementById('kpi-sales-bar-ttk');
   var kpiBreakdownEl = document.getElementById('kpi-plat-breakdown');
+  var kpiDirectMetaEl = document.getElementById('kpi-direct-meta-val');
   var mesNombre      = MESES_LABEL[mes] || mes;
-  var META = 10000000;
+  var META        = 10000000;
+  var META_DIRECT = 200000;
 
   if (kpiLabelEl) kpiLabelEl.textContent = 'Ventas Totales · ' + mesNombre;
 
   var mlTotal  = ml  ? ml.total  : 0;
   var amzTotal = amz ? amz.total : 0;
-  var wmtTotal = wmt ? wmt.total : 0; // Walmart MX ya está en MXN
-  var total    = mlTotal + amzTotal + wmtTotal;
+  var wmtTotal = wmt ? wmt.total : 0;
+  var mmxTotal = d && d.maraga_mx ? d.maraga_mx.total : 0;
+  var ttkTotal = d && d.tiktok    ? d.tiktok.total    : 0;
+  var total    = mlTotal + amzTotal + wmtTotal + mmxTotal + ttkTotal;
+  var directTotal = mmxTotal + ttkTotal;
 
   if (total > 0) {
     if (kpiSalesEl) kpiSalesEl.textContent = fmtPesos(total);
+    if (kpiSubEl) kpiSubEl.textContent = 'Meta ML/Amz/Wmt: $10.0M MXN';
+    var directPct = Math.round(directTotal / META_DIRECT * 100);
+    if (kpiDirectMetaEl) kpiDirectMetaEl.textContent = 'Meta: $200K (' + directPct + '%)';
     var mlPct  = Math.min(100, mlTotal  / META * 100);
     var amzPct = Math.min(100 - mlPct,  amzTotal / META * 100);
     var wmtPct = Math.min(100 - mlPct - amzPct, wmtTotal / META * 100);
+    var mmxPct = Math.min(100, mmxTotal / META_DIRECT * 100);
+    var ttkPct = Math.min(100 - mmxPct, ttkTotal / META_DIRECT * 100);
     if (kpiBarMlEl)  kpiBarMlEl.style.width  = mlPct.toFixed(1)  + '%';
     if (kpiBarAmzEl) kpiBarAmzEl.style.width = amzPct.toFixed(1) + '%';
     if (kpiBarWmtEl) kpiBarWmtEl.style.width = wmtPct.toFixed(1) + '%';
-    // Chips de plataforma
+    if (kpiBarMmxEl) kpiBarMmxEl.style.width = mmxPct.toFixed(1) + '%';
+    if (kpiBarTtkEl) kpiBarTtkEl.style.width = ttkPct.toFixed(1) + '%';
     if (kpiBreakdownEl) {
       var chips = '';
       if (mlTotal  > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:var(--maraga)"></div>ML&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mlTotal) + '</span></div>';
       if (amzTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#FF9900"></div>Amz&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(amzTotal) + '</span></div>';
       if (wmtTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#0071CE"></div>Wmt&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(wmtTotal) + '</span></div>';
+      if (mmxTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#e74c3c"></div>MMX&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mmxTotal) + '</span></div>';
+      if (ttkTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#333"></div>TikTok&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(ttkTotal) + '</span></div>';
       kpiBreakdownEl.innerHTML = chips;
     }
   } else {
@@ -3793,11 +3832,14 @@ function setDashMes(mes) {
     if (kpiBarMlEl)  kpiBarMlEl.style.width  = '0%';
     if (kpiBarAmzEl) kpiBarAmzEl.style.width = '0%';
     if (kpiBarWmtEl) kpiBarWmtEl.style.width = '0%';
+    if (kpiBarMmxEl) kpiBarMmxEl.style.width = '0%';
+    if (kpiBarTtkEl) kpiBarTtkEl.style.width = '0%';
     if (kpiBreakdownEl) kpiBreakdownEl.innerHTML = '';
   }
 
   // Sincroniza sección ventas por plataforma
   renderVentasPlat(mes);
+  renderSkuDirectoChart(mes);
 }
 
 /* ===== VENTAS POR PLATAFORMA ===== */
@@ -4354,6 +4396,74 @@ function _fmtK(n) {
   if (n >= 1000000) return '$' + (n/1000000).toFixed(1) + 'M';
   if (n >= 1000)    return '$' + Math.round(n/1000) + 'K';
   return '$' + Math.round(n);
+}
+
+var _skuDirectoChartInstance = null;
+function renderSkuDirectoChart(mes) {
+  var d = VENTAS_PLAT_DATA[mes] || {};
+  var mmx = d.maraga_mx;
+  var ttk = d.tiktok;
+
+  var allProds = {};
+  if (mmx && mmx.top) mmx.top.forEach(function(p) { allProds[p.titulo] = { mmx: p.ingresos, ttk: 0 }; });
+  if (ttk && ttk.top) ttk.top.forEach(function(p) {
+    if (allProds[p.titulo]) allProds[p.titulo].ttk = p.ingresos;
+    else allProds[p.titulo] = { mmx: 0, ttk: p.ingresos };
+  });
+
+  var sorted = Object.keys(allProds).map(function(k) {
+    return { titulo: k, mmx: allProds[k].mmx, ttk: allProds[k].ttk, total: allProds[k].mmx + allProds[k].ttk };
+  }).sort(function(a, b) { return b.total - a.total; }).slice(0, 8);
+
+  var labels = [], mmxVals = [], ttkVals = [];
+  sorted.forEach(function(p) {
+    labels.push(p.titulo.length > 30 ? p.titulo.slice(0, 30) + '…' : p.titulo);
+    mmxVals.push(p.mmx);
+    ttkVals.push(p.ttk);
+  });
+
+  var lbl = document.getElementById('skuDirectoMesLabel');
+  if (lbl) lbl.textContent = MESES_LABEL[mes] || mes;
+
+  var canvas = document.getElementById('skuDirectoChart');
+  if (!canvas || !window.Chart) return;
+
+  if (_skuDirectoChartInstance) { _skuDirectoChartInstance.destroy(); _skuDirectoChartInstance = null; }
+
+  _skuDirectoChartInstance = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'MARAGA MX', data: mmxVals, backgroundColor: '#e74c3c', borderRadius: 3 },
+        { label: 'TikTok',    data: ttkVals, backgroundColor: '#555',    borderRadius: 3 }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 11 }, color: '#888' } },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) { return ' ' + ctx.dataset.label + ': ' + _fmtK(ctx.raw); }
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: false,
+          ticks: { color: '#888', font: { size: 11 }, callback: function(v) { return _fmtK(v); } },
+          grid: { color: 'rgba(136,135,128,.1)' }
+        },
+        y: {
+          ticks: { color: '#888', font: { size: 11 } },
+          grid: { display: false }
+        }
+      }
+    }
+  });
 }
 
 async function actualizarVentas() {
