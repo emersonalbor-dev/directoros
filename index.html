@@ -3771,7 +3771,9 @@ function setDashMes(mes) {
   var mlTotal  = ml  ? ml.total  : 0;
   var amzTotal = amz ? amz.total : 0;
   var wmtTotal = wmt ? wmt.total : 0;
-  var total    = mlTotal + amzTotal + wmtTotal;
+  var mmxTotal = d && d.maraga_mx ? d.maraga_mx.total : 0;
+  var ttkTotal = d && d.tiktok    ? d.tiktok.total    : 0;
+  var total    = mlTotal + amzTotal + wmtTotal + mmxTotal + ttkTotal;
 
   if (total > 0) {
     if (kpiSalesEl) kpiSalesEl.textContent = fmtPesos(total);
@@ -3787,6 +3789,8 @@ function setDashMes(mes) {
       if (mlTotal  > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:var(--maraga)"></div>ML&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mlTotal) + '</span></div>';
       if (amzTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#FF9900"></div>Amz&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(amzTotal) + '</span></div>';
       if (wmtTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#0071CE"></div>Wmt&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(wmtTotal) + '</span></div>';
+      if (mmxTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#e74c3c"></div>MMX&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mmxTotal) + '</span></div>';
+      if (ttkTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#333"></div>TikTok&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(ttkTotal) + '</span></div>';
       kpiBreakdownEl.innerHTML = chips;
     }
   } else {
