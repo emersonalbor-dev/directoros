@@ -1327,6 +1327,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
   .charts-row, .dash-bottom, .booking-layout { grid-template-columns: 1fr; }
   .kanban-board { grid-template-columns: repeat(2, 1fr); }
   .hero-q { font-size: 22px; }
+  .ventas-plat-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 760px) {
   /* Touch devices: always show delete buttons and drag handles since hover doesn't work */
@@ -1345,17 +1346,22 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
   }
   .sidebar-backdrop.active { display: block; }
   .topbar-toggle { display: flex; }
-  .content { padding: 16px; padding-bottom: 80px; }
-  .dash-hero { padding: 22px 20px 20px; }
+  .content { padding: 14px; padding-bottom: 80px; }
+  .dash-hero { padding: 20px 18px 18px; }
   .hero-q { font-size: 19px; }
   .hero-stats { gap: 18px; }
-  .topbar { padding: 0 16px; }
-  .topbar-title { font-size: 15px; }
-  .cal-wrapper { overflow-x: auto; }
-  .cal-header, .cal-grid { min-width: 640px; }
+  .topbar { padding: 0 14px; gap: 10px; }
+  .topbar-title { font-size: 14px; }
+  .topbar-subtitle { display: none; }
+  .cal-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cal-header, .cal-grid { min-width: 560px; }
+  .cal-dist-bar { min-width: 100px; }
   .kanban-board { grid-template-columns: 1fr; }
   .meeting-type-grid { grid-template-columns: 1fr; }
-  .modal { padding: 20px; }
+  .modal { padding: 18px; }
+  .ventas-plat-grid { grid-template-columns: 1fr; }
+  .time-slots { grid-template-columns: 1fr 1fr; }
+  .kit-top-layout { grid-template-columns: 1fr !important; }
   .data-table { font-size: 12px; }
   .data-table th, .data-table td { padding: 10px 12px; }
   .data-table thead { display: none; }
@@ -1368,12 +1374,57 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
     text-transform: uppercase; letter-spacing: 0.04em;
     font-weight: 600; margin-bottom: 2px;
   }
+  /* Admin tabs: scroll horizontally instead of wrapping */
+  .admin-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 4px; }
+  .modal-actions { flex-wrap: wrap; }
+  .modal-actions .btn { flex: 1; min-width: 0; justify-content: center; }
 }
 @media (max-width: 480px) {
   .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .kpi-value { font-size: 22px; }
-  .hero-stats { flex-direction: column; gap: 12px; }
-  .login-card { padding: 28px 22px; }
+  .kpi-value { font-size: 20px; }
+  .hero-stats { flex-direction: column; gap: 10px; }
+  .login-card { padding: 28px 18px; }
+  .hero-q { font-size: 17px; }
+
+  /* Bottom-sheet modals on small phones */
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal {
+    border-radius: 20px 20px 0 0;
+    max-width: 100%;
+    max-height: 92vh;
+    padding: 20px 16px 28px;
+  }
+
+  /* Prevent iOS auto-zoom on input focus (requires font-size ≥ 16px) */
+  .form-input, .form-select, .form-textarea { font-size: 16px; }
+
+  /* Override all inline 2 and 3-column grids inside modals → single column */
+  .modal [style*="grid-template-columns:1fr 1fr 1fr"],
+  .modal [style*="grid-template-columns: 1fr 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  .modal [style*="grid-template-columns:1fr 1fr"],
+  .modal [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Touch targets: minimum 44px (Apple HIG) */
+  .icon-btn { width: 44px; height: 44px; }
+  .btn { padding: 10px 14px; }
+  .nav-item { padding: 11px 10px; }
+
+  /* KPI cards: compact */
+  .kpi-card { padding: 12px; }
+
+  /* Task cards */
+  .task-title { font-size: 13px; }
+
+  /* Time booking slots */
+  .time-slots { grid-template-columns: 1fr 1fr; }
+
+  /* Kanban filters: scroll instead of wrap */
+  .kanban-filter { overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; display: flex; flex-wrap: nowrap; gap: 6px; }
+  .kanban-filter .btn { flex-shrink: 0; }
 }
 </style>
 </head>
