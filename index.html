@@ -8126,18 +8126,22 @@ let _ms365Account = null;
 
 function _initMsalInstance() {
   if (_msalInstance || !window.msal) return;
+  console.log('[MS365] Inicializando MSAL...');
   _msalInstance = new msal.PublicClientApplication({
     auth: { clientId: MS365_CONFIG.clientId, authority: MS365_CONFIG.authority, redirectUri: MS365_CONFIG.redirectUri },
     cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false }
   });
   _msalInstance.handleRedirectPromise().then(resp => {
-    if (resp) { _ms365Account = resp.account; _onMs365Login(); }
+    console.log('[MS365] handleRedirectPromise resp:', resp);
+    if (resp) { _ms365Account = resp.account; console.log('[MS365] Login via redirect:', _ms365Account.username); _onMs365Login(); }
     else {
       const accs = _msalInstance.getAllAccounts();
-      if (accs.length) { _ms365Account = accs[0]; _onMs365Login(); }
+      console.log('[MS365] Cuentas en caché:', accs.length);
+      if (accs.length) { _ms365Account = accs[0]; console.log('[MS365] Sesión restaurada:', _ms365Account.username); _onMs365Login(); }
+      else { console.log('[MS365] Sin sesión activa'); }
     }
     _updateMs365UI();
-  }).catch(e => console.error('MSAL:', e));
+  }).catch(e => console.error('[MS365] Error init:', e));
 }
 
 var _ms365LoginRetries = 0;
@@ -8216,16 +8220,22 @@ function _outlookToLocal(oe, weekDates) {
 }
 
 async function ms365SyncEvents() {
-  if (!_ms365Account) { showToast('Conecta Outlook primero', 'error'); return; }
+  if (!_ms365Account) { console.log('[MS365] SyncEvents: sin cuenta'); showToast('Conecta Outlook primero', 'error'); return; }
   const syncBtn = document.getElementById('ms365SyncBtn');
   if (syncBtn) syncBtn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i>';
   const dates = getWeekDates();
   const s = dates[0].toISOString();
   const eDate = new Date(dates[4]); eDate.setHours(23,59,59,999);
   const e = eDate.toISOString();
+  console.log('[MS365] Sincronizando', s, '->', e);
+  const token = await _ms365Token();
+  console.log('[MS365] Token obtenido:', !!token);
+  if (!token) { showToast('No se pudo obtener token de Outlook', 'error'); if (syncBtn) syncBtn.innerHTML = '<i class="ti ti-refresh"></i>'; return; }
   const data = await _graphGet(`/me/calendarView?startDateTime=${s}&endDateTime=${e}&$select=id,subject,start,end,attendees&$top=100`);
+  console.log('[MS365] Eventos recibidos:', data);
   if (data && data.value) {
     state.outlookEvents = data.value.map(ev => _outlookToLocal(ev, dates)).filter(Boolean);
+    console.log('[MS365] Eventos locales:', state.outlookEvents.length);
     renderCalendar();
     showToast(state.outlookEvents.length + ' eventos de Outlook sincronizados', 'success');
   } else {
