@@ -3012,7 +3012,12 @@ async function storageSet(key, val) {
     const str = JSON.stringify(val);
     if (useStorage) { await window.storage.set(key, str); }
     else { localStorage.setItem(key, str); }
-  } catch (e) { console.error('storage error', e); }
+  } catch (e) {
+    console.error('storage error', e);
+    if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)) {
+      showToast('⚠️ No se pudieron guardar los adjuntos: almacenamiento lleno. Usa archivos más pequeños o elimina adjuntos anteriores.', 'error');
+    }
+  }
 }
 async function storageDelete(key) {
   try {
@@ -5358,43 +5363,9 @@ function openTaskDetail(id) {
   document.getElementById('taskDetailOkrSelect').disabled = readOnly;
   document.getElementById('taskDetailOkr').disabled = readOnly;
 
-  // Render attachments: saved ones first, then buffer is empty initially
+  // Render attachments via unified function (shows saved + any buffer items)
   attachBuffers.taskDetail = [];
-  const attachListEl = document.getElementById('taskDetailAttachList');
-  if (attachListEl) {
-    let html = '';
-    // Saved attachments (already persisted)
-    if (t.attachments && t.attachments.length) {
-      html = t.attachments.map(att => {
-        const { cls, icon } = getFileIconClass(att.name);
-        const isImage = att.type && att.type.startsWith('image/');
-        const iconHtml = isImage
-          ? `<img src="${att.data}" class="attach-preview-thumb" alt="">`
-          : `<div class="attach-icon ${cls}"><i class="ti ${icon}"></i></div>`;
-        return `
-          <div class="attach-item" data-id="${att.id}">
-            ${iconHtml}
-            <div class="attach-info">
-              <div class="attach-name" title="${escapeHtml(att.name)}">${escapeHtml(att.name)}</div>
-              <div class="attach-meta">${formatFileSize(att.size)} · guardado</div>
-            </div>
-            <div class="attach-actions">
-              ${isImage ? `<button class="attach-action-btn" onclick="previewSavedAttach('task', ${t.id}, '${att.id}')" title="Ver"><i class="ti ti-eye"></i></button>` : ''}
-              <button class="attach-action-btn" onclick="downloadSavedAttach('task', ${t.id}, '${att.id}')" title="Descargar"><i class="ti ti-download"></i></button>
-              ${!readOnly ? `<button class="attach-action-btn danger" onclick="removeSavedAttach('task', ${t.id}, '${att.id}', 'taskDetail')" title="Quitar"><i class="ti ti-x"></i></button>` : ''}
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-    attachListEl.innerHTML = html;
-  }
-  // Update count label
-  const cntEl = document.getElementById('taskDetailAttachCount');
-  if (cntEl) {
-    const total = (t.attachments || []).length;
-    cntEl.textContent = total ? '· ' + total + ' guardado' + (total !== 1 ? 's' : '') : '';
-  }
+  renderAttachList('taskDetail');
   // Hide dropzone for read-only users
   const dz = document.getElementById('taskDetailAttachDrop');
   if (dz) dz.style.display = readOnly ? 'none' : 'block';
