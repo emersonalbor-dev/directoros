@@ -5330,6 +5330,7 @@ async function saveTaskDetail() {
   closeModal('taskDetailModal');
   renderAll();
   showToast('Tarea actualizada','success');
+  ms365SyncTask(t);
 }
 
 async function deleteTaskFromDetail() {
@@ -5377,6 +5378,7 @@ async function createTask() {
   attachBuffers.task = []; // reset
   renderAll();
   showToast(task.attachments.length ? `Tarea creada con ${task.attachments.length} archivo${task.attachments.length>1?'s':''}` : 'Tarea creada y asignada','success');
+  ms365SyncTask(task);
   document.getElementById('taskTitle').value = '';
   document.getElementById('taskOkr').value = '';
 }
@@ -7911,6 +7913,7 @@ function switchView(name, el) {
   document.getElementById('sidebarBackdrop').classList.remove('active');
   document.querySelector('.content').scrollTo(0,0);
   if (name === 'calendar' && _ms365Account) ms365SyncEvents();
+  if (name === 'kanban'   && _ms365Account) ms365SyncAllTasks();
 }
 
 function toggleSidebar() {
@@ -8119,7 +8122,7 @@ const MS365_CONFIG = {
   clientId: '1ba6be18-2fa3-49af-9738-61af532eaabf',
   authority: 'https://login.microsoftonline.com/8ea85c79-8be5-421b-b1df-e5817a6bff82',
   redirectUri: 'https://emersonalbor-dev.github.io/directoros/',
-  scopes: ['Calendars.ReadWrite','Calendars.Read.Shared','Mail.Send','Mail.Read','User.ReadBasic.All']
+  scopes: ['Calendars.ReadWrite','Calendars.Read.Shared','Mail.Send','Mail.Read','User.ReadBasic.All','Tasks.ReadWrite']
 };
 let _msalInstance = null;
 let _ms365Account = null;
@@ -8193,6 +8196,81 @@ async function _graphPost(path, body) {
     body: JSON.stringify(body)
   });
   return r.ok ? (r.status === 202 ? true : r.json()) : null;
+}
+async function _graphPatch(path, body) {
+  const token = await _ms365Token(); if (!token) return null;
+  const r = await fetch('https://graph.microsoft.com/v1.0' + path, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return r.ok ? r.json() : null;
+}
+
+/* ===== MICROSOFT TO DO INTEGRATION ===== */
+var _todoListId = null;
+
+async function _ms365GetTodoListId() {
+  if (_todoListId) return _todoListId;
+  const data = await _graphGet('/me/todo/lists');
+  if (!data) return null;
+  const existing = (data.value || []).find(l => l.displayName === 'DirectorOS');
+  if (existing) { _todoListId = existing.id; return _todoListId; }
+  const created = await _graphPost('/me/todo/lists', { displayName: 'DirectorOS' });
+  if (created) _todoListId = created.id;
+  return _todoListId;
+}
+
+function _taskStatusToTodo(s) {
+  return { todo:'notStarted', doing:'inProgress', review:'waitingOnOthers', done:'completed' }[s] || 'notStarted';
+}
+function _todoStatusToLocal(s) {
+  return { notStarted:'todo', inProgress:'doing', waitingOnOthers:'review', completed:'done' }[s] || 'todo';
+}
+
+async function ms365SyncTask(task) {
+  if (!_ms365Account || !task) return;
+  try {
+    const listId = await _ms365GetTodoListId();
+    if (!listId) return;
+    const assignee = task.assigneeId ? (state.users || []).find(u => u.id === task.assigneeId) : null;
+    const notes = [task.okr ? 'OKR: ' + task.okr : '', task.notes || '', assignee ? 'Asignado: ' + assignee.name : ''].filter(Boolean).join('\n');
+    const payload = {
+      title: task.title,
+      status: _taskStatusToTodo(task.status),
+      body: { content: notes, contentType: 'text' },
+      importance: task.status === 'done' ? 'normal' : 'high'
+    };
+    if (task.due) payload.dueDateTime = { dateTime: task.due + 'T00:00:00', timeZone: 'America/Mexico_City' };
+    if (task.todoTaskId) {
+      await _graphPatch('/me/todo/lists/' + listId + '/tasks/' + task.todoTaskId, payload);
+    } else {
+      const created = await _graphPost('/me/todo/lists/' + listId + '/tasks', payload);
+      if (created && created.id) {
+        task.todoTaskId = created.id;
+        await storageSet(STORAGE_KEYS.TASKS, state.tasks);
+      }
+    }
+  } catch(e) { console.error('[MS365 ToDo] sync error:', e); }
+}
+
+async function ms365SyncAllTasks() {
+  if (!_ms365Account) return;
+  try {
+    const listId = await _ms365GetTodoListId();
+    if (!listId) return;
+    const data = await _graphGet('/me/todo/lists/' + listId + '/tasks?$top=200');
+    if (!data || !data.value) return;
+    let changed = false;
+    data.value.forEach(function(todoTask) {
+      const local = (state.tasks || []).find(t => t.todoTaskId === todoTask.id);
+      if (local) {
+        const newStatus = _todoStatusToLocal(todoTask.status);
+        if (local.status !== newStatus) { local.status = newStatus; local.lastUpdate = new Date().toISOString(); changed = true; }
+      }
+    });
+    if (changed) { await storageSet(STORAGE_KEYS.TASKS, state.tasks); renderKanban(); showToast('Kanban sincronizado con To Do', 'success'); }
+  } catch(e) { console.error('[MS365 ToDo] syncAll error:', e); }
 }
 
 function _outlookToLocal(oe, weekDates) {
