@@ -8157,11 +8157,14 @@ function _initMsal(cb) {
 }
 
 function ms365Login() {
-  _initMsal(() => {
-    _msalInstance.loginPopup({ scopes: MS365_CONFIG.scopes, prompt: 'select_account' })
-      .then(resp => { _ms365Account = resp.account; _onMs365Login(); _updateMs365UI(); })
-      .catch(e => { if (e.errorCode !== 'user_cancelled') showToast('Error al conectar con Microsoft 365', 'error'); });
-  });
+  if (!_msalInstance) {
+    showToast('Cargando Microsoft 365… intenta de nuevo en unos segundos', 'error');
+    _initMsal();
+    return;
+  }
+  _msalInstance.loginPopup({ scopes: MS365_CONFIG.scopes, prompt: 'select_account' })
+    .then(resp => { _ms365Account = resp.account; _onMs365Login(); _updateMs365UI(); })
+    .catch(e => { if (e.errorCode !== 'user_cancelled') showToast('Error al conectar: ' + (e.message || e.errorCode), 'error'); });
 }
 
 function ms365Logout() {
