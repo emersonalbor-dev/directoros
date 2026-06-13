@@ -1353,9 +1353,25 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
   .topbar { padding: 0 14px; gap: 10px; }
   .topbar-title { font-size: 14px; }
   .topbar-subtitle { display: none; }
+  /* Calendar: only week view needs horizontal scroll */
   .cal-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .cal-header, .cal-grid { min-width: 560px; }
-  .cal-dist-bar { min-width: 100px; }
+  .cal-wrapper.view-week .cal-header,
+  .cal-wrapper.view-week .cal-grid { min-width: 480px; }
+  .cal-dist-bar { min-width: 80px; }
+  .cal-dist-stats { display: none; }
+  .cal-distribution { padding: 10px 12px; gap: 10px; margin-bottom: 12px; }
+  .cal-controls { flex-wrap: wrap; gap: 4px; }
+  /* Icon-only buttons in toolbar to save space */
+  .cal-controls .director-only, #ms365ConnectBtn { font-size: 0; padding: 8px 10px; }
+  .cal-controls .director-only i, #ms365ConnectBtn i { font-size: 16px; }
+  /* Month view cells smaller */
+  .cal-month-cell { min-height: 60px; padding: 3px 4px; }
+  .cal-month-event { font-size: 9px; padding: 1px 4px; }
+  .cal-day-label { padding: 8px 3px; font-size: 10px; }
+  .cal-day-label .day-num { font-size: 13px; }
+  /* Tighter time rows */
+  .time-slot, .event-slot { height: 38px; }
+  .time-slot { font-size: 9px; padding: 2px 4px; }
   .kanban-board { grid-template-columns: 1fr; }
   .meeting-type-grid { grid-template-columns: 1fr; }
   .modal { padding: 18px; }
@@ -1385,6 +1401,9 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
   .hero-stats { flex-direction: column; gap: 10px; }
   .login-card { padding: 28px 18px; }
   .hero-q { font-size: 17px; }
+  .cal-week-label { font-size: 14px; }
+  .cal-month-cell { min-height: 48px; }
+  .cal-distribution { display: none; }
 
   /* Bottom-sheet modals on small phones */
   .modal-overlay { align-items: flex-end; padding: 0; }
@@ -3071,7 +3090,7 @@ let state = {
   projects: [],
   currentUser: null,
   currentWeek: 0,
-  calView: 'week',
+  calView: null,
   calCurrentDate: null,
   activeFilter: 'all',
   activeProject: null,
@@ -4769,7 +4788,7 @@ function _calInitDate() {
     const t = new Date(); t.setHours(0,0,0,0);
     state.calCurrentDate = t;
   }
-  if (!state.calView) state.calView = 'week';
+  if (!state.calView) state.calView = window.innerWidth <= 760 ? 'day' : 'week';
 }
 
 function setCalView(v) {
@@ -4815,15 +4834,31 @@ function getWeekDates() {
   return week;
 }
 
+function _initCalSwipe() {
+  const el = document.querySelector('#view-calendar .cal-wrapper');
+  if (!el || el._swipeInit) return;
+  el._swipeInit = true;
+  let sx = 0, sy = 0;
+  el.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  el.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.5) calNavigate(dx < 0 ? 1 : -1);
+  }, { passive: true });
+}
+
 function renderCalendar() {
   _calInitDate();
   ['Day','Week','Month'].forEach(v => {
     const btn = document.getElementById('calTab' + v);
     if (btn) btn.classList.toggle('active', state.calView === v.toLowerCase());
   });
+  const calWrap = document.querySelector('#view-calendar .cal-wrapper');
+  if (calWrap) { calWrap.classList.remove('view-day','view-week','view-month'); calWrap.classList.add('view-'+state.calView); }
   if (state.calView === 'day') renderCalendarDay();
   else if (state.calView === 'month') renderCalendarMonth();
   else renderCalendarWeek();
+  _initCalSwipe();
 }
 
 // ---- shared helpers ----
@@ -4911,12 +4946,13 @@ function renderCalendarWeek() {
   const todayIdx = today.getDay() - 1;
   const dayNames = ['Lun','Mar','Mié','Jue','Vie'];
   const header = document.getElementById('calHeader');
-  header.style.gridTemplateColumns = '60px repeat(5,1fr)';
+  const _tcW = window.innerWidth <= 760 ? '40px' : '60px';
+  header.style.gridTemplateColumns = `${_tcW} repeat(5,1fr)`;
   header.innerHTML = '<div></div>' + dates.map((d,i) =>
     `<div class="cal-day-label ${isThisWeek && i===todayIdx?'today':''}">${dayNames[i]} <span class="day-num">${d.getDate()}</span></div>`
   ).join('');
   const grid = document.getElementById('calGrid');
-  grid.style.gridTemplateColumns = '60px repeat(5,1fr)';
+  grid.style.gridTemplateColumns = `${_tcW} repeat(5,1fr)`;
   const start = state.settings.workdayStart || 8;
   const end = state.settings.workdayEnd || 19;
   const hours = []; for (let h = start; h <= end; h++) hours.push(h);
@@ -4943,8 +4979,9 @@ function renderCalendarDay() {
   _renderCalDist(); _renderCalLegend();
   const header = document.getElementById('calHeader');
   const grid = document.getElementById('calGrid');
-  header.style.gridTemplateColumns = '60px 1fr';
-  grid.style.gridTemplateColumns = '60px 1fr';
+  const _tcW = window.innerWidth <= 760 ? '40px' : '60px';
+  header.style.gridTemplateColumns = `${_tcW} 1fr`;
+  grid.style.gridTemplateColumns = `${_tcW} 1fr`;
   if (dow === 0 || dow === 6) {
     header.innerHTML = '<div></div><div class="cal-day-label" style="justify-content:center">Fin de semana</div>';
     grid.innerHTML = `<div class="time-col"></div><div class="day-col" style="display:flex;align-items:center;justify-content:center;min-height:120px"><span style="color:var(--muted);font-size:13px">Sin bloques los fines de semana</span></div>`;
