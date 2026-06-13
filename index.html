@@ -8126,9 +8126,9 @@ let _ms365Account = null;
 function _loadMsal(cb) {
   if (window.msal) { cb(); return; }
   const s = document.createElement('script');
-  s.src = 'https://alcdn.msauth.net/browser/3.23.0/js/msal-browser.min.js';
+  s.src = 'https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/dist/msal-browser.min.js';
   s.onload = cb;
-  s.onerror = () => showToast('No se pudo cargar MSAL.js', 'error');
+  s.onerror = () => showToast('No se pudo conectar con Microsoft 365', 'error');
   document.head.appendChild(s);
 }
 
@@ -8139,17 +8139,15 @@ function _initMsal(cb) {
       auth: { clientId: MS365_CONFIG.clientId, authority: MS365_CONFIG.authority, redirectUri: MS365_CONFIG.redirectUri },
       cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false }
     });
-    _msalInstance.initialize().then(() => {
-      _msalInstance.handleRedirectPromise().then(resp => {
-        if (resp) { _ms365Account = resp.account; _onMs365Login(); }
-        else {
-          const accs = _msalInstance.getAllAccounts();
-          if (accs.length) { _ms365Account = accs[0]; _onMs365Login(); }
-        }
-        _updateMs365UI();
-        if (cb) cb();
-      }).catch(console.error);
-    });
+    _msalInstance.handleRedirectPromise().then(resp => {
+      if (resp) { _ms365Account = resp.account; _onMs365Login(); }
+      else {
+        const accs = _msalInstance.getAllAccounts();
+        if (accs.length) { _ms365Account = accs[0]; _onMs365Login(); }
+      }
+      _updateMs365UI();
+      if (cb) cb();
+    }).catch(console.error);
   });
 }
 
