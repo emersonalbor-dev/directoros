@@ -7847,17 +7847,42 @@ function renderAttachList(bufferKey) {
   };
   const cont = document.getElementById(containerMap[bufferKey]);
   if (!cont) return;
-  const items = attachBuffers[bufferKey] || [];
+  const bufferItems = attachBuffers[bufferKey] || [];
 
-  if (items.length === 0) {
-    cont.innerHTML = '';
+  if (bufferKey === 'taskDetail' && state.selectedTask) {
+    // Merge saved (already persisted) + buffer (pending save) items
+    const isDirector = state.currentUser?.role === 'director' || state.currentUser?.role === 'superuser';
+    const saved = state.selectedTask.attachments || [];
+    const savedHtml = saved.map(att => {
+      const { cls, icon } = getFileIconClass(att.name);
+      const isImage = att.type && att.type.startsWith('image/');
+      const iconHtml = isImage
+        ? `<img src="${att.data}" class="attach-preview-thumb" alt="">`
+        : `<div class="attach-icon ${cls}"><i class="ti ${icon}"></i></div>`;
+      return `
+        <div class="attach-item" data-id="${att.id}">
+          ${iconHtml}
+          <div class="attach-info">
+            <div class="attach-name" title="${escapeHtml(att.name)}">${escapeHtml(att.name)}</div>
+            <div class="attach-meta">${formatFileSize(att.size)} · guardado</div>
+          </div>
+          <div class="attach-actions">
+            ${isImage ? `<button class="attach-action-btn" onclick="previewSavedAttach('task',${state.selectedTask.id},'${att.id}')" title="Ver"><i class="ti ti-eye"></i></button>` : ''}
+            <button class="attach-action-btn" onclick="downloadSavedAttach('task',${state.selectedTask.id},'${att.id}')" title="Descargar"><i class="ti ti-download"></i></button>
+            ${isDirector ? `<button class="attach-action-btn danger" onclick="removeSavedAttach('task',${state.selectedTask.id},'${att.id}','taskDetail')" title="Quitar"><i class="ti ti-x"></i></button>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+    const bufferHtml = bufferItems.map(att => renderAttachItem(att, bufferKey, true)).join('');
+    cont.innerHTML = savedHtml + bufferHtml;
+    const total = saved.length + bufferItems.length;
+    const countEl = document.getElementById('taskDetailAttachCount');
+    if (countEl) countEl.textContent = total ? '· ' + total + ' archivo' + (total !== 1 ? 's' : '') : '';
   } else {
-    cont.innerHTML = items.map(att => renderAttachItem(att, bufferKey, true)).join('');
+    cont.innerHTML = bufferItems.map(att => renderAttachItem(att, bufferKey, true)).join('');
+    const countEl = countMap[bufferKey] ? document.getElementById(countMap[bufferKey]) : null;
+    if (countEl) countEl.textContent = bufferItems.length ? '· ' + bufferItems.length + ' archivo' + (bufferItems.length !== 1 ? 's' : '') : '';
   }
-
-  // Update count label if applicable
-  const countEl = countMap[bufferKey] ? document.getElementById(countMap[bufferKey]) : null;
-  if (countEl) countEl.textContent = items.length ? '· ' + items.length + ' archivo' + (items.length !== 1 ? 's' : '') : '';
 }
 
 function renderAttachItem(att, bufferKey, removable) {
