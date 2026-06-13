@@ -2518,10 +2518,10 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           </div>
         </div>
         <div class="admin-tabs" style="margin-bottom:16px">
-          <button class="admin-tab active" data-tableau-view="ventas" onclick="switchTableauView('ventas',this)">
+          <button class="admin-tab" data-tableau-view="ventas" onclick="switchTableauView('ventas',this)">
             <i class="ti ti-chart-bar"></i> Ventas General
           </button>
-          <button class="admin-tab" data-tableau-view="ecomm" onclick="switchTableauView('ecomm',this)">
+          <button class="admin-tab active" data-tableau-view="ecomm" onclick="switchTableauView('ecomm',this)">
             <i class="ti ti-building-store"></i> Ecommerce
           </button>
           <button class="admin-tab" data-tableau-view="diario" onclick="switchTableauView('diario',this)">
@@ -2533,7 +2533,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
         </div>
         <div style="border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--paper);min-height:600px">
           <tableau-viz id="tableauViz"
-            src="https://prod-useast-a.online.tableau.com/t/maraga/views/ModeloVentas/DBVENTAS"
+            src="https://prod-useast-a.online.tableau.com/t/maraga/views/VentasEcommerce/DBVENTASEcomm"
             width="100%"
             height="820"
             hide-tabs
