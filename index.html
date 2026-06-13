@@ -2683,6 +2683,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
         <div class="attach-hint">PDF, imágenes, docs · Máx 10 MB por archivo</div>
       </div>
       <input type="file" id="taskDetailAttachInput" multiple style="display:none" onchange="handleAttachUpload(event, 'taskDetail')">
+      <div id="taskDetailAttachError" style="display:none;color:var(--red);font-size:11px;margin-top:6px;padding:6px 10px;background:rgba(239,68,68,0.08);border-radius:6px;border:1px solid rgba(239,68,68,0.2)"></div>
       <div class="attach-list" id="taskDetailAttachList"></div>
     </div>
 
@@ -5421,7 +5422,8 @@ function openTaskDetail(id) {
 
   // Render attachments via unified function (shows saved + any buffer items)
   attachBuffers.taskDetail = [];
-  console.log('[Attach] openTaskDetail', t.id, '→ attachments en memoria:', (t.attachments||[]).length, t.attachments);
+  const _attachErr = document.getElementById('taskDetailAttachError');
+  if (_attachErr) { _attachErr.textContent = ''; _attachErr.style.display = 'none'; }
   renderAttachList('taskDetail');
   // Hide dropzone for read-only users
   const dz = document.getElementById('taskDetailAttachDrop');
@@ -7832,14 +7834,17 @@ async function handleAttachUpload(event, bufferKey) {
   const files = Array.from(event.target.files);
   if (!files.length) return;
 
+  let added = 0;
+  let lastError = null;
+
   for (const file of files) {
     const ext = file.name.split('.').pop().toLowerCase();
     if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      showToast(`"${file.name}": tipo no permitido`, 'error');
+      lastError = `"${file.name}": tipo de archivo no permitido`;
       continue;
     }
     if (file.size > MAX_ATTACH_SIZE) {
-      showToast(`"${file.name}" excede los ${MAX_ATTACH_SIZE / (1024*1024)} MB`, 'error');
+      lastError = `"${file.name}" excede el límite de ${MAX_ATTACH_SIZE / (1024*1024)} MB`;
       continue;
     }
     try {
@@ -7852,16 +7857,29 @@ async function handleAttachUpload(event, bufferKey) {
         data: dataUrl,
         uploadedAt: new Date().toISOString()
       });
+      added++;
     } catch (e) {
-      showToast(`Error al leer "${file.name}"`, 'error');
+      lastError = `Error al leer "${file.name}"`;
     }
   }
 
-  // Reset input so the same file can be re-selected if removed
   event.target.value = '';
-
   renderAttachList(bufferKey);
-  showToast(files.length === 1 ? 'Archivo agregado' : files.length + ' archivos agregados', 'success');
+
+  // Inline error element (shows the message inside the modal, not just as a toast)
+  const errorElId = { task: 'taskAttachError', taskDetail: 'taskDetailAttachError', event: 'evAttachError', request: 'reqAttachError' }[bufferKey];
+  const errorEl = errorElId ? document.getElementById(errorElId) : null;
+
+  if (added > 0) {
+    if (errorEl) { errorEl.textContent = ''; errorEl.style.display = 'none'; }
+    showToast(added === 1 ? 'Archivo agregado' : added + ' archivos agregados', 'success');
+  } else if (lastError) {
+    if (errorEl) {
+      errorEl.textContent = '⚠ ' + lastError;
+      errorEl.style.display = 'block';
+    }
+    showToast(lastError, 'error');
+  }
 }
 
 function renderAttachList(bufferKey) {
