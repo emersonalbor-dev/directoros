@@ -545,6 +545,18 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 }
 .filter-chip:hover { border-color: var(--line-2); color: var(--ink); }
 .filter-chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.kanban-project-strip {
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 14px; padding: 10px 12px;
+  background: var(--paper-2); border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.kanban-project-strip .filter-chip { font-size: 11px; padding: 4px 10px; }
+.task-proj-badge {
+  display: inline-block; font-size: 9px; font-weight: 600;
+  padding: 2px 7px; border-radius: 10px; margin-bottom: 5px;
+  letter-spacing: 0.3px;
+}
 
 .kanban-board {
   display: grid; grid-template-columns: repeat(4, 1fr);
@@ -1424,7 +1436,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
         <i class="ti ti-calendar-week"></i> Calendario
       </button>
       <button class="nav-item" data-view="kanban" onclick="switchView('kanban', this)">
-        <i class="ti ti-layout-kanban"></i> Delegación
+        <i class="ti ti-checkbox"></i> TO DO
         <span class="nav-badge" id="navBadgeKanban" style="display:none">0</span>
       </button>
       <button class="nav-item" data-view="booking" onclick="switchView('booking', this)">
@@ -1708,13 +1720,15 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
       <div class="view" id="view-kanban">
         <div class="kanban-toolbar">
           <div>
-            <h2>Delegación de tareas</h2>
-            <div class="sub">Seguimiento del equipo · alertas automáticas a 24h</div>
+            <h2>TO DO</h2>
+            <div class="sub">Proyectos y tareas del equipo · alertas automáticas a 24h</div>
           </div>
           <button class="btn btn-primary btn-sm director-only" onclick="openTaskModal()"><i class="ti ti-plus"></i> Nueva tarea</button>
         </div>
 
-        <div class="kanban-filter" style="margin-bottom:16px" id="kanbanFilters"></div>
+        <div class="kanban-filter" style="margin-bottom:10px" id="kanbanFilters"></div>
+
+        <div class="kanban-project-strip" id="kanbanProjectStrip" style="display:none"></div>
 
         <div class="kanban-board" id="kanbanBoard"></div>
       </div>
@@ -2470,7 +2484,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 <!-- ============ MODALS ============ -->
 <div class="modal-overlay" id="taskModal">
   <div class="modal">
-    <div class="modal-title">Nueva tarea de delegación</div>
+    <div class="modal-title">Nueva tarea</div>
     <div class="modal-sub">Asigna seguimiento al equipo. Si no se actualiza 24h antes de su fecha, recibirás una alerta automática.</div>
     <div class="form-group">
       <label class="form-label">Título de la tarea <span class="required-star">*</span></label>
@@ -2478,7 +2492,13 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
     </div>
     <div class="form-group">
       <label class="form-label">Workspace <span class="required-star">*</span></label>
-      <select class="form-select" id="taskWs"></select>
+      <select class="form-select" id="taskWs" onchange="updateTaskProjectOptions()"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Proyecto</label>
+      <select class="form-select" id="taskProject">
+        <option value="">— Sin proyecto —</option>
+      </select>
     </div>
     <div class="form-group">
       <label class="form-label">Asignar a</label>
@@ -2509,6 +2529,34 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('taskModal')">Cancelar</button>
       <button class="btn btn-primary" onclick="createTask()">Crear tarea</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="projectModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">Nuevo proyecto</div>
+    <div class="modal-sub">Organiza las actividades de un workspace bajo un proyecto.</div>
+    <div class="form-group">
+      <label class="form-label">Nombre del proyecto <span class="required-star">*</span></label>
+      <input type="text" class="form-input" id="projName" placeholder="Ej. Campaña Prime Day 2025">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Workspace <span class="required-star">*</span></label>
+      <select class="form-select" id="projWs"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Color del proyecto</label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap" id="projColorPicker">
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+          <input type="color" id="projColorCustom" value="#7C3AED" style="width:28px;height:28px;border:none;border-radius:6px;cursor:pointer;padding:0">
+          Personalizado
+        </label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('projectModal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="createProject()"><i class="ti ti-plus"></i> Crear proyecto</button>
     </div>
   </div>
 </div>
@@ -2925,17 +2973,20 @@ const STORAGE_KEYS = {
   PERMISSIONS: 'directoros:permissions:v2',
   CURRENT_USER: 'directoros:currentuser:v2',
   RECENT_LOGINS: 'directoros:recentlogins:v2',
-  SEED_VERSION: 'directoros:seedversion'
+  SEED_VERSION: 'directoros:seedversion',
+  PROJECTS: 'directoros:projects:v1'
 };
 
 let state = {
   tasks: [], events: [], requests: [], settings: {}, activity: [],
   users: [], workspaces: [], meetingTypes: [], okrs: [], permissions: null,
+  projects: [],
   currentUser: null,
   currentWeek: 0,
   calView: 'week',
   calCurrentDate: null,
   activeFilter: 'all',
+  activeProject: null,
   activeOkrFilter: 'all',
   selectedTask: null,
   selectedSlot: null,
@@ -3451,6 +3502,7 @@ async function init() {
   state.okrs        = await storageGet(STORAGE_KEYS.OKRS)         || getSeedOkrs();
   state.settings    = await storageGet(STORAGE_KEYS.SETTINGS)     || getSeedSettings();
   state.permissions = await storageGet(STORAGE_KEYS.PERMISSIONS)  || JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
+  state.projects    = await storageGet(STORAGE_KEYS.PROJECTS)     || [];
 
   // === MIGRATION: merge any missing roles or permissions from defaults ===
   Object.entries(DEFAULT_PERMISSIONS).forEach(([roleKey, defaultPerms]) => {
@@ -3490,7 +3542,8 @@ async function init() {
     storageSet(STORAGE_KEYS.REQUESTS, state.requests),
     storageSet(STORAGE_KEYS.SETTINGS, state.settings),
     storageSet(STORAGE_KEYS.ACTIVITY, state.activity),
-    storageSet(STORAGE_KEYS.PERMISSIONS, state.permissions)
+    storageSet(STORAGE_KEYS.PERMISSIONS, state.permissions),
+    storageSet(STORAGE_KEYS.PROJECTS, state.projects)
   ]);
 
   populateHourSelect();
@@ -3546,6 +3599,12 @@ function populateModalSelects() {
   document.getElementById('taskWs').innerHTML = wsOpts;
   document.getElementById('evWs').innerHTML = wsOpts + '<option value="locked">Bloque estratégico (inamovible)</option>';
   document.getElementById('userWs').innerHTML = wsOpts;
+  // Pre-select active workspace filter in task modal and load its projects
+  if (state.activeFilter && state.activeFilter !== 'all' && state.activeFilter !== 'alert') {
+    const taskWsSel = document.getElementById('taskWs');
+    taskWsSel.value = state.activeFilter;
+  }
+  updateTaskProjectOptions();
 
   const assigneeOpts = state.users.filter(u => u.role !== 'director' && u.active).map(u => `<option value="${u.id}">${escapeHtml(u.name)} · ${ROLES[u.role].short}</option>`).join('');
   document.getElementById('taskAssignee').innerHTML = assigneeOpts;
@@ -4991,19 +5050,46 @@ async function deleteEvent(id, skipConfirm) {
 
 /* ===== KANBAN ===== */
 function renderKanban() {
-  // Filters
+  // === Workspace tabs ===
   const fc = document.getElementById('kanbanFilters');
   fc.innerHTML = `
-    <button class="filter-chip ${state.activeFilter==='all'?'active':''}" onclick="filterTasks('all', this)">Todos</button>
+    <button class="filter-chip ${state.activeFilter==='all'?'active':''}" onclick="filterTasks('all')">Todos</button>
     ${state.workspaces.map(w => `
-      <button class="filter-chip ${state.activeFilter===w.id?'active':''}" onclick="filterTasks('${w.id}', this)">
+      <button class="filter-chip ${state.activeFilter===w.id?'active':''}" onclick="filterTasks('${w.id}')">
         <span class="legend-dot" style="background:${w.color};display:inline-block;margin-right:5px"></span>${escapeHtml(w.name)}
       </button>
     `).join('')}
-    <button class="filter-chip ${state.activeFilter==='alert'?'active':''}" onclick="filterTasks('alert', this)">
+    <button class="filter-chip ${state.activeFilter==='alert'?'active':''}" onclick="filterTasks('alert')">
       <i class="ti ti-alert-triangle" style="font-size:11px"></i> Con alerta
     </button>
   `;
+
+  // === Project strip (only when a specific workspace is selected) ===
+  const projStrip = document.getElementById('kanbanProjectStrip');
+  const isDirector = state.currentUser?.role === 'director' || state.currentUser?.role === 'superuser';
+  if (state.activeFilter !== 'all' && state.activeFilter !== 'alert') {
+    const wsProjects = state.projects.filter(p => p.wsId === state.activeFilter);
+    projStrip.style.display = 'flex';
+    projStrip.innerHTML = `
+      <span style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:4px">Proyectos:</span>
+      <button class="filter-chip ${!state.activeProject?'active':''}" onclick="filterByProject(null)">
+        <i class="ti ti-layout-list" style="font-size:11px;margin-right:3px"></i>Todas las actividades
+      </button>
+      ${wsProjects.map(p => `
+        <button class="filter-chip ${state.activeProject===p.id?'active':''}"
+                style="${state.activeProject===p.id?`background:${p.color};color:#fff;border-color:${p.color}`:''}"
+                onclick="filterByProject(${p.id})">
+          <span style="width:7px;height:7px;border-radius:50%;background:${p.color};display:inline-block;margin-right:4px;vertical-align:middle"></span>${escapeHtml(p.name)}
+        </button>
+      `).join('')}
+      ${isDirector ? `<button class="filter-chip" style="border-style:dashed" onclick="openProjectModal('${state.activeFilter}')">
+        <i class="ti ti-plus" style="font-size:11px;margin-right:3px"></i>Nuevo proyecto
+      </button>` : ''}
+    `;
+  } else {
+    projStrip.style.display = 'none';
+    state.activeProject = null;
+  }
 
   const cols = [
     { id:'todo', name:'Por hacer', color:'var(--muted)' },
@@ -5022,6 +5108,11 @@ function renderKanban() {
   if (state.activeFilter !== 'all') {
     if (state.activeFilter === 'alert') filtered = filtered.filter(t => isTaskAlert(t));
     else filtered = filtered.filter(t => t.ws === state.activeFilter);
+  }
+
+  // Project filter
+  if (state.activeProject) {
+    filtered = filtered.filter(t => t.projectId === state.activeProject);
   }
 
   const board = document.getElementById('kanbanBoard');
@@ -5056,12 +5147,14 @@ function renderTaskCard(t, canDrag = false) {
   const initials = user ? user.name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase() : '?';
   const ws = state.workspaces.find(w => w.id === t.ws);
   const wsName = ws ? ws.name : t.ws;
+  const proj = t.projectId ? state.projects.find(p => p.id === t.projectId) : null;
   return `
     <div class="task-card ${isAlert ? 'task-alert' : ''}"
          ${canDrag ? `draggable="true" ondragstart="onTaskDragStart(event, ${t.id})" ondragend="onTaskDragEnd(event)"` : ''}
          onclick="if(!window.__justDragged) openTaskDetail(${t.id})">
       ${canDrag ? '<div class="task-drag-handle" title="Arrastra para mover"><i class="ti ti-grip-vertical"></i></div>' : ''}
       <span class="task-ws ${t.ws}" style="${ws?'background:'+ws.color+'22;color:'+ws.color:''}">${escapeHtml(wsName)}</span>
+      ${proj ? `<span class="task-proj-badge" style="background:${proj.color}22;color:${proj.color}">${escapeHtml(proj.name)}</span>` : ''}
       <div class="task-title">${escapeHtml(t.title)}</div>
       ${t.okr ? '<div style="font-size:10px;color:var(--muted);margin-bottom:8px"><i class="ti ti-target" style="font-size:11px;vertical-align:-1px"></i> ' + escapeHtml(t.okr) + '</div>' : ''}
       <div class="task-meta">
@@ -5139,11 +5232,58 @@ async function onKanbanDrop(e, newStatus) {
   showToast('Tarea movida a "' + statusNames[newStatus] + '"', 'success');
 }
 
-function filterTasks(filter, el) {
+function filterTasks(filter) {
   state.activeFilter = filter;
-  document.querySelectorAll('#kanbanFilters .filter-chip').forEach(b => b.classList.remove('active'));
-  if (el) el.classList.add('active');
+  state.activeProject = null;
   renderKanban();
+}
+
+function filterByProject(projectId) {
+  state.activeProject = projectId;
+  renderKanban();
+}
+
+function openProjectModal(preselectedWsId) {
+  const sel = document.getElementById('projWs');
+  sel.innerHTML = state.workspaces.map(w => `<option value="${w.id}" ${w.id===preselectedWsId?'selected':''}>${escapeHtml(w.name)}</option>`).join('');
+  document.getElementById('projName').value = '';
+  document.getElementById('projColorCustom').value = '#7C3AED';
+  openModal('projectModal');
+}
+
+async function createProject() {
+  const name = document.getElementById('projName').value.trim();
+  const wsId = document.getElementById('projWs').value;
+  const color = document.getElementById('projColorCustom').value;
+  if (!name || !wsId) { showToast('Faltan campos requeridos', 'error'); return; }
+  const project = {
+    id: Date.now(),
+    wsId,
+    name,
+    color,
+    status: 'active',
+    createdAt: new Date().toISOString()
+  };
+  state.projects.push(project);
+  await storageSet(STORAGE_KEYS.PROJECTS, state.projects);
+  closeModal('projectModal');
+  state.activeFilter = wsId;
+  state.activeProject = project.id;
+  renderKanban();
+  showToast('Proyecto creado', 'success');
+}
+
+function updateTaskProjectOptions() {
+  const wsId = document.getElementById('taskWs').value;
+  const projects = state.projects.filter(p => p.wsId === wsId);
+  const sel = document.getElementById('taskProject');
+  sel.innerHTML = '<option value="">— Sin proyecto —</option>' +
+    projects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  // Pre-select active project if matching workspace
+  if (state.activeProject) {
+    const proj = state.projects.find(p => p.id === state.activeProject && p.wsId === wsId);
+    if (proj) sel.value = proj.id;
+  }
 }
 
 function openTaskDetail(id) {
@@ -5360,10 +5500,12 @@ async function createTask() {
   const title = document.getElementById('taskTitle').value.trim();
   const due = document.getElementById('taskDue').value;
   if (!title || !due) { showToast('Faltan campos requeridos','error'); return; }
+  const rawProjectId = parseInt(document.getElementById('taskProject').value);
   const task = {
     id: Date.now(),
     title,
     ws: document.getElementById('taskWs').value,
+    projectId: rawProjectId || null,
     assigneeId: parseInt(document.getElementById('taskAssignee').value),
     status: 'todo',
     due,
@@ -5381,6 +5523,7 @@ async function createTask() {
   ms365SyncTask(task);
   document.getElementById('taskTitle').value = '';
   document.getElementById('taskOkr').value = '';
+  document.getElementById('taskProject').value = '';
 }
 
 /* ===== BOOKING ===== */
@@ -7939,7 +8082,15 @@ function openModal(id) {
   setTimeout(initAttachDropzones, 50);
 }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-function openTaskModal() { openModal('taskModal'); }
+function openTaskModal() {
+  // Pre-select active workspace + project
+  if (state.activeFilter && state.activeFilter !== 'all' && state.activeFilter !== 'alert') {
+    const taskWsSel = document.getElementById('taskWs');
+    if (taskWsSel) taskWsSel.value = state.activeFilter;
+  }
+  updateTaskProjectOptions();
+  openModal('taskModal');
+}
 function openEventModal() { openModal('eventModal'); }
 
 let toastTimer;
