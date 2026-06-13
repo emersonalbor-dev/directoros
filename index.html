@@ -7839,7 +7839,7 @@ async function handleAttachUpload(event, bufferKey) {
       continue;
     }
     if (file.size > MAX_ATTACH_SIZE) {
-      showToast(`"${file.name}" excede los 5 MB`, 'error');
+      showToast(`"${file.name}" excede los ${MAX_ATTACH_SIZE / (1024*1024)} MB`, 'error');
       continue;
     }
     try {
