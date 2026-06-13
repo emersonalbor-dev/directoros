@@ -4577,95 +4577,76 @@ async function actualizarVentas() {
   var atDiv = document.getElementById('ventasActualizadoAt');
   if (!btn || btn.disabled) return;
 
+  var mesSel = dashMes; // Mes actualmente seleccionado con las pills
+
   // Estado: cargando
   btn.disabled = true;
   btn.style.opacity = '0.8';
   icon.className = 'ti ti-loader-2';
   icon.style.animation = 'spin 1s linear infinite';
-  label.textContent = 'Consultando APIs…';
+  label.textContent = 'Consultando Tableau…';
 
   if (atDiv) {
     atDiv.style.display = 'flex';
     atDiv.innerHTML =
       '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite;margin-right:4px;color:var(--maraga)"></i>' +
-      '<span style="color:var(--maraga)">Obteniendo datos en tiempo real de Walmart · MercadoLibre · Amazon · MaragaMX · TikTok…</span>';
+      '<span style="color:var(--maraga)">Consultando Tableau · ' + (MESES_LABEL[mesSel]||mesSel) + ' — Amazon · MaragaMX · TikTok…</span>';
   }
 
   try {
-    var res = await fetch(VENTAS_API_BASE + '/api/ventas/mes-actual', {
-      signal: AbortSignal.timeout(60000)
+    var res = await fetch(VENTAS_API_BASE + '/api/ventas/plataforma-mes?mes=' + mesSel, {
+      signal: AbortSignal.timeout(30000)
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     var data = await res.json();
 
-    var mes = data.mes;
+    var mes = data.mes || mesSel;
     if (!VENTAS_PLAT_DATA[mes]) VENTAS_PLAT_DATA[mes] = {};
 
-    // Sobreescribir con datos frescos en tiempo real de cada marketplace
-    if (data.walmart)      VENTAS_PLAT_DATA[mes].walmart      = data.walmart;
-    if (data.amazon)       VENTAS_PLAT_DATA[mes].amazon       = data.amazon;
-    if (data.mercadolibre) VENTAS_PLAT_DATA[mes].mercadolibre = data.mercadolibre;
-    if (data.maraga_mx)    VENTAS_PLAT_DATA[mes].maraga_mx    = data.maraga_mx;
-    if (data.tiktok)       VENTAS_PLAT_DATA[mes].tiktok       = data.tiktok;
+    // Actualizar Amazon, MaragaMX y TikTok desde Tableau (no tocar Walmart ni ML)
+    if (data.amazon)    VENTAS_PLAT_DATA[mes].amazon    = data.amazon;
+    if (data.maraga_mx) VENTAS_PLAT_DATA[mes].maraga_mx = data.maraga_mx;
+    if (data.tiktok)    VENTAS_PLAT_DATA[mes].tiktok    = data.tiktok;
 
     // Re-renderizar TODO: tarjetas + KPI principal + barras + chips de totales
     setDashMes(mes);
 
-    // Guardar en localStorage para persistir al refrescar la página
+    // Guardar en localStorage para persistir al refrescar (solo Amazon/MaragaMX/TikTok de Tableau)
     try {
+      var existing = JSON.parse(localStorage.getItem('ventas_cache_v2') || '{}');
+      if (existing.mes !== mes) existing = {};
       localStorage.setItem('ventas_cache_v2', JSON.stringify({
-        mes: mes,
-        ts: Date.now(),
-        walmart:      data.walmart      || null,
-        amazon:       data.amazon       || null,
-        mercadolibre: data.mercadolibre || null,
-        maraga_mx:    data.maraga_mx    || null,
-        tiktok:       data.tiktok       || null,
+        mes: mes, ts: Date.now(),
+        walmart:      existing.walmart      || null,
+        mercadolibre: existing.mercadolibre || null,
+        amazon:       data.amazon           || existing.amazon    || null,
+        maraga_mx:    data.maraga_mx        || existing.maraga_mx || null,
+        tiktok:       data.tiktok           || existing.tiktok    || null,
       }));
     } catch(e) { /* storage lleno o modo privado — ignorar */ }
 
-    // Chips resumen por marketplace
+    // Chips resumen — solo Amazon, MaragaMX, TikTok (fuente: Tableau)
     var chips = [];
-    if (data.walmart)
-      chips.push('<span style="background:#e3f2fd;color:#0071CE;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px">' +
-        '🏪 Walmart ' + data.walmart.ordenes + ' órd · ' + _fmtK(data.walmart.total) + '</span>');
-    else if (data.walmart_error)
-      chips.push('<span style="background:#fdecea;color:#c62828;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px" title="' + data.walmart_error + '">' +
-        '⚠️ Walmart sin conexión</span>');
-    if (data.mercadolibre)
-      chips.push('<span style="background:#fff9e0;color:#c9a000;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px">' +
-        '🟡 ML ' + data.mercadolibre.ordenes + ' órd · ' + _fmtK(data.mercadolibre.total) + '</span>');
-    else if (data.ml_error)
-      chips.push('<span style="background:#fdecea;color:#c62828;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px" title="' + data.ml_error + '">' +
-        '⚠️ ML sin conexión</span>');
     if (data.amazon)
       chips.push('<span style="background:#fff3e0;color:#c75000;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px">' +
-        (data.amazon_error ? '🟠 Amazon (caché) ' : '🟠 Amazon ') + (data.amazon.ordenes||0) + ' órd · ' + _fmtK(data.amazon.total) + '</span>');
-    else if (data.amazon_error)
-      chips.push('<span style="background:#fdecea;color:#c62828;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px" title="' + data.amazon_error + '">' +
-        '⚠️ Amazon sin conexión</span>');
+        '🟠 Amazon ' + (data.amazon.ordenes||0).toLocaleString() + ' órd · ' + _fmtK(data.amazon.total) + '</span>');
+    else
+      chips.push('<span style="background:#fdecea;color:#c62828;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px">⚠️ Amazon sin datos Tableau</span>');
     if (data.maraga_mx)
       chips.push('<span style="background:#fff0f0;color:#c0392b;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px">' +
-        '🏪 MaragaMX ' + data.maraga_mx.ordenes + ' órd · ' + _fmtK(data.maraga_mx.total) + '</span>');
-    else if (data.maraga_mx_error)
-      chips.push('<span style="background:#fdecea;color:#c62828;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px" title="' + data.maraga_mx_error + '">' +
-        '⚠️ MaragaMX sin conexión</span>');
+        '🌐 MaragaMX ' + (data.maraga_mx.ordenes||0).toLocaleString() + ' órd · ' + _fmtK(data.maraga_mx.total) + '</span>');
+    else
+      chips.push('<span style="background:#fdecea;color:#c62828;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px">⚠️ MaragaMX sin datos Tableau</span>');
     if (data.tiktok)
       chips.push('<span style="background:#f5f5f5;color:#333;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px">' +
-        '🎵 TikTok ' + data.tiktok.ordenes + ' órd · ' + _fmtK(data.tiktok.total) + '</span>');
-    else if (data.tiktok_error)
-      chips.push('<span style="background:#fdecea;color:#c62828;border-radius:5px;padding:2px 8px;font-weight:700;font-size:11px" title="' + data.tiktok_error + '">' +
-        '⚠️ TikTok sin conexión</span>');
-
-    var d   = data.actualizado_at ? new Date(data.actualizado_at) : new Date();
-    var hora = d.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+        '🎵 TikTok ' + (data.tiktok.ordenes||0).toLocaleString() + ' órd · ' + _fmtK(data.tiktok.total) + '</span>');
 
     if (atDiv) {
       atDiv.style.display = 'flex';
       atDiv.innerHTML =
-        '<i class="ti ti-circle-check" style="color:var(--maraga);margin-right:4px"></i>' +
-        '<strong style="color:var(--maraga)">Datos en tiempo real · ' + hora + '</strong>' +
-        (chips.length ? '&nbsp;&nbsp;' + chips.join('&nbsp;') : '');
+        '<i class="ti ti-chart-dots-3" style="color:var(--maraga);margin-right:4px"></i>' +
+        '<strong style="color:var(--maraga)">Tableau · ' + (MESES_LABEL[mes]||mes) + '</strong>' +
+        '&nbsp;&nbsp;' + chips.join('&nbsp;');
     }
 
     // Estado: éxito
