@@ -8123,55 +8123,36 @@ const MS365_CONFIG = {
 let _msalInstance = null;
 let _ms365Account = null;
 
-function _loadMsal(cb) {
-  if (window.msal) { cb(); return; }
-  const PRIMARY = 'https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js';
-  const FALLBACK = 'https://unpkg.com/@azure/msal-browser@2.38.3/dist/msal-browser.min.js';
-  function tryLoad(src, onFail) {
-    const s = document.createElement('script');
-    s.src = src;
-    s.onload = () => { if (window.msal) cb(); else onFail(); };
-    s.onerror = onFail;
-    document.head.appendChild(s);
-  }
-  tryLoad(PRIMARY, () => tryLoad(FALLBACK, () => showToast('No se pudo cargar Microsoft 365', 'error')));
-}
-
-function _initMsal(cb) {
-  if (_msalInstance) { if (cb) cb(); return; }
-  _loadMsal(() => {
-    _msalInstance = new msal.PublicClientApplication({
-      auth: { clientId: MS365_CONFIG.clientId, authority: MS365_CONFIG.authority, redirectUri: MS365_CONFIG.redirectUri },
-      cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false }
-    });
-    _msalInstance.handleRedirectPromise().then(resp => {
-      if (resp) { _ms365Account = resp.account; _onMs365Login(); }
-      else {
-        const accs = _msalInstance.getAllAccounts();
-        if (accs.length) { _ms365Account = accs[0]; _onMs365Login(); }
-      }
-      _updateMs365UI();
-      if (cb) cb();
-    }).catch(console.error);
+function _initMsalInstance() {
+  if (_msalInstance || !window.msal) return;
+  _msalInstance = new msal.PublicClientApplication({
+    auth: { clientId: MS365_CONFIG.clientId, authority: MS365_CONFIG.authority, redirectUri: MS365_CONFIG.redirectUri },
+    cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false }
   });
+  _msalInstance.handleRedirectPromise().then(resp => {
+    if (resp) { _ms365Account = resp.account; _onMs365Login(); }
+    else {
+      const accs = _msalInstance.getAllAccounts();
+      if (accs.length) { _ms365Account = accs[0]; _onMs365Login(); }
+    }
+    _updateMs365UI();
+  }).catch(e => console.error('MSAL:', e));
 }
 
 function ms365Login() {
   if (!_msalInstance) {
-    showToast('Cargando Microsoft 365… intenta de nuevo en unos segundos', 'error');
-    _initMsal();
+    const btn = document.getElementById('ms365ConnectBtn');
+    if (btn) btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Cargando…';
+    setTimeout(ms365Login, 1200);
     return;
   }
-  _msalInstance.loginPopup({ scopes: MS365_CONFIG.scopes, prompt: 'select_account' })
-    .then(resp => { _ms365Account = resp.account; _onMs365Login(); _updateMs365UI(); })
-    .catch(e => { if (e.errorCode !== 'user_cancelled') showToast('Error al conectar: ' + (e.message || e.errorCode), 'error'); });
+  _msalInstance.loginRedirect({ scopes: MS365_CONFIG.scopes, prompt: 'select_account' });
 }
 
 function ms365Logout() {
   if (!_msalInstance || !_ms365Account) return;
-  _msalInstance.logoutPopup({ account: _ms365Account })
-    .then(() => { _ms365Account = null; state.outlookEvents = []; _updateMs365UI(); renderCalendar(); })
-    .catch(console.error);
+  _ms365Account = null; state.outlookEvents = []; _updateMs365UI(); renderCalendar();
+  _msalInstance.logoutRedirect();
 }
 
 async function _ms365Token() {
@@ -8180,10 +8161,8 @@ async function _ms365Token() {
     const r = await _msalInstance.acquireTokenSilent({ scopes: MS365_CONFIG.scopes, account: _ms365Account });
     return r.accessToken;
   } catch {
-    try {
-      const r = await _msalInstance.acquireTokenPopup({ scopes: MS365_CONFIG.scopes });
-      return r.accessToken;
-    } catch { return null; }
+    try { await _msalInstance.acquireTokenRedirect({ scopes: MS365_CONFIG.scopes }); } catch {}
+    return null;
   }
 }
 
@@ -8300,8 +8279,6 @@ function _updateMs365UI() {
   }
 }
 
-// Auto-init MSAL en background para recuperar sesión guardada
-_initMsal();
 
 /* Iniciar app inmediatamente — no esperar Chart.js para login/auth */
 init();
@@ -8311,10 +8288,26 @@ const chartScript = document.createElement('script');
 chartScript.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js';
 chartScript.async = true;
 chartScript.onload = () => {
-  // Si el usuario ya entró a la app, re-renderizar el dashboard para mostrar gráficas
   if (state.currentUser) renderDashboard();
 };
 document.head.appendChild(chartScript);
+
+/* MSAL.js — carga en paralelo para Microsoft 365 */
+(function() {
+  function onMsalLoad() { if (window.msal) _initMsalInstance(); }
+  const s1 = document.createElement('script');
+  s1.src = 'https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js';
+  s1.async = true;
+  s1.onload = onMsalLoad;
+  s1.onerror = function() {
+    const s2 = document.createElement('script');
+    s2.src = 'https://unpkg.com/@azure/msal-browser@2.38.3/dist/msal-browser.min.js';
+    s2.async = true;
+    s2.onload = onMsalLoad;
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s1);
+})();
 </script>
 
 <!-- ═══════════════════ CHATS WHATSAPP JS ═══════════════════ -->
