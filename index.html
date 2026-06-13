@@ -2996,33 +2996,86 @@ let state = {
 
 const useStorage = typeof window.storage !== 'undefined';
 
+/* ── IndexedDB backend (replaces localStorage to avoid 5MB quota) ── */
+const _IDB_NAME    = 'directoros-idb';
+const _IDB_VERSION = 1;
+const _IDB_STORE   = 'kv';
+let   _idbInstance = null;
+
+function _idbOpen() {
+  if (_idbInstance) return Promise.resolve(_idbInstance);
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(_IDB_NAME, _IDB_VERSION);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(_IDB_STORE);
+    req.onsuccess = e => { _idbInstance = e.target.result; resolve(_idbInstance); };
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+async function _idbGet(key) {
+  const db = await _idbOpen();
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(_IDB_STORE, 'readonly').objectStore(_IDB_STORE).get(key);
+    req.onsuccess = () => resolve(req.result ?? null);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+async function _idbSet(key, val) {
+  const db = await _idbOpen();
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(_IDB_STORE, 'readwrite').objectStore(_IDB_STORE).put(val, key);
+    req.onsuccess = () => resolve();
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+async function _idbDelete(key) {
+  const db = await _idbOpen();
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(_IDB_STORE, 'readwrite').objectStore(_IDB_STORE).delete(key);
+    req.onsuccess = () => resolve();
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+/* Migrate any existing localStorage data to IndexedDB (runs once) */
+async function _migrateFromLocalStorage() {
+  const MIGRATE_FLAG = 'directoros:idb-migrated-v1';
+  if (localStorage.getItem(MIGRATE_FLAG)) return;
+  const keysToMigrate = Object.values(STORAGE_KEYS);
+  for (const k of keysToMigrate) {
+    const v = localStorage.getItem(k);
+    if (v !== null) {
+      await _idbSet(k, v);
+      localStorage.removeItem(k);
+    }
+  }
+  localStorage.setItem(MIGRATE_FLAG, '1');
+  console.info('[DirectorOS] Migrated localStorage → IndexedDB');
+}
+
 async function storageGet(key) {
   try {
     if (useStorage) {
       const r = await window.storage.get(key);
       return r ? JSON.parse(r.value) : null;
-    } else {
-      const v = localStorage.getItem(key);
-      return v ? JSON.parse(v) : null;
     }
+    const v = await _idbGet(key);
+    return v !== null ? JSON.parse(v) : null;
   } catch (e) { return null; }
 }
 async function storageSet(key, val) {
   try {
     const str = JSON.stringify(val);
     if (useStorage) { await window.storage.set(key, str); }
-    else { localStorage.setItem(key, str); }
+    else { await _idbSet(key, str); }
   } catch (e) {
     console.error('storage error', e);
-    if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)) {
-      showToast('⚠️ No se pudieron guardar los adjuntos: almacenamiento lleno. Usa archivos más pequeños o elimina adjuntos anteriores.', 'error');
-    }
+    showToast('Error al guardar datos. Intenta de nuevo.', 'error');
   }
 }
 async function storageDelete(key) {
   try {
     if (useStorage) { await window.storage.delete(key); }
-    else { localStorage.removeItem(key); }
+    else { await _idbDelete(key); }
   } catch (e) {}
 }
 
@@ -3487,7 +3540,10 @@ function applyRoleToUI() {
    INIT
 ============================================ */
 async function init() {
-  // ── Cargar SIEMPRE desde localStorage si existe, seed solo si está vacío ──
+  // Migrate any pre-existing localStorage data to IndexedDB (one-time, silent)
+  if (!useStorage) await _migrateFromLocalStorage();
+
+  // ── Cargar SIEMPRE desde IndexedDB si existe, seed solo si está vacío ──
   // Los datos del admin NUNCA se sobreescriben automáticamente.
   // Para forzar un reset usa el botón "Restaurar datos" en Admin > Configuración.
   const savedUsers    = await storageGet(STORAGE_KEYS.USERS);
