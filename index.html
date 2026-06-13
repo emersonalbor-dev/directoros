@@ -5421,6 +5421,7 @@ function openTaskDetail(id) {
 
   // Render attachments via unified function (shows saved + any buffer items)
   attachBuffers.taskDetail = [];
+  console.log('[Attach] openTaskDetail', t.id, '→ attachments en memoria:', (t.attachments||[]).length, t.attachments);
   renderAttachList('taskDetail');
   // Hide dropzone for read-only users
   const dz = document.getElementById('taskDetailAttachDrop');
@@ -5496,7 +5497,9 @@ async function saveTaskDetail() {
 
   closeModal('taskDetailModal');
   renderAll();
-  showToast('Tarea actualizada','success');
+  const attCount = (t.attachments || []).length;
+  showToast(attCount ? `Tarea guardada · ${attCount} adjunto${attCount !== 1 ? 's' : ''}` : 'Tarea actualizada', 'success');
+  console.log('[Attach] saveTaskDetail guardó', attCount, 'adjuntos para tarea', t.id, t.attachments);
   ms365SyncTask(t);
 }
 
