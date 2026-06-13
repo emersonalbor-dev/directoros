@@ -1793,7 +1793,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 <div class="attach-dropzone" id="reqAttachDrop" onclick="document.getElementById('reqAttachInput').click()">
                   <i class="ti ti-paperclip"></i>
                   <div class="attach-cta">Adjuntar contexto previo</div>
-                  <div class="attach-hint">Reporte, gráfica, doc · Máx 5 MB por archivo</div>
+                  <div class="attach-hint">Reporte, gráfica, doc · Máx 10 MB por archivo</div>
                 </div>
                 <input type="file" id="reqAttachInput" multiple style="display:none" onchange="handleAttachUpload(event, 'request')">
                 <div class="attach-list" id="reqAttachList"></div>
@@ -2521,7 +2521,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
       <div class="attach-dropzone" id="taskAttachDrop" onclick="document.getElementById('taskAttachInput').click()">
         <i class="ti ti-paperclip"></i>
         <div class="attach-cta">Click para adjuntar archivos</div>
-        <div class="attach-hint">PDF, imágenes, docs · Máx 5 MB por archivo</div>
+        <div class="attach-hint">PDF, imágenes, docs · Máx 10 MB por archivo</div>
       </div>
       <input type="file" id="taskAttachInput" multiple style="display:none" onchange="handleAttachUpload(event, 'task')">
       <div class="attach-list" id="taskAttachList"></div>
@@ -2606,7 +2606,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
       <div class="attach-dropzone" id="evAttachDrop" onclick="document.getElementById('evAttachInput').click()">
         <i class="ti ti-paperclip"></i>
         <div class="attach-cta">Agregar archivos</div>
-        <div class="attach-hint">Documentos de la reunión · Máx 5 MB por archivo</div>
+        <div class="attach-hint">Documentos de la reunión · Máx 10 MB por archivo</div>
       </div>
       <input type="file" id="evAttachInput" multiple style="display:none" onchange="handleAttachUpload(event, 'event')">
       <div class="attach-list" id="evAttachList"></div>
@@ -2680,7 +2680,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
       <div class="attach-dropzone" id="taskDetailAttachDrop" onclick="document.getElementById('taskDetailAttachInput').click()">
         <i class="ti ti-paperclip"></i>
         <div class="attach-cta">Agregar archivos</div>
-        <div class="attach-hint">PDF, imágenes, docs · Máx 5 MB por archivo</div>
+        <div class="attach-hint">PDF, imágenes, docs · Máx 10 MB por archivo</div>
       </div>
       <input type="file" id="taskDetailAttachInput" multiple style="display:none" onchange="handleAttachUpload(event, 'taskDetail')">
       <div class="attach-list" id="taskDetailAttachList"></div>
@@ -7787,7 +7787,7 @@ async function factoryReset() {
 /* ============================================
    FILE ATTACHMENTS
 ============================================ */
-const MAX_ATTACH_SIZE = 5 * 1024 * 1024; // 5 MB per file
+const MAX_ATTACH_SIZE = 10 * 1024 * 1024; // 10 MB per file
 const ALLOWED_EXTENSIONS = ['pdf','png','jpg','jpeg','gif','webp','svg','doc','docx','xls','xlsx','ppt','pptx','txt','csv','md','zip','rar'];
 
 // Temporary holding buffers for new attachments before save
