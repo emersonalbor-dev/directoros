@@ -529,6 +529,31 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
   font-size: 11px; opacity: 0.6;
 }
 
+/* ===== RESUMEN PLATAFORMAS ===== */
+.resumen-plat { background:var(--paper); border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-bottom:20px; }
+.resumen-plat-title { background:#c62828; color:#fff; font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; padding:9px 16px; }
+.resumen-plat-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.resumen-plat table { width:100%; border-collapse:collapse; min-width:860px; font-size:12px; }
+.resumen-plat thead th {
+  background:var(--paper-2); color:var(--muted); font-size:10px; font-weight:600;
+  letter-spacing:.04em; text-transform:uppercase; padding:7px 9px; text-align:center;
+  border-bottom:1px solid var(--line); white-space:nowrap; line-height:1.3;
+}
+.resumen-plat thead th:first-child { text-align:left; min-width:130px; }
+.resumen-plat tbody td { padding:6px 9px; border-bottom:1px solid var(--line); text-align:center; white-space:nowrap; font-variant-numeric:tabular-nums; color:var(--ink); }
+.resumen-plat tbody td:first-child { text-align:left; }
+.resumen-plat tbody tr:last-child td { border-bottom:none; }
+.resumen-row-ml  { background:#fffde7; }
+.resumen-row-amz { background:#e3f2fd; }
+.resumen-row-wmt { background:#e8eaf6; }
+.resumen-row-mmx { background:#fce4ec; }
+.resumen-row-ttk { background:#f3e5f5; }
+.resumen-row-total td { background:#fff3f3; font-weight:700; color:#c62828 !important; border-top:2px solid #c62828 !important; }
+.resumen-plat-plat-name { display:flex; align-items:center; gap:7px; font-weight:600; }
+.resumen-plat-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.resumen-val-muted { color:var(--muted); }
+.resumen-val-pesos { color:var(--ink); }
+
 /* ===== KANBAN ===== */
 .kanban-toolbar {
   display: flex; align-items: center; justify-content: space-between;
@@ -1603,6 +1628,8 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             <button class="mes-pill" data-mes="2026-06" onclick="setDashMes('2026-06')">Jun 26</button>
           </div>
         </div>
+
+        <div id="resumenPlatSection"></div>
 
         <div class="kpi-grid">
           <div class="kpi-card">
@@ -4047,6 +4074,7 @@ function setDashMes(mes) {
 
   // Sincroniza sección ventas por plataforma
   renderVentasPlat(mes);
+  renderResumenPlat(mes);
 }
 
 /* ===== VENTAS POR PLATAFORMA ===== */
@@ -4339,6 +4367,108 @@ var MESES_LABEL = {
   '2026-07':'Julio 2026','2026-08':'Agosto 2026','2026-09':'Septiembre 2026',
   '2026-10':'Octubre 2026','2026-11':'Noviembre 2026','2026-12':'Diciembre 2026'
 };
+
+/* ===== RESUMEN PLATAFORMAS DATA ===== */
+var RESUMEN_PLAT_DATA = {
+  '2026-05': {
+    skusTotales: 749, skusExclusivos: 13,
+    plataformas: {
+      mercadolibre: { vendidos:114, sinVta:635, pctVendidos:15.22, mejorados:184, fulfillment:15, ventasMKT:76663,  inversionT:10319, skusMKT:36, dobleCero:16, ventasTotal:963153  },
+      amazon:       { vendidos:55,  sinVta:694, pctVendidos:0,     mejorados:184, fulfillment:10, ventasMKT:18251,  inversionT:6287,  skusMKT:30, dobleCero:27, ventasTotal:166001  },
+      walmart:      { vendidos:22,  sinVta:null,pctVendidos:0,     mejorados:0,   fulfillment:4,  ventasMKT:3270,   inversionT:820,   skusMKT:8,  dobleCero:6,  ventasTotal:252114  },
+      maraga_mx:    { vendidos:39,  sinVta:710, pctVendidos:0,     mejorados:0,   fulfillment:0,  ventasMKT:0,      inversionT:0,     skusMKT:0,  dobleCero:0,  ventasTotal:230173  },
+      tiktok:       { vendidos:9,   sinVta:740, pctVendidos:0,     mejorados:0,   fulfillment:0,  ventasMKT:0,      inversionT:0,     skusMKT:0,  dobleCero:0,  ventasTotal:16778   }
+    }
+  }
+};
+
+function renderResumenPlat(mes) {
+  var el = document.getElementById('resumenPlatSection');
+  if (!el) return;
+  var d = RESUMEN_PLAT_DATA[mes];
+  if (!d) { el.innerHTML = ''; return; }
+  var v = VENTAS_PLAT_DATA[mes] || {};
+
+  var PLATS = [
+    { id:'mercadolibre', label:'Mercado Libre', cls:'resumen-row-ml',  dot:'#f59e0b' },
+    { id:'amazon',       label:'Amazon',        cls:'resumen-row-amz', dot:'#FF9900' },
+    { id:'walmart',      label:'Walmart',       cls:'resumen-row-wmt', dot:'#0071CE' },
+    { id:'maraga_mx',    label:'MaragaMX',      cls:'resumen-row-mmx', dot:'#c62828' },
+    { id:'tiktok',       label:'TikTok',        cls:'resumen-row-ttk', dot:'#333'    }
+  ];
+
+  var _$ = function(n) { return n != null && n > 0 ? '$' + Math.round(n).toLocaleString('es-MX') : '$0'; };
+  var _pct = function(num, den) { return (!den || den===0) ? '—' : (num/den*100).toFixed(2)+'%'; };
+
+  var totVendidos=0, totFulfill=0, totMKT=0, totInv=0, totVentas=0;
+
+  var rows = PLATS.map(function(p) {
+    var pd = d.plataformas[p.id] || {};
+    var ventasTotal = (v[p.id] && v[p.id].total) ? v[p.id].total : (pd.ventasTotal || 0);
+    var vendidos    = pd.vendidos    || 0;
+    var sinVta      = pd.sinVta      != null ? pd.sinVta : '—';
+    var pctV        = pd.pctVendidos != null ? pd.pctVendidos.toFixed(2)+'%' : '—';
+    var mejorados   = pd.mejorados   != null ? pd.mejorados : 0;
+    var fulfillment = pd.fulfillment || 0;
+    var ventasMKT   = pd.ventasMKT   || 0;
+    var inversionT  = pd.inversionT  || 0;
+    var skusMKT     = pd.skusMKT     || 0;
+    var dobleCero   = pd.dobleCero   != null ? pd.dobleCero : '—';
+    var acos        = (inversionT && ventasMKT) ? _pct(inversionT, ventasMKT) : '—';
+    var tacos       = inversionT ? _pct(inversionT, ventasTotal) : '0.00%';
+
+    totVendidos += vendidos; totFulfill += fulfillment;
+    totMKT += ventasMKT; totInv += inversionT; totVentas += ventasTotal;
+
+    var vt = ventasTotal ? '<span class="resumen-val-pesos">$'+Math.round(ventasTotal).toLocaleString('es-MX')+'</span>' : '<span class="resumen-val-muted">—</span>';
+    return '<tr class="'+p.cls+'">'
+      +'<td><div class="resumen-plat-plat-name"><span class="resumen-plat-dot" style="background:'+p.dot+'"></span>'+p.label+'</div></td>'
+      +'<td>'+d.skusTotales+'</td>'
+      +'<td>'+d.skusExclusivos+'</td>'
+      +'<td><strong>'+vendidos+'</strong></td>'
+      +'<td>'+sinVta+'</td>'
+      +'<td>'+pctV+'</td>'
+      +'<td>'+mejorados+'</td>'
+      +'<td>'+fulfillment+'</td>'
+      +'<td>'+vt+'</td>'
+      +'<td>'+_$(ventasMKT)+'</td>'
+      +'<td>'+_$(inversionT)+'</td>'
+      +'<td>'+skusMKT+'</td>'
+      +'<td>'+dobleCero+'</td>'
+      +'<td class="'+(!isNaN(parseFloat(acos)) && parseFloat(acos)>30 ? 'resumen-val-pesos' : '')+'">'+(acos==='—'?'<span class="resumen-val-muted">—</span>':acos)+'</td>'
+      +'<td>'+(tacos==='—'?'<span class="resumen-val-muted">—</span>':tacos)+'</td>'
+      +'</tr>';
+  }).join('');
+
+  var totTacos = totInv && totVentas ? _pct(totInv, totVentas) : '—';
+
+  el.innerHTML = '<div class="resumen-plat">'
+    +'<div class="resumen-plat-title">Resumen Plataformas &middot; '+(MESES_LABEL[mes]||mes)+'</div>'
+    +'<div class="resumen-plat-scroll"><table>'
+    +'<thead><tr>'
+    +'<th style="min-width:130px">Plataforma</th>'
+    +'<th>SKUs<br>Totales</th><th>SKUs<br>Exclusivos</th>'
+    +'<th>SKUs<br>Vendidos</th><th>SKUs<br>sin vta</th>'
+    +'<th>%<br>vendidos</th><th>SKU<br>Mejorados</th>'
+    +'<th>SKU<br>Fulfillment</th><th>Ventas<br>Totales</th>'
+    +'<th>Ventas<br>MKT</th><th>Inversión<br>T</th>'
+    +'<th>SKUs<br>c/MKT</th><th>Doble cero<br>sin VTA-MKT</th>'
+    +'<th>ACOS</th><th>TACOS</th>'
+    +'</tr></thead>'
+    +'<tbody>'+rows
+    +'<tr class="resumen-row-total">'
+    +'<td><div class="resumen-plat-plat-name">TOTAL</div></td>'
+    +'<td>'+d.skusTotales+'</td><td>'+d.skusExclusivos+'</td>'
+    +'<td>'+totVendidos+'</td><td>—</td><td>—</td>'
+    +'<td>0</td><td>'+totFulfill+'</td>'
+    +'<td>$'+Math.round(totVentas).toLocaleString('es-MX')+'</td>'
+    +'<td>$'+Math.round(totMKT).toLocaleString('es-MX')+'</td>'
+    +'<td>$'+Math.round(totInv).toLocaleString('es-MX')+'</td>'
+    +'<td>—</td><td>—</td><td>—</td>'
+    +'<td>'+totTacos+'</td>'
+    +'</tr>'
+    +'</tbody></table></div></div>';
+}
 
 function fmtPesos(n) {
   if (n >= 1000000) return '$' + (n/1000000).toFixed(2) + 'M';
