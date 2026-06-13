@@ -8125,11 +8125,16 @@ let _ms365Account = null;
 
 function _loadMsal(cb) {
   if (window.msal) { cb(); return; }
-  const s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/dist/msal-browser.min.js';
-  s.onload = cb;
-  s.onerror = () => showToast('No se pudo conectar con Microsoft 365', 'error');
-  document.head.appendChild(s);
+  const PRIMARY = 'https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js';
+  const FALLBACK = 'https://unpkg.com/@azure/msal-browser@2.38.3/dist/msal-browser.min.js';
+  function tryLoad(src, onFail) {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => { if (window.msal) cb(); else onFail(); };
+    s.onerror = onFail;
+    document.head.appendChild(s);
+  }
+  tryLoad(PRIMARY, () => tryLoad(FALLBACK, () => showToast('No se pudo cargar Microsoft 365', 'error')));
 }
 
 function _initMsal(cb) {
