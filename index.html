@@ -433,6 +433,12 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 .cal-dist-stats { display: flex; gap: 16px; font-size: 11px; }
 .cal-dist-stat { color: var(--muted); }
 .cal-dist-stat strong { color: var(--ink); }
+/* === MS365 / OUTLOOK === */
+.outlook-event { background:#e8f0fe!important;border-left-color:#0078d4!important;color:#1a3a5c!important }
+.outlook-event small { color:#3a6099!important }
+.ms365-toolbar { display:flex;align-items:center;gap:6px }
+.ms365-user-info { display:none;align-items:center;gap:6px;font-size:12px;color:var(--muted);background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:4px 10px }
+.ms365-dot { width:8px;height:8px;border-radius:50%;background:#0078d4;flex-shrink:0 }
 
 /* Cal view tabs */
 .cal-view-tabs {
@@ -1670,6 +1676,17 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             <button class="btn btn-sm" onclick="goToday()">Hoy</button>
             <button class="btn btn-icon" onclick="calNavigate(1)" aria-label="Siguiente"><i class="ti ti-chevron-right"></i></button>
             <button class="btn btn-primary btn-sm director-only" onclick="openEventModal()"><i class="ti ti-plus"></i> Bloquear</button>
+            <div class="ms365-toolbar">
+              <button id="ms365ConnectBtn" class="btn btn-sm" onclick="ms365Login()" style="border-color:#0078d4;color:#0078d4;display:inline-flex">
+                <i class="ti ti-brand-office"></i> Outlook
+              </button>
+              <div id="ms365UserInfo" class="ms365-user-info">
+                <div class="ms365-dot"></div>
+                <span id="ms365UserName" style="font-weight:500;color:var(--ink)"></span>
+                <button id="ms365SyncBtn" class="btn btn-icon btn-sm" onclick="ms365SyncEvents()" title="Sincronizar Outlook"><i class="ti ti-refresh"></i></button>
+                <button class="btn btn-icon btn-sm" onclick="ms365Logout()" title="Desconectar" style="color:var(--muted)"><i class="ti ti-logout"></i></button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -4597,22 +4614,36 @@ function _buildEventBlock(ev, canEdit) {
     <small>${getWsName(ev.ws)}</small>
   </div>`;
 }
+function _buildOutlookEventBlock(ev) {
+  const att = ev.attendees && ev.attendees.length ? ev.attendees.slice(0,2).join(', ') : 'Outlook';
+  return `<div class="event-block outlook-event" style="cursor:default">
+    <div style="display:flex;align-items:center;gap:4px"><i class="ti ti-brand-office" style="font-size:10px;color:#0078d4"></i><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(ev.title)}</div></div>
+    <small>${escapeHtml(att)}</small>
+  </div>`;
+}
 function _buildDayColumn(dayIdx, canEdit) {
   const start = state.settings.workdayStart || 8;
   const end = state.settings.workdayEnd || 19;
   const hours = []; for (let h = start; h <= end; h++) hours.push(h);
   const eventMap = {};
   state.events.filter(e => e.day === dayIdx).forEach(e => { eventMap[e.hour] = e; });
+  const outlookMap = {};
+  (state.outlookEvents || []).filter(e => e.day === dayIdx).forEach(e => { outlookMap[e.hour] = e; });
   let html = '<div class="day-col">';
   let skipUntil = 0;
+  let olSkipUntil = 0;
   hours.forEach((h, idx) => {
     const drop = canEdit ? `ondragover="onCalDragOver(event)" ondragleave="onCalDragLeave(event)" ondrop="onCalDrop(event,${dayIdx},${h})"` : '';
     const click = canEdit ? ` onclick="quickAddEvent(${dayIdx},${h})"` : '';
-    if (idx < skipUntil) { html += `<div class="event-slot" ${drop}${click}></div>`; return; }
-    const ev = eventMap[h];
+    const ev = idx < skipUntil   ? null : eventMap[h];
+    const oe = idx < olSkipUntil ? null : outlookMap[h];
     if (ev) {
       html += `<div class="event-slot" style="position:relative" ${drop}>${_buildEventBlock(ev, canEdit)}</div>`;
       skipUntil = idx + ev.dur;
+      if (oe) olSkipUntil = idx + oe.dur;
+    } else if (oe) {
+      html += `<div class="event-slot" style="position:relative" ${drop}>${_buildOutlookEventBlock(oe)}</div>`;
+      olSkipUntil = idx + oe.dur;
     } else {
       html += `<div class="event-slot" ${drop}${click}></div>`;
     }
@@ -8081,6 +8112,190 @@ const xlsxScript = document.createElement('script');
 xlsxScript.src = 'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js';
 xlsxScript.async = true;
 document.head.appendChild(xlsxScript);
+
+/* ===== MICROSOFT 365 / OUTLOOK INTEGRATION ===== */
+const MS365_CONFIG = {
+  clientId: '1ba6be18-2fa3-49af-9738-61af532eaabf',
+  authority: 'https://login.microsoftonline.com/8ea85c79-8be5-421b-b1df-e5817a6bff82',
+  redirectUri: 'https://emersonalbor-dev.github.io/directoros/',
+  scopes: ['Calendars.ReadWrite','Calendars.Read.Shared','Mail.Send','Mail.Read','User.ReadBasic.All']
+};
+let _msalInstance = null;
+let _ms365Account = null;
+
+function _loadMsal(cb) {
+  if (window.msal) { cb(); return; }
+  const s = document.createElement('script');
+  s.src = 'https://alcdn.msauth.net/browser/3.23.0/js/msal-browser.min.js';
+  s.onload = cb;
+  s.onerror = () => showToast('No se pudo cargar MSAL.js', 'error');
+  document.head.appendChild(s);
+}
+
+function _initMsal(cb) {
+  if (_msalInstance) { if (cb) cb(); return; }
+  _loadMsal(() => {
+    _msalInstance = new msal.PublicClientApplication({
+      auth: { clientId: MS365_CONFIG.clientId, authority: MS365_CONFIG.authority, redirectUri: MS365_CONFIG.redirectUri },
+      cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false }
+    });
+    _msalInstance.initialize().then(() => {
+      _msalInstance.handleRedirectPromise().then(resp => {
+        if (resp) { _ms365Account = resp.account; _onMs365Login(); }
+        else {
+          const accs = _msalInstance.getAllAccounts();
+          if (accs.length) { _ms365Account = accs[0]; _onMs365Login(); }
+        }
+        _updateMs365UI();
+        if (cb) cb();
+      }).catch(console.error);
+    });
+  });
+}
+
+function ms365Login() {
+  _initMsal(() => {
+    _msalInstance.loginPopup({ scopes: MS365_CONFIG.scopes, prompt: 'select_account' })
+      .then(resp => { _ms365Account = resp.account; _onMs365Login(); _updateMs365UI(); })
+      .catch(e => { if (e.errorCode !== 'user_cancelled') showToast('Error al conectar con Microsoft 365', 'error'); });
+  });
+}
+
+function ms365Logout() {
+  if (!_msalInstance || !_ms365Account) return;
+  _msalInstance.logoutPopup({ account: _ms365Account })
+    .then(() => { _ms365Account = null; state.outlookEvents = []; _updateMs365UI(); renderCalendar(); })
+    .catch(console.error);
+}
+
+async function _ms365Token() {
+  if (!_msalInstance || !_ms365Account) return null;
+  try {
+    const r = await _msalInstance.acquireTokenSilent({ scopes: MS365_CONFIG.scopes, account: _ms365Account });
+    return r.accessToken;
+  } catch {
+    try {
+      const r = await _msalInstance.acquireTokenPopup({ scopes: MS365_CONFIG.scopes });
+      return r.accessToken;
+    } catch { return null; }
+  }
+}
+
+async function _graphGet(path) {
+  const token = await _ms365Token(); if (!token) return null;
+  const r = await fetch('https://graph.microsoft.com/v1.0' + path, { headers: { Authorization: 'Bearer ' + token } });
+  return r.ok ? r.json() : null;
+}
+async function _graphPost(path, body) {
+  const token = await _ms365Token(); if (!token) return null;
+  const r = await fetch('https://graph.microsoft.com/v1.0' + path, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return r.ok ? (r.status === 202 ? true : r.json()) : null;
+}
+
+function _outlookToLocal(oe, weekDates) {
+  const tzOffset = new Date().getTimezoneOffset() * 60000;
+  const start = new Date(oe.start.dateTime.endsWith('Z') ? oe.start.dateTime : oe.start.dateTime + (oe.start.timeZone === 'UTC' ? 'Z' : ''));
+  const end   = new Date(oe.end.dateTime.endsWith('Z')   ? oe.end.dateTime   : oe.end.dateTime   + (oe.end.timeZone   === 'UTC' ? 'Z' : ''));
+  const dow = start.getDay();
+  if (dow === 0 || dow === 6) return null;
+  if (weekDates) {
+    const ds = new Date(start); ds.setHours(0,0,0,0);
+    const we = new Date(weekDates[4]); we.setHours(23,59,59,999);
+    if (ds < weekDates[0] || ds > we) return null;
+  }
+  return {
+    id: 'ol_' + oe.id.slice(0, 20),
+    outlookId: oe.id,
+    title: oe.subject || '(Sin título)',
+    day: dow - 1,
+    hour: start.getHours(),
+    dur: Math.max(1, Math.round((end - start) / 3600000)),
+    ws: 'outlook',
+    source: 'outlook',
+    attendees: (oe.attendees || []).map(a => a.emailAddress.name || a.emailAddress.address)
+  };
+}
+
+async function ms365SyncEvents() {
+  if (!_ms365Account) { showToast('Conecta Outlook primero', 'error'); return; }
+  const syncBtn = document.getElementById('ms365SyncBtn');
+  if (syncBtn) syncBtn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i>';
+  const dates = getWeekDates();
+  const s = dates[0].toISOString();
+  const eDate = new Date(dates[4]); eDate.setHours(23,59,59,999);
+  const e = eDate.toISOString();
+  const data = await _graphGet(`/me/calendarView?startDateTime=${s}&endDateTime=${e}&$select=id,subject,start,end,attendees&$top=100`);
+  if (data && data.value) {
+    state.outlookEvents = data.value.map(ev => _outlookToLocal(ev, dates)).filter(Boolean);
+    renderCalendar();
+    showToast(state.outlookEvents.length + ' eventos de Outlook sincronizados', 'success');
+  } else {
+    showToast('No se pudo sincronizar Outlook', 'error');
+  }
+  if (syncBtn) syncBtn.innerHTML = '<i class="ti ti-refresh"></i>';
+}
+
+async function ms365CreateEvent(localEvent, dateObj) {
+  if (!_ms365Account) return;
+  const start = new Date(dateObj); start.setHours(localEvent.hour, 0, 0, 0);
+  const end = new Date(start); end.setHours(localEvent.hour + (localEvent.dur || 1), 0, 0, 0);
+  await _graphPost('/me/events', {
+    subject: localEvent.title,
+    start: { dateTime: start.toISOString(), timeZone: 'America/Mexico_City' },
+    end:   { dateTime: end.toISOString(),   timeZone: 'America/Mexico_City' },
+    attendees: (localEvent.attendees || []).map(a => ({ emailAddress: { address: a }, type: 'required' }))
+  });
+}
+
+async function ms365SendMail(to, subject, htmlBody) {
+  if (!_ms365Account) return false;
+  const toArr = Array.isArray(to) ? to : [to];
+  const ok = await _graphPost('/me/sendMail', {
+    message: {
+      subject,
+      body: { contentType: 'HTML', content: htmlBody },
+      toRecipients: toArr.map(t => ({ emailAddress: { address: t } }))
+    }
+  });
+  return !!ok;
+}
+
+async function ms365GetSchedule(emails, startISO, endISO) {
+  if (!_ms365Account) return null;
+  return _graphPost('/me/calendar/getSchedule', {
+    schedules: emails,
+    startTime: { dateTime: startISO, timeZone: 'America/Mexico_City' },
+    endTime:   { dateTime: endISO,   timeZone: 'America/Mexico_City' },
+    availabilityViewInterval: 60
+  });
+}
+
+function _onMs365Login() {
+  state.outlookEvents = state.outlookEvents || [];
+  ms365SyncEvents();
+}
+
+function _updateMs365UI() {
+  const btn  = document.getElementById('ms365ConnectBtn');
+  const info = document.getElementById('ms365UserInfo');
+  const name = document.getElementById('ms365UserName');
+  if (!btn) return;
+  if (_ms365Account) {
+    btn.style.display = 'none';
+    if (info) { info.style.display = 'flex'; }
+    if (name) name.textContent = _ms365Account.name || _ms365Account.username;
+  } else {
+    btn.style.display = 'inline-flex';
+    if (info) info.style.display = 'none';
+  }
+}
+
+// Auto-init MSAL en background para recuperar sesión guardada
+_initMsal();
 
 /* Iniciar app inmediatamente — no esperar Chart.js para login/auth */
 init();
