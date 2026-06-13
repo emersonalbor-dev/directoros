@@ -7910,6 +7910,7 @@ function switchView(name, el) {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarBackdrop').classList.remove('active');
   document.querySelector('.content').scrollTo(0,0);
+  if (name === 'calendar' && _ms365Account) ms365SyncEvents();
 }
 
 function toggleSidebar() {
