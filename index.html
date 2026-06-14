@@ -4783,9 +4783,16 @@ async function actualizarVentas() {
     if (!VENTAS_PLAT_DATA[mes]) VENTAS_PLAT_DATA[mes] = {};
 
     // Amazon, MaragaMX y TikTok desde Tableau
-    if (data.amazon)       VENTAS_PLAT_DATA[mes].amazon       = data.amazon;
-    if (data.maraga_mx)    VENTAS_PLAT_DATA[mes].maraga_mx    = data.maraga_mx;
-    if (data.tiktok)       VENTAS_PLAT_DATA[mes].tiktok       = data.tiktok;
+    // Preservar tops hardcodeados si Railway devuelve top:[] vacío
+    var _mergeTop = function(nuevo, existente) {
+      if (!nuevo) return nuevo;
+      if (!(nuevo.top && nuevo.top.length) && existente && existente.top && existente.top.length)
+        return Object.assign({}, nuevo, { top: existente.top });
+      return nuevo;
+    };
+    if (data.amazon)    VENTAS_PLAT_DATA[mes].amazon    = _mergeTop(data.amazon,    VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].amazon);
+    if (data.maraga_mx) VENTAS_PLAT_DATA[mes].maraga_mx = _mergeTop(data.maraga_mx, VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].maraga_mx);
+    if (data.tiktok)    VENTAS_PLAT_DATA[mes].tiktok    = _mergeTop(data.tiktok,    VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].tiktok);
     // ML y Walmart desde API directa (solo mes actual)
     if (data.mercadolibre) VENTAS_PLAT_DATA[mes].mercadolibre = data.mercadolibre;
     if (data.walmart)      VENTAS_PLAT_DATA[mes].walmart      = data.walmart;
