@@ -1599,6 +1599,9 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
       <button class="nav-item" data-view="recursos" onclick="switchView('recursos', this)">
         <i class="ti ti-tools"></i> Recursos
       </button>
+      <button class="nav-item" data-view="mercadolibre" onclick="switchView('mercadolibre', this)">
+        <i class="ti ti-brand-mercado-libre" style="color:#f59e0b"></i> Mercado Libre
+      </button>
     </div>
 
     <div class="nav-section director-only">
@@ -1980,9 +1983,6 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           </button>
           <button class="recursos-tab" onclick="switchRecursosTab('marketing',this)">
             <i class="ti ti-sparkles"></i> Marketing
-          </button>
-          <button class="recursos-tab" onclick="switchRecursosTab('ml',this)">
-            <i class="ti ti-brand-mercado-libre" style="color:#f59e0b"></i> Mercado Libre
           </button>
         </div>
 
@@ -2398,13 +2398,14 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
         </div>
         </div><!-- /recursos-panel-marketing -->
 
-        <!-- ===== SUBMODULO MERCADO LIBRE ===== -->
-        <div class="recursos-panel" id="recursos-panel-ml">
-          <div id="mlDashboard"></div>
-        </div>
 
       </div>
 
+
+      <!-- ============ MERCADO LIBRE VIEW ============ -->
+      <div class="view" id="view-mercadolibre">
+        <div id="mlDashboard"></div>
+      </div>
 
       <!-- ============ ADMIN MODULE ============ -->
       <div class="view" id="view-admin">
@@ -8643,7 +8644,8 @@ const viewTitles = {
   booking: { title: 'Team Booking', sub: 'Agendamiento con OKR obligatorio' },
   recursos: { title: 'Recursos Merchandiser', sub: 'Herramientas de análisis para el equipo comercial' },
   admin: { title: 'Centro de administración', sub: 'Equipo, empresas, permisos y configuración' },
-  tableau: { title: 'Analytics · Tableau', sub: 'Dashboards de ventas e inventarios · Maraga' }
+  tableau: { title: 'Analytics · Tableau', sub: 'Dashboards de ventas e inventarios · Maraga' },
+  mercadolibre: { title: 'Mercado Libre', sub: 'Ventas, publicidad y reputación · 2026' }
 };
 
 function switchView(name, el) {
@@ -8662,6 +8664,7 @@ function switchView(name, el) {
   document.querySelector('.content').scrollTo(0,0);
   if (name === 'calendar' && _ms365Account) ms365SyncEvents();
   if (name === 'kanban'   && _ms365Account) ms365SyncAllTasks();
+  if (name === 'mercadolibre') renderMLFull(_mlMesActivo || '2026-06');
 }
 
 function toggleSidebar() {
