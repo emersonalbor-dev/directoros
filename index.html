@@ -807,6 +807,64 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 .sku-no-results { padding: 14px; text-align: center; color: var(--muted); font-size: 12px; }
 .calc-input.pvp-locked { border-color: var(--red) !important; background: var(--red-bg) !important; color: var(--red-dark) !important; }
 
+/* ── ML Dashboard ──────────────────────────────────────────────── */
+.ml-month-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.ml-mpill{padding:5px 14px;font-size:11px;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid var(--line);background:transparent;color:var(--muted);transition:all .15s;display:inline-flex;align-items:center;gap:4px}
+.ml-mpill:hover{border-color:#f59e0b;color:#d97706}
+.ml-mpill.active{background:#f59e0b;border-color:#f59e0b;color:#fff}
+.ml-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+@media(max-width:860px){.ml-kpis{grid-template-columns:repeat(2,1fr)}}
+.ml-kpi{background:var(--paper);border:1px solid var(--line);border-radius:13px;padding:16px 18px}
+.ml-kpi-lbl{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.ml-kpi-lbl i{font-size:13px}
+.ml-kpi-val{font-size:24px;font-weight:800;color:var(--ink);line-height:1}
+.ml-kpi-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.ml-grid2{display:grid;grid-template-columns:300px 1fr;gap:16px;margin-bottom:18px}
+@media(max-width:900px){.ml-grid2{grid-template-columns:1fr}}
+.ml-card{background:var(--paper);border:1px solid var(--line);border-radius:13px;padding:18px 20px;margin-bottom:14px}
+.ml-card:last-child{margin-bottom:0}
+.ml-card-h{font-size:12px;font-weight:700;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.ml-card-h i{font-size:15px;color:#f59e0b}
+.ml-rep-level{display:flex;align-items:center;gap:10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;margin-bottom:12px}
+.ml-rep-dot{width:14px;height:14px;border-radius:50%;background:#22c55e;flex-shrink:0;box-shadow:0 0 0 3px #dcfce7}
+.ml-rep-lvl{font-size:13px;font-weight:700;color:#15803d}
+.ml-rep-sub{font-size:10px;color:#16a34a;margin-top:1px}
+.ml-stat{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.ml-stat:last-child{border-bottom:none}
+.ml-stat .sk{color:var(--muted)}
+.ml-stat .sv{font-weight:600}
+.ml-stat .sv.red{color:var(--red)}
+.ml-stat .sv.green{color:#16a34a}
+.ml-rtg-wrap{margin:10px 0}
+.ml-rtg{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:11px}
+.ml-rtg .rl{width:64px;color:var(--muted)}
+.ml-rtg .rt{flex:1;height:5px;background:var(--bg);border-radius:3px;overflow:hidden}
+.ml-rtg .rf{height:100%;border-radius:3px}
+.ml-rtg .rv{width:30px;text-align:right;font-weight:600;font-size:10px}
+.ml-pub-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.ml-pub-item{background:var(--bg);border-radius:8px;padding:10px;text-align:center}
+.ml-pub-item .pn{font-size:22px;font-weight:800;color:var(--ink)}
+.ml-pub-item .pl{font-size:10px;color:var(--muted);font-weight:500}
+.ml-chart-wrap{height:90px;display:flex;align-items:flex-end;gap:5px;padding-bottom:20px;position:relative;margin-top:6px}
+.ml-bar-w{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;height:100%;justify-content:flex-end}
+.ml-bar-inner{width:100%;border-radius:4px 4px 0 0;background:rgba(245,158,11,.2);transition:background .25s;cursor:pointer;min-height:4px}
+.ml-bar-inner.active{background:#f59e0b}
+.ml-bar-lbl{font-size:8px;color:var(--muted);font-weight:600;position:absolute;bottom:2px}
+.ml-top-t{width:100%;border-collapse:collapse;font-size:12px}
+.ml-top-t th{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;padding:6px 8px;border-bottom:2px solid var(--line);text-align:left}
+.ml-top-t th:not(:first-child){text-align:right}
+.ml-top-t td{padding:8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.ml-top-t tr:last-child td{border-bottom:none}
+.ml-top-t td:not(:first-child){text-align:right;font-weight:600}
+.ml-rank{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;background:var(--bg);color:var(--muted);margin-right:6px;flex-shrink:0;vertical-align:middle}
+.ml-rank.r1{background:#fef9c3;color:#a16207}
+.ml-rank.r2{background:#f8fafc;color:#475569}
+.ml-rank.r3{background:#fff7ed;color:#c2410c}
+.ml-q-stats{display:flex;gap:12px;margin-top:6px}
+.ml-q-stat{flex:1;background:var(--bg);border-radius:8px;padding:12px;text-align:center}
+.ml-q-num{font-size:26px;font-weight:800;color:var(--ink)}
+.ml-q-lbl{font-size:10px;color:var(--muted);font-weight:500;margin-top:2px}
+
 /* ── Recursos submodule tabs ──────────────────────────────────────── */
 .recursos-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;background:var(--bg);border-radius:10px;padding:5px;width:fit-content}
 .recursos-tab{padding:8px 20px;font-size:12px;font-weight:500;border-radius:7px;cursor:pointer;border:none;background:transparent;color:var(--muted);display:inline-flex;align-items:center;gap:7px;transition:all .15s}
@@ -1923,6 +1981,9 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           <button class="recursos-tab" onclick="switchRecursosTab('marketing',this)">
             <i class="ti ti-sparkles"></i> Marketing
           </button>
+          <button class="recursos-tab" onclick="switchRecursosTab('ml',this)">
+            <i class="ti ti-brand-mercado-libre" style="color:#f59e0b"></i> Mercado Libre
+          </button>
         </div>
 
         <!-- ===== SUBMODULO MERCHANDISER ===== -->
@@ -2336,6 +2397,12 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           </div>
         </div>
         </div><!-- /recursos-panel-marketing -->
+
+        <!-- ===== SUBMODULO MERCADO LIBRE ===== -->
+        <div class="recursos-panel" id="recursos-panel-ml">
+          <div id="mlDashboard"></div>
+        </div>
+
       </div>
 
 
@@ -7190,6 +7257,171 @@ function switchRecursosTab(name, el) {
   document.querySelectorAll('.recursos-panel').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('recursos-panel-' + name).classList.add('active');
+  if (name === 'ml') renderMLFull(_mlMesActivo || '2026-06');
+}
+
+/* ═══════════════════════════════════════════════════════
+   MERCADO LIBRE DASHBOARD
+═══════════════════════════════════════════════════════ */
+var ML_2026_DATA = {
+  meses: {
+    '2026-01': { ventas: 1596250, ordenes: 2017, unidades: 4910, skus: 124, top: [] },
+    '2026-02': { ventas: 1226812, ordenes: 1339, unidades: 5258, skus: 113, top: [] },
+    '2026-03': { ventas: 1031267, ordenes: 1091, unidades: 4662, skus: 115, top: [] },
+    '2026-04': { ventas: 1036060, ordenes: 935,  unidades: 2150, skus: 118, top: [] },
+    '2026-05': { ventas: 963153, ordenes: 1017, unidades: 4657, skus: 119,
+      top: [
+        { titulo: 'Soldadura Electrodo 6013 1/8" Maraga 20kg', ingresos: 58392, unidades: 46 },
+        { titulo: 'Clavos Pistola Neumática Maraga 2" 9000pz', ingresos: 57027, unidades: 67 },
+        { titulo: 'Disco Diamante Corte Metal 14"', ingresos: 47029, unidades: 35 },
+        { titulo: 'Clavos Pistola Neumática Maraga 2½" 9000pz', ingresos: 46748, unidades: 52 },
+        { titulo: 'Cortadora Metal Maraga 2400W 14"', ingresos: 44438, unidades: 21 }
+      ]
+    },
+    '2026-06': { ventas: 314728, ordenes: 573, unidades: 1174, skus: 60, parcial: true, parcialLabel: 'al 14 de junio',
+      top: [
+        { titulo: 'Careta Electrónica Maraga Free450 Sombra 11', ingresos: 65388, unidades: null },
+        { titulo: 'Soldadora Inverter Maraga 300A · Arc300dv', ingresos: 48596, unidades: null },
+        { titulo: 'Soldadora Inversora Maraga ARC200 200A', ingresos: 35274, unidades: null },
+        { titulo: 'Disco Diamante Corte Metal Maraga 14"', ingresos: 22379, unidades: null },
+        { titulo: 'Pistola de Clavos Maraga CN70 1½ a 2¾"', ingresos: 21224, unidades: null }
+      ]
+    }
+  },
+  reputacion: {
+    nivelLabel: 'MercadoLíder Platinum',
+    transacciones: { total: 17677, completadas: 17112, canceladas: 565 },
+    ratings: { positivo: 81, neutral: 8, negativo: 11 },
+    ultimos60: { ventas: 1879, reclamos: { rate: 0.41, valor: 8 }, demoras: { rate: 3.97, valor: 72 }, cancelaciones: { rate: 0, valor: 0 } }
+  },
+  publicaciones: { activas: 646, pausadas: 138 },
+  preguntas: { sinResponder: 0, respondidas: 561 }
+};
+
+var _mlMesActivo = '2026-06';
+
+function setMLMes(mes) {
+  _mlMesActivo = mes;
+  document.querySelectorAll('.ml-mpill').forEach(function(p) { p.classList.toggle('active', p.dataset.mes === mes); });
+  document.querySelectorAll('.ml-bar-inner').forEach(function(b) { b.classList.toggle('active', b.dataset.mes === mes); });
+  _renderMLKpis(mes);
+  _renderMLTops(mes);
+}
+
+function _renderMLKpis(mes) {
+  var d = ML_2026_DATA.meses[mes] || {};
+  var ticket = d.ordenes ? Math.round(d.ventas / d.ordenes) : 0;
+  var parcialTag = d.parcial ? '<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;background:#fef9c3;color:#a16207;border-radius:3px;padding:2px 6px;font-weight:600">◉ ' + (d.parcialLabel || 'parcial') + '</span>' : '';
+  var el = document.getElementById('mlKpis');
+  if (!el) return;
+  el.innerHTML =
+    '<div class="ml-kpi"><div class="ml-kpi-lbl"><i class="ti ti-currency-peso"></i> Ventas</div><div class="ml-kpi-val">$' + (d.ventas||0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div><div class="ml-kpi-sub">' + parcialTag + '</div></div>' +
+    '<div class="ml-kpi"><div class="ml-kpi-lbl"><i class="ti ti-shopping-bag"></i> Órdenes</div><div class="ml-kpi-val">' + (d.ordenes||0).toLocaleString('es-MX') + '</div><div class="ml-kpi-sub">' + (d.unidades||0).toLocaleString('es-MX') + ' unidades</div></div>' +
+    '<div class="ml-kpi"><div class="ml-kpi-lbl"><i class="ti ti-receipt"></i> Ticket Prom.</div><div class="ml-kpi-val">$' + ticket.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div><div class="ml-kpi-sub">MXN por orden</div></div>' +
+    '<div class="ml-kpi"><div class="ml-kpi-lbl"><i class="ti ti-package"></i> SKUs Vendidos</div><div class="ml-kpi-val">' + (d.skus||0) + '</div><div class="ml-kpi-sub">productos distintos</div></div>';
+}
+
+function _renderMLTops(mes) {
+  var el = document.getElementById('mlTops');
+  if (!el) return;
+  var tops = (ML_2026_DATA.meses[mes] || {}).top || [];
+  if (!tops.length) {
+    el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:12px"><i class="ti ti-chart-bar" style="font-size:28px;display:block;margin-bottom:8px;opacity:.4"></i>Sin datos de top productos para este mes</div>';
+    return;
+  }
+  var rankCls = ['r1','r2','r3','',''];
+  el.innerHTML = '<table class="ml-top-t"><thead><tr><th>#</th><th>Producto</th><th>Ingresos</th><th>Unidades</th></tr></thead><tbody>' +
+    tops.map(function(t, i) {
+      return '<tr><td><span class="ml-rank ' + (rankCls[i]||'') + '">' + (i+1) + '</span></td>' +
+        '<td>' + t.titulo + '</td>' +
+        '<td>$' + (t.ingresos||0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '</td>' +
+        '<td>' + (t.unidades != null ? t.unidades : '—') + '</td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+function renderMLFull(mes) {
+  var el = document.getElementById('mlDashboard');
+  if (!el) return;
+  _mlMesActivo = mes;
+  var r = ML_2026_DATA.reputacion;
+  var pub = ML_2026_DATA.publicaciones;
+  var q = ML_2026_DATA.preguntas;
+  var KEYS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06'];
+  var ABBR = ['Ene','Feb','Mar','Abr','May','Jun'];
+
+  // Pills
+  var pillsHtml = KEYS.map(function(k, i) {
+    var isParcial = ML_2026_DATA.meses[k] && ML_2026_DATA.meses[k].parcial;
+    return '<button class="ml-mpill' + (k===mes?' active':'') + '" data-mes="' + k + '" onclick="setMLMes(\'' + k + '\')">' +
+      ABBR[i] + (isParcial ? ' <span style="font-size:8px">◉</span>' : '') + '</button>';
+  }).join('');
+
+  // Bar chart
+  var maxV = Math.max.apply(null, KEYS.map(function(k){ return (ML_2026_DATA.meses[k]||{}).ventas||0; }));
+  var barsHtml = '<div class="ml-chart-wrap" style="position:relative">' +
+    KEYS.map(function(k, i) {
+      var v = (ML_2026_DATA.meses[k]||{}).ventas || 0;
+      var h = maxV > 0 ? Math.max(4, Math.round((v/maxV)*70)) : 4;
+      return '<div class="ml-bar-w" style="position:relative">' +
+        '<div class="ml-bar-inner' + (k===mes?' active':'') + '" data-mes="' + k + '" onclick="setMLMes(\'' + k + '\')" style="height:' + h + 'px" title="$' + v.toLocaleString('es-MX',{maximumFractionDigits:0}) + '"></div>' +
+        '<span class="ml-bar-lbl">' + ABBR[i] + '</span></div>';
+    }).join('') + '</div>';
+
+  // Ratings
+  var ratingsHtml = [
+    {l:'Positivas', v:r.ratings.positivo, c:'#22c55e'},
+    {l:'Neutrales',  v:r.ratings.neutral,  c:'#f59e0b'},
+    {l:'Negativas',  v:r.ratings.negativo, c:'#ef4444'}
+  ].map(function(rt){
+    return '<div class="ml-rtg"><span class="rl">' + rt.l + '</span><div class="rt"><div class="rf" style="width:' + rt.v + '%;background:' + rt.c + '"></div></div><span class="rv" style="color:' + rt.c + '">' + rt.v + '%</span></div>';
+  }).join('');
+
+  el.innerHTML =
+    '<div class="ml-month-pills">' + pillsHtml + '</div>' +
+    '<div class="ml-kpis" id="mlKpis"></div>' +
+    '<div class="ml-grid2">' +
+      '<div>' +
+        '<div class="ml-card">' +
+          '<div class="ml-card-h"><i class="ti ti-shield-star"></i> Reputación</div>' +
+          '<div class="ml-rep-level"><div class="ml-rep-dot"></div><div><div class="ml-rep-lvl">' + r.nivelLabel + '</div><div class="ml-rep-sub">Vendedor verificado · ' + r.transacciones.completadas.toLocaleString('es-MX') + ' ventas históricas</div></div></div>' +
+          '<div class="ml-rtg-wrap">' + ratingsHtml + '</div>' +
+          '<div class="ml-stat"><span class="sk">Ventas (últimos 60d)</span><span class="sv green">' + r.ultimos60.ventas.toLocaleString('es-MX') + '</span></div>' +
+          '<div class="ml-stat"><span class="sk">Reclamos (60d)</span><span class="sv">' + r.ultimos60.reclamos.rate + '% · ' + r.ultimos60.reclamos.valor + ' casos</span></div>' +
+          '<div class="ml-stat"><span class="sk">Demoras despacho (60d)</span><span class="sv">' + r.ultimos60.demoras.rate + '% · ' + r.ultimos60.demoras.valor + ' envíos</span></div>' +
+          '<div class="ml-stat"><span class="sk">Cancelaciones (60d)</span><span class="sv green">0% · 0 casos</span></div>' +
+          '<div class="ml-stat"><span class="sk">Transacciones históricas</span><span class="sv">' + r.transacciones.total.toLocaleString('es-MX') + ' total · ' + r.transacciones.canceladas + ' canceladas</span></div>' +
+        '</div>' +
+        '<div class="ml-card">' +
+          '<div class="ml-card-h"><i class="ti ti-list"></i> Publicaciones</div>' +
+          '<div class="ml-pub-row">' +
+            '<div class="ml-pub-item"><div class="pn" style="color:#22c55e">' + pub.activas + '</div><div class="pl">Activas</div></div>' +
+            '<div class="ml-pub-item"><div class="pn" style="color:#f59e0b">' + pub.pausadas + '</div><div class="pl">Pausadas</div></div>' +
+          '</div>' +
+          '<div class="ml-stat" style="margin-top:10px"><span class="sk">Total catálogo</span><span class="sv">' + (pub.activas + pub.pausadas) + ' publicaciones</span></div>' +
+        '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="ml-card">' +
+          '<div class="ml-card-h"><i class="ti ti-chart-area"></i> Evolución de Ventas 2026</div>' +
+          barsHtml +
+        '</div>' +
+        '<div class="ml-card">' +
+          '<div class="ml-card-h"><i class="ti ti-message-circle"></i> Preguntas</div>' +
+          '<div class="ml-q-stats">' +
+            '<div class="ml-q-stat"><div class="ml-q-num" style="color:' + (q.sinResponder > 0 ? 'var(--red)' : '#22c55e') + '">' + q.sinResponder + '</div><div class="ml-q-lbl">Sin responder</div></div>' +
+            '<div class="ml-q-stat"><div class="ml-q-num">' + q.respondidas + '</div><div class="ml-q-lbl">Respondidas (total)</div></div>' +
+          '</div>' +
+          (q.sinResponder === 0 ? '<p style="font-size:11px;color:var(--muted);margin-top:12px;margin-bottom:0;display:flex;align-items:center;gap:6px"><i class="ti ti-circle-check" style="color:#22c55e;font-size:14px"></i> Todas las preguntas están respondidas</p>' : '') +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="ml-card" style="margin-bottom:0">' +
+      '<div class="ml-card-h"><i class="ti ti-trophy"></i> Top Productos del Mes</div>' +
+      '<div id="mlTops"></div>' +
+    '</div>';
+
+  _renderMLKpis(mes);
+  _renderMLTops(mes);
 }
 
 function switchAdminTab(name, el) {
