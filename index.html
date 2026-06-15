@@ -8035,9 +8035,6 @@ function mlRefreshCurrentMonth() {
         (page.results || []).forEach(function(order) {
           if (seen[order.id]) return;
           seen[order.id] = true; sampledN++;
-          var ok = !(order.payments && order.payments.length) ||
-            order.payments.some(function(p){ return p.status === 'approved'; });
-          if (!ok) return;
           (order.order_items || []).forEach(function(it) {
             var t = (it.item && it.item.title) ? it.item.title : 'Producto';
             var q = it.quantity || 0, p = it.unit_price || 0;
