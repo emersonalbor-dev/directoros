@@ -7852,9 +7852,13 @@ function loadMLPublicidad() {
     .then(function(result) {
       if (!result) return;
       return Promise.all(result.ids.map(function(id) {
-        return mlApiFetch('https://api.mercadolibre.com/advertising/product_ads/' + id)
-          .then(function(ad) { return { id: id, ad: ad }; })
-          .catch(function() { return { id: id, ad: null }; });
+        // La API de publicidad requiere Authorization header, no acepta ?access_token=
+        return fetch('https://api.mercadolibre.com/advertising/product_ads/' + id, {
+          headers: { 'Authorization': 'Bearer ' + ML_TOKEN }
+        }).then(function(r) {
+          if (!r.ok) return { id: id, ad: null };
+          return r.json().then(function(json) { return { id: id, ad: json }; });
+        }).catch(function() { return { id: id, ad: null }; });
       })).then(function(adResults) {
         var adMap = {};
         adResults.forEach(function(r) { adMap[r.id] = r.ad; });
