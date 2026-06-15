@@ -8434,7 +8434,141 @@ function _mlEstadoRender(acc, mes) {
       '</div>';
   }
 
-  contentEl.innerHTML = summaryHtml + html;
+  contentEl.innerHTML = summaryHtml + html +
+    '<div id="mlEstadoAds" style="margin-top:20px"><div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando desglose de publicidad...</div></div>';
+
+  _mlEstadoLoadAds(mes);
+}
+
+function _mlEstadoLoadAds(mes) {
+  var el = document.getElementById('mlEstadoAds');
+  if (!el) return;
+
+  // Date range for the month
+  var yr = parseInt(mes.slice(0,4)), mo = parseInt(mes.slice(5,7));
+  var dateFrom = mes + '-01';
+  var lastDay = new Date(yr, mo, 0).getDate();
+  var dateTo = mes + '-' + String(lastDay).padStart(2,'0');
+
+  // 1. Get ALL ads grouped by campaign_id
+  var allAds = [], offset = 0;
+  function fetchAdsPage() {
+    return mlApiFetch('https://api.mercadolibre.com/advertising/product_ads/ads/search?seller_id=' + ML_SELLER_ID + '&limit=100&offset=' + offset)
+    .then(function(d) {
+      var results = d.results || [];
+      allAds = allAds.concat(results);
+      offset += results.length;
+      var total = (d.paging||{}).total || results.length;
+      if (results.length === 100 && offset < total) return fetchAdsPage();
+    });
+  }
+
+  fetchAdsPage().then(function() {
+    // Group by campaign
+    var byCampaign = {};
+    allAds.forEach(function(ad) {
+      var cid = ad.campaign_id;
+      if (!cid) return;
+      if (!byCampaign[cid]) byCampaign[cid] = [];
+      byCampaign[cid].push(ad);
+    });
+    var campaignIds = Object.keys(byCampaign).filter(function(c){ return c !== '0'; });
+
+    // 2. Fetch campaign info + metrics for each campaign in parallel
+    return Promise.all(campaignIds.map(function(cid) {
+      return Promise.all([
+        mlApiFetch('https://api.mercadolibre.com/advertising/product_ads/campaigns/' + cid + '?seller_id=' + ML_SELLER_ID),
+        mlApiFetch('https://api.mercadolibre.com/advertising/product_ads/campaigns/' + cid + '/metrics?seller_id=' + ML_SELLER_ID + '&date_from=' + dateFrom + '&date_to=' + dateTo)
+      ]).then(function(res) {
+        return { info: res[0], metrics: res[1], ads: byCampaign[cid] };
+      }).catch(function() { return null; });
+    }));
+  }).then(function(campaigns) {
+    _mlEstadoRenderAds(campaigns.filter(Boolean), mes);
+  }).catch(function(e) {
+    if (el) el.innerHTML = '<div style="padding:12px;color:var(--muted);font-size:12px">No se pudo cargar el desglose de publicidad: ' + e.message + '</div>';
+  });
+}
+
+function _mlEstadoRenderAds(campaigns, mes) {
+  var el = document.getElementById('mlEstadoAds');
+  if (!el) return;
+
+  // Filter campaigns that had spend in the period
+  var active = campaigns.filter(function(c){ return (c.metrics.cost||0) > 0; })
+    .sort(function(a,b){ return (b.metrics.cost||0) - (a.metrics.cost||0); });
+
+  if (!active.length) {
+    el.innerHTML = '<div style="margin-top:8px;font-size:12px;color:var(--muted)">Sin gasto en publicidad este mes.</div>';
+    return;
+  }
+
+  var html = '<div style="border-top:2px solid var(--line);margin-top:4px;padding-top:16px">' +
+    '<div style="font-size:12px;font-weight:800;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px"><i class="ti ti-speakerphone" style="color:#d97706"></i> Desglose de Publicidad por Campaña</div>';
+
+  active.forEach(function(c) {
+    var info = c.info, m = c.metrics, ads = c.ads;
+    var cost = m.cost || 0;
+    var clicks = m.clicks || 0;
+    var tacos = m.tacos || 0;
+    var roas = m.roas_target || (info.roas_target||0);
+    var activeAds = ads.filter(function(a){ return a.status === 'active'; });
+    var estPerAd = activeAds.length > 0 ? cost / activeAds.length : 0;
+    var statusColor = info.status === 'active' ? '#059669' : '#6b7280';
+    var statusBg    = info.status === 'active' ? '#d1fae5' : '#f3f4f6';
+
+    html +=
+      '<div style="margin-bottom:18px;border:1px solid var(--line);border-radius:10px;overflow:hidden">' +
+        // Campaign header
+        '<div style="background:var(--bg);padding:10px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border)">' +
+          '<span style="font-weight:700;font-size:13px;color:var(--ink)">' + (info.name||('Campaña '+c.info.id)) + '</span>' +
+          '<span style="padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:' + statusBg + ';color:' + statusColor + '">' + info.status + '</span>' +
+          '<span style="margin-left:auto;font-size:12px;font-weight:800;color:#b45309">$' + cost.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</span>' +
+          '<span style="font-size:10px;color:var(--muted)">' + clicks + ' clics · TACOS ' + tacos + '%</span>' +
+        '</div>' +
+        // Items table
+        '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead>' +
+          '<tr style="border-bottom:1px solid var(--border)">' +
+            '<th style="text-align:left;padding:7px 12px;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Publicación</th>' +
+            '<th style="padding:7px 12px;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Estado</th>' +
+            '<th style="text-align:right;padding:7px 12px;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Precio</th>' +
+            (estPerAd > 0 ? '<th style="text-align:right;padding:7px 12px;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Costo est.</th>' : '') +
+          '</tr></thead><tbody>';
+
+    var sortedAds = ads.slice().sort(function(a,b){
+      var order = {active:0,paused:1,disabled:2};
+      return (order[a.status]||2) - (order[b.status]||2);
+    });
+
+    sortedAds.forEach(function(ad) {
+      var adStatusColor = ad.status === 'active' ? '#059669' : '#9ca3af';
+      var adStatusBg    = ad.status === 'active' ? '#d1fae5' : '#f3f4f6';
+      var img = ad.thumbnail
+        ? '<img src="' + (ad.thumbnail||'').replace('http://','https://') + '" style="width:28px;height:28px;object-fit:cover;border-radius:3px;vertical-align:middle;margin-right:7px">'
+        : '';
+      html +=
+        '<tr style="border-bottom:1px solid var(--border);' + (ad.status==='active'?'':'opacity:.6') + '">' +
+          '<td style="padding:7px 12px">' + img +
+            '<span style="font-weight:600">' + (ad.title||ad.id).slice(0,55) + ((ad.title||'').length>55?'…':'') + '</span>' +
+            '<span style="display:block;font-size:10px;color:var(--muted)">' + ad.id + ' · $' + (ad.price||0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '</span>' +
+          '</td>' +
+          '<td style="padding:7px 12px;text-align:center">' +
+            '<span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:' + adStatusBg + ';color:' + adStatusColor + '">' + ad.status + '</span>' +
+          '</td>' +
+          '<td style="padding:7px 12px;text-align:right;color:var(--muted)">$' + (ad.price||0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '</td>' +
+          (estPerAd > 0 ? '<td style="padding:7px 12px;text-align:right;color:' + (ad.status==='active'?'#b45309':'var(--muted)') + ';font-weight:' + (ad.status==='active'?'700':'400') + '">' + (ad.status==='active'?'~$'+Math.round(estPerAd).toLocaleString('es-MX'):'—') + '</td>' : '') +
+        '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    if (estPerAd > 0) {
+      html += '<div style="padding:6px 12px;font-size:10px;color:var(--muted);background:var(--bg);border-top:1px solid var(--border)">* Costo estimado = $' + cost.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' total campaña ÷ ' + activeAds.length + ' publicaciones activas</div>';
+    }
+    html += '</div>';
+  });
+
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 /* ── ACTUALIZAR MES ACTUAL EN VIVO ─────────────────────────────────── */
