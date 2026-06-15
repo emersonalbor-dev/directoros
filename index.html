@@ -7362,7 +7362,7 @@ var ML_2026_DATA = {
         { titulo: 'Clavos Pistola Neumática Maraga 2-1/2" 9000pz', ingresos: 11687, unidades: 13 }
       ]
     },
-    '2026-06': { ventas: 488444, ordenes: 524, unidades: 598, skus: 87, parcial: true, parcialLabel: 'al 14 de junio',
+    '2026-06': { ventas: 489022, ordenes: 525, unidades: 599, skus: 87, parcial: true, parcialLabel: 'al 15 de junio',
       top: [
         { titulo: 'Careta Electrónica Maraga Free450 Sombra 11 Negro/Rojo', ingresos: 83844, unidades: 159 },
         { titulo: 'Soldadora Inverter Maraga 300A Arc300dv', ingresos: 48596, unidades: 4 },
@@ -7788,10 +7788,14 @@ function mlResponder(qId) {
 /* ── PUBLICIDAD TAB ─────────────────────────────────────────────────── */
 var _mlAdsData = null;
 var _mlAdsFilter = 'all';
+var _mlAdsState = { offset: 0, total: 0 };
+var ML_ADS_PAGE = 20;
 
 function renderMLTab_publicidad() {
   _mlAdsData = null;
   _mlAdsFilter = 'all';
+  _mlAdsState.offset = 0;
+  _mlAdsState.total = 0;
   var el = document.getElementById('mlTabContent');
   if (!el) return;
   el.innerHTML =
@@ -7804,13 +7808,33 @@ function renderMLTab_publicidad() {
         '<a href="https://publicidad.mercadolibre.com.mx/" target="_blank" style="margin-left:auto;font-size:11px;color:#f59e0b;font-weight:600;text-decoration:none">Ir a ML Publicidad <i class="ti ti-external-link" style="font-size:10px"></i></a>' +
       '</div>' +
       '<div id="mlAdsContent"><div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando publicaciones...</div></div>' +
+      '<div id="mlAdsPager" style="display:none;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">' +
+        '<button id="mlAdsPrev" onclick="mlAdsPage(-1)" style="padding:6px 16px;font-size:12px;font-weight:600;border:1.5px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;cursor:pointer"><i class="ti ti-chevron-left"></i> Anterior</button>' +
+        '<span id="mlAdsPagerInfo" style="font-size:12px;color:var(--muted)"></span>' +
+        '<button id="mlAdsNext" onclick="mlAdsPage(1)" style="padding:6px 16px;font-size:12px;font-weight:600;border:1.5px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;cursor:pointer">Siguiente <i class="ti ti-chevron-right"></i></button>' +
+      '</div>' +
     '</div>';
   if (!ML_TOKEN) { document.getElementById('mlAdsContent').innerHTML = '<div class="ml-no-token"><i class="ti ti-key"></i> Ingresa el token para continuar</div>'; return; }
+  loadMLPublicidad();
+}
 
-  mlApiFetch('https://api.mercadolibre.com/users/' + ML_SELLER_ID + '/items/search?status=active&limit=20&offset=0')
+function mlAdsPage(dir) {
+  var newOffset = _mlAdsState.offset + dir * ML_ADS_PAGE;
+  if (newOffset < 0 || newOffset >= _mlAdsState.total) return;
+  _mlAdsState.offset = newOffset;
+  loadMLPublicidad();
+}
+
+function loadMLPublicidad() {
+  var contentEl = document.getElementById('mlAdsContent');
+  if (!contentEl) return;
+  contentEl.innerHTML = '<div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando...</div>';
+
+  mlApiFetch('https://api.mercadolibre.com/users/' + ML_SELLER_ID + '/items/search?status=active&limit=' + ML_ADS_PAGE + '&offset=' + _mlAdsState.offset)
     .then(function(data) {
+      _mlAdsState.total = (data.paging || {}).total || 0;
       var ids = data.results || [];
-      if (!ids.length) { document.getElementById('mlAdsContent').innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Sin publicaciones activas</div>'; return; }
+      if (!ids.length) { contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Sin publicaciones activas</div>'; return; }
       return mlApiFetch('https://api.mercadolibre.com/items?ids=' + ids.join(','))
         .then(function(items) { return { ids: ids, items: items }; });
     })
@@ -7828,7 +7852,6 @@ function renderMLTab_publicidad() {
     })
     .then(function(r) {
       if (!r) return;
-      // Build enriched list and separate by ad status
       var conAnuncio = [], sinAnuncio = [];
       r.items.forEach(function(w) {
         var it = w.body || w;
@@ -7839,7 +7862,6 @@ function renderMLTab_publicidad() {
         else sinAnuncio.push(obj);
       });
       _mlAdsData = { conAnuncio: conAnuncio, sinAnuncio: sinAnuncio };
-      // Update button labels with counts
       var fAll = document.getElementById('mlAdsFAll');
       var fCon = document.getElementById('mlAdsFCon');
       var fSin = document.getElementById('mlAdsFSin');
@@ -7848,7 +7870,7 @@ function renderMLTab_publicidad() {
       if (fSin) fSin.textContent = 'Sin anuncio (' + sinAnuncio.length + ')';
       mlAdsRender();
     })
-    .catch(function(e) { document.getElementById('mlAdsContent').innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>'; });
+    .catch(function(e) { contentEl.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>'; });
 }
 
 function mlAdsSetFilter(filter, btn) {
@@ -7886,7 +7908,7 @@ function mlAdsRender() {
   }
 
   function buildTable(items) {
-    if (!items.length) return '<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px">Sin resultados</div>';
+    if (!items.length) return '<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px">Sin resultados en esta página</div>';
     return '<div style="overflow-x:auto"><table class="ml-top-t"><thead><tr><th style="text-align:left">Publicación</th><th>Estado</th><th>Presupuesto</th><th>Acción</th></tr></thead><tbody>' +
       items.map(buildRow).join('') + '</tbody></table></div>';
   }
@@ -7897,7 +7919,6 @@ function mlAdsRender() {
   } else if (_mlAdsFilter === 'sin') {
     html = buildTable(_mlAdsData.sinAnuncio);
   } else {
-    // Todos: two sections
     if (_mlAdsData.conAnuncio.length) {
       html += '<div style="font-size:11px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;align-items:center;gap:6px"><i class="ti ti-speakerphone"></i> Con anuncio · ' + _mlAdsData.conAnuncio.length + '</div>';
       html += buildTable(_mlAdsData.conAnuncio);
@@ -7907,8 +7928,19 @@ function mlAdsRender() {
       html += buildTable(_mlAdsData.sinAnuncio);
     }
   }
-  html += '<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:8px">Mostrando primeras 20 publicaciones activas</div>';
   el.innerHTML = html;
+
+  // Update pager
+  var from = _mlAdsState.offset + 1;
+  var to = Math.min(_mlAdsState.offset + ML_ADS_PAGE, _mlAdsState.total);
+  var pager = document.getElementById('mlAdsPager');
+  var pagerInfo = document.getElementById('mlAdsPagerInfo');
+  var prevBtn = document.getElementById('mlAdsPrev');
+  var nextBtn = document.getElementById('mlAdsNext');
+  if (pager) pager.style.display = _mlAdsState.total > ML_ADS_PAGE ? 'flex' : 'none';
+  if (pagerInfo) pagerInfo.textContent = from + '–' + to + ' de ' + _mlAdsState.total;
+  if (prevBtn) prevBtn.disabled = _mlAdsState.offset === 0;
+  if (nextBtn) nextBtn.disabled = to >= _mlAdsState.total;
 }
 
 function mlActivateAd(itemId) {
