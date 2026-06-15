@@ -9369,7 +9369,7 @@ function loadMLEstado(mes) {
   function fetchPage(fromId) {
     if (gen !== _mlEstadoGen) return Promise.resolve(); // cancelled
     var url = 'https://api.mercadolibre.com/billing/integration/periods/key/' + periodKey +
-      '/group/ML/details?limit=1000&from_id=' + fromId + '&sort_by=ID&order_by=ASC';
+      '/group/ML/details?document_type=BILL&limit=1000&from_id=' + fromId + '&sort_by=ID&order_by=ASC';
     return mlApiFetch(url).then(function(data) {
       if (gen !== _mlEstadoGen) return; // cancelled
       var results = data.results || [];
