@@ -258,6 +258,18 @@ async function main() {
   const ok = updateIndexHtml(monthKey, data, parcialLabel);
   if (ok) {
     process.stderr.write(`index.html actualizado con datos de Walmart ${monthKey}\n`);
+
+    // Commit y push automático
+    try {
+      const { execSync } = require('child_process');
+      const cwd = require('path').dirname(require('fs').realpathSync(__filename));
+      execSync('git add index.html', { cwd });
+      execSync(`git commit -m "Walmart ${monthKey}: $${data.total.toLocaleString('es-MX')} · ${data.ordenes} ordenes · ${parcialLabel}"`, { cwd });
+      execSync('git push', { cwd });
+      process.stderr.write('Cambios publicados en GitHub\n');
+    } catch (e) {
+      process.stderr.write(`WARN git: ${e.message}\n`);
+    }
   }
 
   // Output JSON (para revisión)

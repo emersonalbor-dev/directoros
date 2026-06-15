@@ -4873,6 +4873,17 @@ async function actualizarVentas() {
       if (_directo.walmart)      data.walmart      = _directo.walmart;
     }
 
+    // Walmart desde servidor local (localhost:3001) — supera la limitación de CORS
+    if (_esActual) {
+      try {
+        var _wRes = await fetch('http://localhost:3001/walmart', { signal: AbortSignal.timeout(15000) });
+        if (_wRes.ok) {
+          var _wLocal = await _wRes.json();
+          if (_wLocal.walmart) data.walmart = _wLocal.walmart;
+        }
+      } catch(e) { /* servidor local no está corriendo, se ignora */ }
+    }
+
     var mes = data.mes || mesSel;
     if (!VENTAS_PLAT_DATA[mes]) VENTAS_PLAT_DATA[mes] = {};
 
