@@ -7841,40 +7841,39 @@ function loadMLPublicidad() {
   if (!contentEl) return;
   contentEl.innerHTML = '<div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando...</div>';
 
-  mlApiFetch('https://api.mercadolibre.com/users/' + ML_SELLER_ID + '/items/search?status=active&limit=' + ML_ADS_PAGE + '&offset=' + _mlAdsState.offset)
+  // Obtener todos los anuncios activos del seller de una sola llamada
+  var adsPromise = mlApiFetch('https://api.mercadolibre.com/advertising/product_ads?limit=200&offset=0')
+    .then(function(data) {
+      var ads = data.results || [];
+      // Construir mapa item_id → ad
+      var adMap = {};
+      ads.forEach(function(ad) { if (ad.item_id) adMap[ad.item_id] = ad; });
+      return adMap;
+    })
+    .catch(function() { return {}; });
+
+  // Obtener ítems de la página actual
+  var pagePromise = mlApiFetch('https://api.mercadolibre.com/users/' + ML_SELLER_ID + '/items/search?status=active&limit=' + ML_ADS_PAGE + '&offset=' + _mlAdsState.offset)
     .then(function(data) {
       _mlAdsState.total = (data.paging || {}).total || 0;
       var ids = data.results || [];
-      if (!ids.length) { contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Sin publicaciones activas</div>'; return; }
-      return mlApiFetch('https://api.mercadolibre.com/items?ids=' + ids.join(','))
-        .then(function(items) { return { ids: ids, items: items }; });
-    })
-    .then(function(result) {
-      if (!result) return;
-      return Promise.all(result.ids.map(function(id) {
-        // La API de publicidad requiere Authorization header, no acepta ?access_token=
-        return fetch('https://api.mercadolibre.com/advertising/product_ads/' + id, {
-          headers: { 'Authorization': 'Bearer ' + ML_TOKEN }
-        }).then(function(r) {
-          if (!r.ok) return { id: id, ad: null };
-          return r.json().then(function(json) { return { id: id, ad: json }; });
-        }).catch(function() { return { id: id, ad: null }; });
-      })).then(function(adResults) {
-        var adMap = {};
-        adResults.forEach(function(r) { adMap[r.id] = r.ad; });
-        return { items: result.items, adMap: adMap };
-      });
-    })
-    .then(function(r) {
-      if (!r) return;
+      if (!ids.length) return null;
+      return mlApiFetch('https://api.mercadolibre.com/items?ids=' + ids.join(','));
+    });
+
+  Promise.all([adsPromise, pagePromise])
+    .then(function(results) {
+      var adMap  = results[0];
+      var items  = results[1];
+      if (!items) { contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Sin publicaciones activas</div>'; return; }
       var conAnuncio = [], sinAnuncio = [];
-      r.items.forEach(function(w) {
+      items.forEach(function(w) {
         var it = w.body || w;
         if (!it || !it.id) return;
-        var ad = r.adMap[it.id];
+        var ad = adMap[it.id] || null;
         var obj = { it: it, ad: ad, adStatus: ad ? ad.status : null };
         if (ad) conAnuncio.push(obj);
-        else sinAnuncio.push(obj);
+        else    sinAnuncio.push(obj);
       });
       _mlAdsData = { conAnuncio: conAnuncio, sinAnuncio: sinAnuncio };
       var fAll = document.getElementById('mlAdsFAll');
