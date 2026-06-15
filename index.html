@@ -7641,7 +7641,7 @@ function renderMLTab_resumen() {
 
 /* ── PUBLICACIONES TAB ─────────────────────────────────────────────── */
 var _mlPubState = { status: 'active', offset: 0, total: 0 };
-var ML_PUB_PAGE = 20;
+var ML_PUB_PAGE = 50;
 
 function renderMLTab_publicaciones() {
   var el = document.getElementById('mlTabContent');
@@ -7917,7 +7917,7 @@ function loadMLPublicidad() {
       _mlAdsState.total = (data.paging || {}).total || 0;
       var ids = data.results || [];
       if (!ids.length) { contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Sin publicaciones activas</div>'; return null; }
-      return mlApiFetch('https://api.mercadolibre.com/items?ids=' + ids.join(',') + '&attributes=id,title,price,available_quantity,tags,thumbnail,permalink');
+      return mlItemsMultiGet(ids, 'id,title,price,available_quantity,tags,thumbnail,permalink');
     })
     .then(function(rawItems) {
       if (!rawItems) return;
