@@ -1,5 +1,5 @@
 const https = require('https');
-const TOKEN = 'APP_USR-3229341112864987-061420-ee54b1d30261d6d7d43aec8f218e5001-244438069';
+const TOKEN = 'APP_USR-3229341112864987-061422-278303d16006fd284bf4ea97c237c137-244438069';
 
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
