@@ -7567,7 +7567,7 @@ function renderMLTab_resumen() {
 
   el.innerHTML =
     '<div class="ml-month-pills" style="align-items:center">' + pillsHtml +
-    '<button id="mlRefreshBtn" onclick="mlRefreshCurrentMonth()" style="margin-left:auto;padding:5px 13px;font-size:11px;font-weight:600;border:1.5px solid var(--line);background:transparent;color:var(--muted);border-radius:20px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s" onmouseover="this.style.borderColor=\'#f59e0b\';this.style.color=\'#d97706\'" onmouseout="this.style.borderColor=\'var(--line)\';this.style.color=\'var(--muted)\'"><i class="ti ti-refresh"></i> Actualizar junio</button>' +
+    (function(){ var now = new Date(); var curKey = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0'); return _mlMesActivo === curKey ? '<button id="mlRefreshBtn" onclick="mlRefreshCurrentMonth()" style="margin-left:auto;padding:5px 13px;font-size:11px;font-weight:600;border:1.5px solid var(--line);background:transparent;color:var(--muted);border-radius:20px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s" onmouseover="this.style.borderColor=\'#f59e0b\';this.style.color=\'#d97706\'" onmouseout="this.style.borderColor=\'var(--line)\';this.style.color=\'var(--muted)\'"><i class="ti ti-refresh"></i> Actualizar</button>' : ''; })() +
     '</div>' +
     '<div class="ml-kpis" id="mlKpis"></div>' +
     '<div class="ml-grid2">' +
@@ -8064,7 +8064,7 @@ function mlRefreshCurrentMonth() {
       else { _renderMLKpis(mes); _renderMLTops(mes); }
     })
     .catch(function(e) {
-      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-refresh"></i> Actualizar junio'; }
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-refresh"></i> Actualizar'; }
       alert('Error al actualizar: ' + e.message);
     });
 }
