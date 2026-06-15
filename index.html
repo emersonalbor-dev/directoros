@@ -7991,12 +7991,26 @@ function _mlAdsRenderCamps(camps) {
 
   var ventaMes = (ML_2026_DATA.meses[_mlAdsMes] || {}).ventas || 0;
 
+  // Build lookup: title (first 45 chars, lowercase) → total item revenue from ML_2026_DATA.top
+  var topItems = (ML_2026_DATA.meses[_mlAdsMes] || {}).top || [];
+  var topByTitle = {};
+  topItems.forEach(function(t) {
+    var k = (t.titulo||'').toLowerCase().slice(0,45).trim();
+    if (k) topByTitle[k] = t.ingresos || 0;
+  });
+  function lookupTotalRev(title) {
+    var k = (title||'').toLowerCase().slice(0,45).trim();
+    return topByTitle[k] || 0;
+  }
+
+  var thS = 'padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase';
   var thead = '<thead><tr style="background:var(--bg);border-bottom:2px solid var(--border)">' +
     '<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Título</th>' +
-    '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Ventas Ads</th>' +
-    '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Ingresos</th>' +
-    '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Inversión</th>' +
-    '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">ACOS</th>' +
+    '<th style="' + thS + '">Ventas Ads</th>' +
+    '<th style="' + thS + '">Ingresos</th>' +
+    '<th style="' + thS + '">Inversión</th>' +
+    '<th style="' + thS + '">ACOS</th>' +
+    '<th style="' + thS + ';color:#6366f1" title="Inversión / Ventas totales del producto">TACOS</th>' +
   '</tr></thead>';
 
   function acosCol(ratio) {
@@ -8005,11 +8019,14 @@ function _mlAdsRenderCamps(camps) {
 
   function row(ad, m) {
     m = m || {};
-    var cost = m.cost || 0;
-    var rev  = m.amount_total || 0;
-    var sold = m.sold_quantity_direct || 0;
-    var acos = rev > 0 ? (cost/rev*100).toFixed(1)+'%' : '—';
-    var ac   = rev > 0 ? acosCol(cost/rev) : 'var(--muted)';
+    var cost     = m.cost || 0;
+    var rev      = m.amount_total || 0;
+    var sold     = m.sold_quantity_direct || 0;
+    var totalRev = lookupTotalRev(ad.title || '');
+    var acos     = rev > 0 ? (cost/rev*100).toFixed(1)+'%' : '—';
+    var ac       = rev > 0 ? acosCol(cost/rev) : 'var(--muted)';
+    var tacos    = totalRev > 0 && cost > 0 ? (cost/totalRev*100).toFixed(1)+'%' : '—';
+    var tc       = totalRev > 0 && cost > 0 ? acosCol(cost/totalRev) : 'var(--muted)';
     var img  = ad.thumbnail
       ? '<img src="' + ad.thumbnail.replace('http://','https://') + '" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0">'
       : '<div style="width:40px;height:40px;border-radius:6px;background:var(--line);flex-shrink:0"></div>';
@@ -8017,7 +8034,7 @@ function _mlAdsRenderCamps(camps) {
     return '<tr style="border-bottom:1px solid var(--border)' + (!active ? ';opacity:.55' : '') + '">' +
       '<td style="padding:10px 12px"><div style="display:flex;align-items:center;gap:10px">' + img +
         '<div>' +
-          '<div style="font-weight:600;font-size:12px;max-width:340px">' + (ad.title||ad.id||'').slice(0,60) + '</div>' +
+          '<div style="font-weight:600;font-size:12px;max-width:320px">' + (ad.title||ad.id||'').slice(0,60) + '</div>' +
           '<div style="font-size:10px;color:var(--muted);margin-top:2px">' + ad.id +
             (ad.price ? ' · $' + Number(ad.price).toLocaleString('es-MX',{maximumFractionDigits:0}) : '') + '</div>' +
         '</div>' +
@@ -8026,6 +8043,9 @@ function _mlAdsRenderCamps(camps) {
       '<td style="padding:10px 12px;text-align:right;font-size:13px">' + (rev > 0 ? '$'+Math.round(rev).toLocaleString('es-MX') : '—') + '</td>' +
       '<td style="padding:10px 12px;text-align:right;font-size:13px;font-weight:700;color:' + (cost>0?'#b45309':'var(--muted)') + '">' + (cost > 0 ? '$'+cost.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—') + '</td>' +
       '<td style="padding:10px 12px;text-align:right;font-size:13px;font-weight:700;color:' + ac + '">' + acos + '</td>' +
+      '<td style="padding:10px 12px;text-align:right;font-size:13px;font-weight:700;color:' + tc + '">' + tacos +
+        (totalRev > 0 ? '<div style="font-size:9px;font-weight:400;color:var(--muted)">$'+Math.round(totalRev).toLocaleString('es-MX')+'</div>' : '') +
+      '</td>' +
     '</tr>';
   }
 
@@ -8040,7 +8060,6 @@ function _mlAdsRenderCamps(camps) {
     var cBg    = cst==='active' ? '#d1fae5' : '#f3f4f6';
     var cCol   = cst==='active' ? '#059669' : '#6b7280';
 
-    // Sum per-item metrics for this campaign
     var campRev = 0, campSold = 0;
     c.ads.forEach(function(ad) {
       var m = c.im[ad.id] || {};
@@ -8053,7 +8072,8 @@ function _mlAdsRenderCamps(camps) {
 
     var campAcos    = campRev > 0 ? (ccost/campRev*100).toFixed(1)+'%' : '—';
     var campAcosCol = campRev > 0 ? acosCol(ccost/campRev) : '#6b7280';
-    var campTacos   = ventaMes > 0 && ccost > 0 ? (ccost/ventaMes*100).toFixed(1)+'%' : '';
+    var campTacos   = ventaMes > 0 && ccost > 0 ? (ccost/ventaMes*100).toFixed(1)+'%' : '—';
+    var campTacosC  = ventaMes > 0 && ccost > 0 ? acosCol(ccost/ventaMes) : '#6b7280';
 
     var sortedAds = c.ads.slice().sort(function(a,b){ return ((c.im[b.id]&&c.im[b.id].cost)||0)-((c.im[a.id]&&c.im[a.id].cost)||0); });
 
@@ -8062,9 +8082,8 @@ function _mlAdsRenderCamps(camps) {
       '<td style="padding:7px 12px;text-align:right;font-size:12px;font-weight:700">' + (campSold > 0 ? campSold : '—') + '</td>' +
       '<td style="padding:7px 12px;text-align:right;font-size:12px;font-weight:700">' + (campRev > 0 ? '$'+Math.round(campRev).toLocaleString('es-MX') : '—') + '</td>' +
       '<td style="padding:7px 12px;text-align:right;font-size:12px;font-weight:800;color:#b45309">' + (ccost > 0 ? '$'+ccost.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—') + '</td>' +
-      '<td style="padding:7px 12px;text-align:right;font-size:12px;font-weight:800;color:' + campAcosCol + '">' + campAcos +
-        (campTacos ? '<div style="font-size:10px;font-weight:500;color:var(--muted)">TACOS ' + campTacos + '</div>' : '') +
-      '</td>' +
+      '<td style="padding:7px 12px;text-align:right;font-size:12px;font-weight:800;color:' + campAcosCol + '">' + campAcos + '</td>' +
+      '<td style="padding:7px 12px;text-align:right;font-size:12px;font-weight:800;color:' + campTacosC + '">' + campTacos + '</td>' +
     '</tr>';
 
     html += '<div style="margin-bottom:22px;border:1px solid var(--line);border-radius:10px;overflow:hidden">' +
@@ -8083,13 +8102,14 @@ function _mlAdsRenderCamps(camps) {
   var gAcos  = grandRev > 0 ? (grandCost/grandRev*100).toFixed(1)+'%' : '—';
   var gAcosC = grandRev > 0 ? acosCol(grandCost/grandRev) : '#6b7280';
   var gTacos = ventaMes > 0 && grandCost > 0 ? (grandCost/ventaMes*100).toFixed(1)+'%' : '—';
+  var gTacosC = ventaMes > 0 && grandCost > 0 ? acosCol(grandCost/ventaMes) : '#6b7280';
   html += '<div style="background:var(--bg);border:2px solid var(--line);border-radius:10px;padding:12px 18px;display:flex;gap:20px;flex-wrap:wrap;align-items:center">' +
     '<span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Total general</span>' +
     '<span style="font-size:13px"><b>' + grandSold + '</b> ventas</span>' +
     '<span style="font-size:13px"><b>$' + Math.round(grandRev).toLocaleString('es-MX') + '</b> ingresos</span>' +
     '<span style="font-size:15px;font-weight:800;color:#b45309">$' + grandCost.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</span>' +
     '<span style="font-size:13px;font-weight:700;color:' + gAcosC + '">ACOS ' + gAcos + '</span>' +
-    (ventaMes > 0 ? '<span style="font-size:13px;font-weight:700;color:var(--muted)">TACOS ' + gTacos + '</span>' : '') +
+    '<span style="font-size:13px;font-weight:700;color:' + gTacosC + '">TACOS ' + gTacos + '</span>' +
   '</div>';
 
   el.innerHTML = html;
