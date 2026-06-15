@@ -7460,6 +7460,17 @@ function mlApiFetch(url, opts) {
   });
 }
 
+// ML multi-get en lotes de 20 (límite del API)
+function mlItemsMultiGet(ids, attrs) {
+  var batches = [], size = 20;
+  for (var i = 0; i < ids.length; i += size) batches.push(ids.slice(i, i + size));
+  var base = 'https://api.mercadolibre.com/items?ids=';
+  var suffix = attrs ? ('&attributes=' + attrs) : '';
+  return Promise.all(batches.map(function(b) {
+    return mlApiFetch(base + b.join(',') + suffix);
+  })).then(function(pages) { return [].concat.apply([], pages); });
+}
+
 function setMLMes(mes) {
   _mlMesActivo = mes;
   document.querySelectorAll('.ml-mpill').forEach(function(p) { p.classList.toggle('active', p.dataset.mes === mes); });
@@ -7684,7 +7695,7 @@ function loadMLPublicaciones() {
       var info = document.getElementById('mlPubInfo');
       if (info) info.textContent = _mlPubState.total + ' publicaciones en total';
       if (!ids.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">No hay publicaciones</div>'; return null; }
-      return mlApiFetch('https://api.mercadolibre.com/items?ids=' + ids.join(','));
+      return mlItemsMultiGet(ids);
     })
     .then(function(items) {
       if (!items) return;
@@ -7862,7 +7873,7 @@ function _mlAdsLoadAll(cb) {
         _mlAllAdsCache.total = total;
         var ids = data.results || [];
         if (!ids.length) { _mlAllAdsCache.complete = true; cb({ loaded: _mlAllAdsCache.items.length, total: total, done: true }); return; }
-        return mlApiFetch('https://api.mercadolibre.com/items?ids=' + ids.join(',') + '&attributes=id,title,price,available_quantity,tags,thumbnail,permalink');
+        return mlItemsMultiGet(ids, 'id,title,price,available_quantity,tags,thumbnail,permalink');
       })
       .then(function(rawItems) {
         if (!rawItems) return;
