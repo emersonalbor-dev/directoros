@@ -9107,7 +9107,7 @@ function loadMLBilling(mes) {
         if (t === 'BFF') { byItem[id].bff += amt; totals.bff += amt; }
         if (t === 'BXD') { byItem[id].bxd += amt; totals.bxd += amt; }
       }
-      if (results.length === 1000 && data.last_id) {
+      if (data.last_id) {
         if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + ' cargada, continuando…';
         return new Promise(function(r) { setTimeout(r, 3000); })
           .then(function() { return fetchPage(data.last_id); });
@@ -9360,13 +9360,11 @@ function loadMLEstado(mes) {
   function add(key, amt) { acc[key] = (acc[key] || 0) + amt; }
 
   function fetchPage(fromId) {
-    console.log('[EC] fetchPage fromId=' + fromId + ' gen=' + gen + ' global=' + _mlEstadoGen);
-    if (gen !== _mlEstadoGen) { console.log('[EC] CANCELADO'); return Promise.resolve(); }
+    if (gen !== _mlEstadoGen) return Promise.resolve(); // cancelled
     var url = 'https://api.mercadolibre.com/billing/integration/periods/key/' + periodKey +
       '/group/ML/details?document_type=BILL&limit=1000&from_id=' + fromId + '&sort_by=ID&order_by=ASC';
     return mlApiFetch(url).then(function(data) {
-      console.log('[EC] pág recibida results=' + (data&&data.results?data.results.length:'null') + ' last_id=' + (data&&data.last_id) + ' gen=' + gen + '/' + _mlEstadoGen);
-      if (gen !== _mlEstadoGen) { console.log('[EC] CANCELADO tras fetch'); return; }
+      if (gen !== _mlEstadoGen) return; // cancelled
       var results = data.results || [];
       pageCount++;
       if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + '…';
@@ -9385,7 +9383,7 @@ function loadMLEstado(mes) {
         else if (grp === 'BONUS')                             add('bv', amt);
         else if (grp === 'CHARGE')                            add('otros', amt);
       }
-      if (results.length === 1000 && data.last_id) {
+      if (data.last_id) {
         if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + ' cargada, continuando…';
         return new Promise(function(r) { setTimeout(r, 3000); })
           .then(function() { return fetchPage(data.last_id); });
