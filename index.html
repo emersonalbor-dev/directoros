@@ -4869,8 +4869,8 @@ async function actualizarVentas() {
     // ML y Walmart desde API directa (solo mes actual)
     if (_esActual && _resultados[1] && _resultados[1].status === 'fulfilled' && _resultados[1].value.ok) {
       var _directo = await _resultados[1].value.json();
-      if (_directo.mercadolibre) data.mercadolibre = _directo.mercadolibre;
-      if (_directo.walmart)      data.walmart      = _directo.walmart;
+      if (_directo.mercadolibre && _directo.mercadolibre.total) data.mercadolibre = _directo.mercadolibre;
+      if (_directo.walmart      && _directo.walmart.total)      data.walmart      = _directo.walmart;
     }
 
     // Walmart desde servidor local (localhost:3001) — supera la limitación de CORS
@@ -4879,7 +4879,7 @@ async function actualizarVentas() {
         var _wRes = await fetch('http://localhost:3001/walmart', { signal: AbortSignal.timeout(15000) });
         if (_wRes.ok) {
           var _wLocal = await _wRes.json();
-          if (_wLocal.walmart) data.walmart = _wLocal.walmart;
+          if (_wLocal.walmart && _wLocal.walmart.total) data.walmart = _wLocal.walmart;
         }
       } catch(e) { /* servidor local no está corriendo, se ignora */ }
     }
@@ -4898,9 +4898,9 @@ async function actualizarVentas() {
     if (data.amazon)    VENTAS_PLAT_DATA[mes].amazon    = _mergeTop(data.amazon,    VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].amazon);
     if (data.maraga_mx) VENTAS_PLAT_DATA[mes].maraga_mx = _mergeTop(data.maraga_mx, VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].maraga_mx);
     if (data.tiktok)    VENTAS_PLAT_DATA[mes].tiktok    = _mergeTop(data.tiktok,    VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].tiktok);
-    // ML y Walmart desde API directa (solo mes actual)
-    if (data.mercadolibre) VENTAS_PLAT_DATA[mes].mercadolibre = data.mercadolibre;
-    if (data.walmart)      VENTAS_PLAT_DATA[mes].walmart      = data.walmart;
+    // ML y Walmart: solo actualizar si tienen datos reales (total > 0)
+    if (data.mercadolibre && data.mercadolibre.total) VENTAS_PLAT_DATA[mes].mercadolibre = data.mercadolibre;
+    if (data.walmart      && data.walmart.total)      VENTAS_PLAT_DATA[mes].walmart      = data.walmart;
 
     // Re-renderizar TODO: tarjetas + KPI principal + barras + chips de totales
     setDashMes(mes);
