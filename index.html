@@ -7528,7 +7528,7 @@ function renderMLFull(mes) {
       '<button class="ml-tab-btn" data-tab="publicaciones" onclick="setMLTab(\'publicaciones\',this)"><i class="ti ti-package"></i> Publicaciones</button>' +
       '<button class="ml-tab-btn" data-tab="preguntas" onclick="setMLTab(\'preguntas\',this)"><i class="ti ti-message-circle"></i> Preguntas</button>' +
       '<button class="ml-tab-btn" data-tab="publicidad" onclick="setMLTab(\'publicidad\',this)"><i class="ti ti-speakerphone"></i> Publicidad</button>' +
-      '<button class="ml-tab-btn" data-tab="competidores" onclick="setMLTab(\'competidores\',this)"><i class="ti ti-eye"></i> Competidores</button>' +
+      '<button class="ml-tab-btn" data-tab="envios" onclick="setMLTab(\'envios\',this)"><i class="ti ti-truck"></i> Envíos</button>' +
       '<button class="ml-tab-token" id="mlTokenStatus" onclick="toggleMLTokenPanel()"></button>' +
     '</div>' +
     '<div id="mlTokenPanel" style="display:none;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:14px">' +
@@ -7549,7 +7549,7 @@ function setMLTab(tab, btn) {
   _mlActiveTab = tab;
   document.querySelectorAll('.ml-tab-btn').forEach(function(b) { b.classList.remove('active'); });
   if (btn) btn.classList.add('active');
-  var fns = { resumen: renderMLTab_resumen, publicaciones: renderMLTab_publicaciones, preguntas: renderMLTab_preguntas, publicidad: renderMLTab_publicidad, competidores: renderMLTab_competidores };
+  var fns = { resumen: renderMLTab_resumen, publicaciones: renderMLTab_publicaciones, preguntas: renderMLTab_preguntas, publicidad: renderMLTab_publicidad, envios: renderMLTab_envios };
   if (fns[tab]) fns[tab]();
 }
 
@@ -8013,53 +8013,190 @@ function mlAdsRender() {
 }
 
 /* ── COMPETIDORES TAB ───────────────────────────────────────────────── */
-function renderMLTab_competidores() {
+/* ── ENVÍOS TAB ─────────────────────────────────────────────────────── */
+var _mlEnviosState  = { offset: 0, total: 0 };
+var _mlEnviosFilter = 'all';
+var ML_ENV_PAGE     = 50;
+
+function renderMLTab_envios() {
+  _mlEnviosState  = { offset: 0, total: 0 };
+  _mlEnviosFilter = 'all';
   var el = document.getElementById('mlTabContent');
   if (!el) return;
-  var sugeridos = ['Careta Free450','Soldadora Arc160','Disco Diamante 14"','Clavos 2" 9000pz','Cortadora Metal 14"'];
   el.innerHTML =
     '<div class="ml-card">' +
-      '<div class="ml-card-h"><i class="ti ti-eye"></i> Análisis de Competidores</div>' +
-      '<div style="display:flex;gap:8px;margin-bottom:10px">' +
-        '<input id="mlCompQ" type="text" placeholder="Buscar en Mercado Libre (ej: careta soldador, soldadora inversora...)" style="flex:1;padding:8px 12px;font-size:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)" onkeydown="if(event.key===\'Enter\')buscarCompetidores()">' +
-        '<button onclick="buscarCompetidores()" style="padding:8px 18px;background:#f59e0b;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer"><i class="ti ti-search"></i> Buscar</button>' +
+      '<div class="ml-card-h"><i class="ti ti-truck"></i> Costos de Envío por Publicación</div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">' +
+        '<button class="ml-pub-filter active" id="mlEnvFAll" onclick="mlEnvSetFilter(\'all\',this)">Todos</button>' +
+        '<button class="ml-pub-filter" id="mlEnvFFull" onclick="mlEnvSetFilter(\'full\',this)">Full ML</button>' +
+        '<button class="ml-pub-filter" id="mlEnvFMe2" onclick="mlEnvSetFilter(\'me2\',this)">Mercado Envíos</button>' +
+        '<button class="ml-pub-filter" id="mlEnvFGratis" onclick="mlEnvSetFilter(\'gratis\',this)">Envío gratis</button>' +
+        '<button class="ml-pub-filter" id="mlEnvFPagado" onclick="mlEnvSetFilter(\'pagado\',this)">Envío pagado</button>' +
       '</div>' +
-      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">' +
-        sugeridos.map(function(s){ return '<button onclick="document.getElementById(\'mlCompQ\').value=\'' + s + '\';buscarCompetidores()" style="padding:4px 10px;font-size:11px;background:var(--bg);border:1px solid var(--line);border-radius:14px;cursor:pointer;color:var(--muted)">' + s + '</button>'; }).join('') +
+      '<div id="mlEnvContent"><div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando...</div></div>' +
+      '<div id="mlEnvPager" style="display:none;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">' +
+        '<button id="mlEnvPrev" onclick="mlEnvPage(-1)" style="padding:6px 16px;font-size:12px;font-weight:600;border:1.5px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;cursor:pointer"><i class="ti ti-chevron-left"></i> Anterior</button>' +
+        '<span id="mlEnvPagerInfo" style="font-size:12px;color:var(--muted)"></span>' +
+        '<button id="mlEnvNext" onclick="mlEnvPage(1)" style="padding:6px 16px;font-size:12px;font-weight:600;border:1.5px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;cursor:pointer">Siguiente <i class="ti ti-chevron-right"></i></button>' +
       '</div>' +
-      '<div id="mlCompResults"></div>' +
     '</div>';
+  if (!ML_TOKEN) { document.getElementById('mlEnvContent').innerHTML = '<div class="ml-no-token"><i class="ti ti-key"></i> Ingresa el token para continuar</div>'; return; }
+  loadMLEnvios();
 }
 
-function buscarCompetidores() {
-  var q = (document.getElementById('mlCompQ') || {}).value || '';
-  q = q.trim();
-  if (!q) return;
-  var el = document.getElementById('mlCompResults');
-  if (!el) return;
-  el.innerHTML = '<div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Buscando en Mercado Libre...</div>';
-  fetch('https://api.mercadolibre.com/sites/MLM/search?q=' + encodeURIComponent(q) + '&limit=20')
-    .then(function(r){ return r.json(); })
+function mlEnvPage(dir) {
+  var newOffset = _mlEnviosState.offset + dir * ML_ENV_PAGE;
+  if (newOffset < 0 || newOffset >= _mlEnviosState.total) return;
+  _mlEnviosState.offset = newOffset;
+  loadMLEnvios();
+}
+
+function mlEnvSetFilter(f, btn) {
+  document.querySelectorAll('#mlTabContent .ml-pub-filter').forEach(function(b){ b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  _mlEnviosFilter = f;
+  _mlEnviosState.offset = 0;
+  loadMLEnvios();
+}
+
+function _envLogisticLabel(it) {
+  var lt  = (it.shipping && it.shipping.logistic_type) || '';
+  var mode = (it.shipping && it.shipping.mode) || '';
+  if (lt === 'fulfillment')   return { label: 'Full ML',         color: '#7c3aed', bg: '#ede9fe' };
+  if (lt === 'xd_drop_off')   return { label: 'Drop-off ME2',    color: '#2563eb', bg: '#dbeafe' };
+  if (lt === 'cross_docking') return { label: 'ME2',             color: '#0284c7', bg: '#e0f2fe' };
+  if (mode === 'me2')         return { label: 'Mercado Envíos',  color: '#0284c7', bg: '#e0f2fe' };
+  if (lt === 'custom' || mode === 'custom') return { label: 'Directo', color: '#6b7280', bg: '#f3f4f6' };
+  return { label: mode || lt || '—', color: '#6b7280', bg: '#f3f4f6' };
+}
+
+function loadMLEnvios() {
+  var contentEl = document.getElementById('mlEnvContent');
+  if (!contentEl) return;
+  contentEl.innerHTML = '<div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando...</div>';
+
+  // Construir filtro de búsqueda
+  var searchUrl = 'https://api.mercadolibre.com/users/' + ML_SELLER_ID + '/items/search?status=active&limit=' + ML_ENV_PAGE + '&offset=' + _mlEnviosState.offset;
+
+  mlApiFetch(searchUrl)
     .then(function(data) {
-      var results = data.results || [];
-      if (!results.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Sin resultados para "' + q + '"</div>'; return; }
-      var cards = results.map(function(it) {
-        var img = it.thumbnail ? '<img src="' + it.thumbnail.replace('http://','https://') + '" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0">' : '<div style="width:48px;height:48px;background:var(--bg);border-radius:6px;flex-shrink:0"></div>';
-        var isUs = it.seller && it.seller.nickname && it.seller.nickname.toLowerCase().indexOf('maraga') !== -1;
-        var sold = it.sold_quantity ? '<span style="color:#22c55e;font-size:10px;font-weight:600">' + it.sold_quantity.toLocaleString('es-MX') + ' vendidos</span>' : '';
-        var ship = it.shipping && it.shipping.free_shipping ? '<span style="color:#3b82f6;font-size:10px"><i class="ti ti-truck"></i> Gratis</span>' : '';
-        return '<div style="display:flex;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);background:' + (isUs ? 'rgba(245,158,11,.07)' : 'transparent') + '">' +
-          img +
-          '<div style="flex:1;min-width:0">' +
-            '<div style="font-size:12px;font-weight:' + (isUs ? '700' : '500') + ';color:' + (isUs ? '#d97706' : 'var(--ink)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (isUs ? '★ ' : '') + it.title + '</div>' +
-            '<div style="font-size:15px;font-weight:800;color:var(--ink);margin-top:2px">$' + (it.price||0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div>' +
-            '<div style="font-size:10px;color:var(--muted);display:flex;gap:8px;align-items:center;margin-top:2px"><span>' + (it.seller ? it.seller.nickname : '') + '</span>' + sold + ship + '</div>' +
-          '</div></div>';
-      }).join('');
-      el.innerHTML = '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">' + results.length + ' resultados · Los marcados con ★ son de Maraga</div>' +
-        '<div style="border:1px solid var(--line);border-radius:8px;overflow:hidden">' + cards + '</div>';
+      _mlEnviosState.total = (data.paging || {}).total || 0;
+      var ids = data.results || [];
+      if (!ids.length) { contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Sin publicaciones activas</div>'; return null; }
+      return mlItemsMultiGet(ids, 'id,title,price,available_quantity,shipping,thumbnail');
     })
-    .catch(function(e){ el.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> Error: ' + e.message + '</div>'; });
+    .then(function(rawItems) {
+      if (!rawItems) return;
+      var items = rawItems.map(function(w){ return w.body || w; }).filter(function(it){ return it && it.id; });
+
+      // Filtrar por tipo
+      if (_mlEnviosFilter === 'full') items = items.filter(function(it){ return (it.shipping||{}).logistic_type === 'fulfillment'; });
+      else if (_mlEnviosFilter === 'me2') items = items.filter(function(it){ var lt=(it.shipping||{}).logistic_type; return lt==='xd_drop_off'||lt==='cross_docking'||(it.shipping||{}).mode==='me2'; });
+      else if (_mlEnviosFilter === 'gratis') items = items.filter(function(it){ return (it.shipping||{}).free_shipping; });
+      else if (_mlEnviosFilter === 'pagado') items = items.filter(function(it){ return !(it.shipping||{}).free_shipping; });
+
+      // Actualizar contadores
+      var fAll = document.getElementById('mlEnvFAll');
+      if (fAll) fAll.textContent = 'Todos (' + _mlEnviosState.total + ')';
+
+      // Resumen por tipo (sobre la página actual)
+      var allItems = rawItems.map(function(w){ return w.body || w; }).filter(function(it){ return it && it.id; });
+      var nFull   = allItems.filter(function(it){ return (it.shipping||{}).logistic_type==='fulfillment'; }).length;
+      var nMe2    = allItems.filter(function(it){ var lt=(it.shipping||{}).logistic_type; return lt==='xd_drop_off'||lt==='cross_docking'||(it.shipping||{}).mode==='me2'; }).length;
+      var nGratis = allItems.filter(function(it){ return (it.shipping||{}).free_shipping; }).length;
+
+      // Resumen top
+      var summaryHtml =
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">' +
+          '<div style="flex:1;min-width:120px;background:#ede9fe;border-radius:8px;padding:10px 14px">' +
+            '<div style="font-size:10px;color:#7c3aed;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Full ML</div>' +
+            '<div style="font-size:22px;font-weight:800;color:#7c3aed">' + nFull + '</div>' +
+            '<div style="font-size:10px;color:#7c3aed;opacity:.7">publicaciones</div>' +
+          '</div>' +
+          '<div style="flex:1;min-width:120px;background:#dbeafe;border-radius:8px;padding:10px 14px">' +
+            '<div style="font-size:10px;color:#2563eb;font-weight:700;text-transform:uppercase;letter-spacing:.05em">ME2 / Drop-off</div>' +
+            '<div style="font-size:22px;font-weight:800;color:#2563eb">' + nMe2 + '</div>' +
+            '<div style="font-size:10px;color:#2563eb;opacity:.7">publicaciones</div>' +
+          '</div>' +
+          '<div style="flex:1;min-width:120px;background:#d1fae5;border-radius:8px;padding:10px 14px">' +
+            '<div style="font-size:10px;color:#065f46;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Envío gratis</div>' +
+            '<div style="font-size:22px;font-weight:800;color:#059669">' + nGratis + '</div>' +
+            '<div style="font-size:10px;color:#059669;opacity:.7">tú pagas el envío</div>' +
+          '</div>' +
+        '</div>';
+
+      if (!items.length) {
+        contentEl.innerHTML = summaryHtml + '<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px">Sin publicaciones para este filtro en esta página</div>';
+        _mlEnvRenderPager();
+        return;
+      }
+
+      var rows = items.map(function(it) {
+        var ship  = it.shipping || {};
+        var logic = _envLogisticLabel(it);
+        var img   = it.thumbnail
+          ? '<img src="' + (it.thumbnail||'').replace('http://','https://') + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0">'
+          : '<div style="width:36px;height:36px;background:var(--bg);border-radius:4px;flex-shrink:0"></div>';
+
+        var logisticBadge = '<span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:' + logic.bg + ';color:' + logic.color + '">' + logic.label + '</span>';
+
+        var freeBadge = ship.free_shipping
+          ? '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:#d1fae5;color:#065f46"><i class="ti ti-truck" style="font-size:10px"></i> Gratis</span>'
+          : '<span style="font-size:10px;color:var(--muted)">Comprador paga</span>';
+
+        // Nota de costo estimado según tipo
+        var costNote = '';
+        var lt = ship.logistic_type || '';
+        if (lt === 'fulfillment') {
+          costNote = '<span style="font-size:10px;color:#7c3aed">ML almacena y envía · cobro por paquete</span>';
+        } else if (lt === 'xd_drop_off' || lt === 'cross_docking' || ship.mode === 'me2') {
+          costNote = ship.free_shipping
+            ? '<span style="font-size:10px;color:#059669">ML cobra tarifa a ti al hacer drop-off</span>'
+            : '<span style="font-size:10px;color:var(--muted)">Comprador paga la tarifa ME2</span>';
+        } else if (lt === 'custom' || ship.mode === 'custom') {
+          costNote = '<span style="font-size:10px;color:var(--muted)">Tú gestionas el envío</span>';
+        }
+
+        return '<tr>' +
+          '<td style="text-align:left">' +
+            '<div style="display:flex;align-items:center;gap:8px">' +
+              img +
+              '<div>' +
+                '<div style="font-weight:600;font-size:12px">' + (it.title||'').slice(0,55) + ((it.title||'').length>55?'…':'') + '</div>' +
+                '<div style="font-size:10px;color:var(--muted)">' + it.id + ' · $' + (it.price||0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' · stock: ' + (it.available_quantity||0) + '</div>' +
+              '</div>' +
+            '</div>' +
+          '</td>' +
+          '<td style="white-space:nowrap">' + logisticBadge + '</td>' +
+          '<td>' + freeBadge + '</td>' +
+          '<td>' + costNote + '</td>' +
+        '</tr>';
+      }).join('');
+
+      contentEl.innerHTML = summaryHtml +
+        '<div style="overflow-x:auto"><table class="ml-top-t"><thead><tr>' +
+          '<th style="text-align:left">Publicación</th>' +
+          '<th>Logística</th>' +
+          '<th>Envío</th>' +
+          '<th>Costo para ti</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+
+      _mlEnvRenderPager();
+    })
+    .catch(function(e) { contentEl.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>'; });
+}
+
+function _mlEnvRenderPager() {
+  var pager    = document.getElementById('mlEnvPager');
+  var pagerInfo = document.getElementById('mlEnvPagerInfo');
+  var prevBtn  = document.getElementById('mlEnvPrev');
+  var nextBtn  = document.getElementById('mlEnvNext');
+  var from = _mlEnviosState.offset + 1;
+  var to   = Math.min(_mlEnviosState.offset + ML_ENV_PAGE, _mlEnviosState.total);
+  if (pager)     pager.style.display = _mlEnviosState.total > ML_ENV_PAGE ? 'flex' : 'none';
+  if (pagerInfo) pagerInfo.textContent = from + '–' + to + ' de ' + _mlEnviosState.total;
+  if (prevBtn)   prevBtn.disabled = _mlEnviosState.offset === 0;
+  if (nextBtn)   nextBtn.disabled = to >= _mlEnviosState.total;
 }
 
 /* ── ACTUALIZAR MES ACTUAL EN VIVO ─────────────────────────────────── */
