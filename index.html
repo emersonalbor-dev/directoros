@@ -7815,6 +7815,7 @@ var _mlAdsFilter   = 'all';
 var _mlAdsState    = { offset: 0, total: 0 };
 var _mlAllAdsCache = null; // { items: [...], total: N, complete: bool }
 var ML_ADS_PAGE    = 50;
+var _mlAdsMes      = '';
 
 function _mlItemHasAd(it) {
   return (it.tags || []).indexOf('dragged_bids_and_visits') !== -1;
@@ -7822,19 +7823,35 @@ function _mlItemHasAd(it) {
 
 function renderMLTab_publicidad() {
   _mlAdsData   = null;
-  _mlAdsFilter = 'all';
+  _mlAdsFilter = 'con';
   _mlAdsState.offset = 0;
   _mlAdsState.total  = 0;
+  var now = new Date();
+  var yr = now.getFullYear(), mo = now.getMonth() + 1;
+  _mlAdsMes = yr + '-' + String(mo).padStart(2,'0');
   var el = document.getElementById('mlTabContent');
   if (!el) return;
+  var mnames = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var opts = '';
+  for (var i = 0; i < 6; i++) {
+    var m = mo - i, y = yr;
+    if (m <= 0) { m += 12; y--; }
+    var k = y + '-' + String(m).padStart(2,'0');
+    opts += '<option value="' + k + '"' + (i===0?' selected':'') + '>' + mnames[m] + ' ' + y + '</option>';
+  }
   el.innerHTML =
     '<div class="ml-card">' +
       '<div class="ml-card-h"><i class="ti ti-speakerphone"></i> Publicidad · Product Ads por publicación</div>' +
-      '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">' +
-        '<button class="ml-pub-filter active" id="mlAdsFAll" onclick="mlAdsSetFilter(\'all\',this)">Todos</button>' +
-        '<button class="ml-pub-filter" id="mlAdsFCon" onclick="mlAdsSetFilter(\'con\',this)">Con anuncio</button>' +
-        '<button class="ml-pub-filter" id="mlAdsFSin" onclick="mlAdsSetFilter(\'sin\',this)">Sin anuncio</button>' +
+      '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">' +
+        '<label style="font-size:12px;color:var(--muted)">Mes:</label>' +
+        '<select id="mlAdsMesSel" onchange="mlAdsChangeMes(this.value)" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);font-size:12px">' + opts + '</select>' +
         '<a href="https://publicidad.mercadolibre.com.mx/" target="_blank" style="margin-left:auto;font-size:11px;color:#f59e0b;font-weight:600;text-decoration:none">Ir a ML Publicidad <i class="ti ti-external-link" style="font-size:10px"></i></a>' +
+      '</div>' +
+      '<div id="mlAdsBillingCard"></div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">' +
+        '<button class="ml-pub-filter" id="mlAdsFAll" onclick="mlAdsSetFilter(\'all\',this)">Todos</button>' +
+        '<button class="ml-pub-filter active" id="mlAdsFCon" onclick="mlAdsSetFilter(\'con\',this)">Con anuncio</button>' +
+        '<button class="ml-pub-filter" id="mlAdsFSin" onclick="mlAdsSetFilter(\'sin\',this)">Sin anuncio</button>' +
       '</div>' +
       '<div id="mlAdsContent"><div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando publicaciones...</div></div>' +
       '<div id="mlAdsPager" style="display:none;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">' +
@@ -7844,7 +7861,45 @@ function renderMLTab_publicidad() {
       '</div>' +
     '</div>';
   if (!ML_TOKEN) { document.getElementById('mlAdsContent').innerHTML = '<div class="ml-no-token"><i class="ti ti-key"></i> Ingresa el token para continuar</div>'; return; }
+  _mlAdsLoadBilling(_mlAdsMes);
   loadMLPublicidad();
+}
+
+function mlAdsChangeMes(mes) {
+  _mlAdsMes = mes;
+  _mlAdsLoadBilling(mes);
+}
+
+function _mlAdsLoadBilling(mes) {
+  var card = document.getElementById('mlAdsBillingCard');
+  if (!card) return;
+  card.innerHTML = '<div style="font-size:11px;color:var(--muted);margin-bottom:10px"><i class="ti ti-loader-2 mlspin"></i> Cargando gasto...</div>';
+  var periodKey = mes + '-01';
+  var total = 0, pages = 0;
+  function fetchPage(fromId) {
+    return mlApiFetch('https://api.mercadolibre.com/billing/integration/periods/key/' + periodKey +
+      '/group/ML/details?document_type=BILL&limit=1000&from_id=' + fromId + '&sort_by=ID&order_by=ASC')
+    .then(function(data) {
+      pages++;
+      (data.results || []).forEach(function(r) {
+        var t = (r.charge_info || {}).detail_sub_type;
+        if (t === 'PADS' || t === 'CBADS') total += Math.abs((r.charge_info || {}).detail_amount || 0);
+      });
+      if ((data.results||[]).length === 1000 && data.last_id) return fetchPage(data.last_id);
+    });
+  }
+  fetchPage(0).then(function() {
+    if (!card) return;
+    var ventaMXN = (ML_2026_DATA.meses[mes] || {}).ventas || 0;
+    var pctVenta = ventaMXN ? ' · <b>' + (total/ventaMXN*100).toFixed(1) + '% de ventas</b>' : '';
+    card.innerHTML = total > 0
+      ? '<div style="background:#fef9c3;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:14px">' +
+          '<div><div style="font-size:10px;color:#92400e;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Gasto en publicidad</div>' +
+          '<div style="font-size:20px;font-weight:800;color:#b45309">$' + total.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
+          '<div style="font-size:10px;color:#b45309;opacity:.8">PADS · ' + (pages > 1 ? pages + ' páginas' : 'billing') + pctVenta + '</div></div>' +
+        '</div>'
+      : '<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Sin cargos PADS registrados en este mes</div>';
+  }).catch(function() { card.innerHTML = ''; });
 }
 
 function mlAdsPage(dir) {
