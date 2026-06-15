@@ -8015,7 +8015,9 @@ function mlAdsRender() {
 /* ── COMPETIDORES TAB ───────────────────────────────────────────────── */
 /* ── ENVÍOS TAB ─────────────────────────────────────────────────────── */
 /* ── Envíos — costos reales cobrados por ML (billing API) ─────── */
-var _mlBillingMes = '';
+var _mlBillingMes    = '';
+var _mlBillingFilter = 'all';
+var _mlBillingCache  = null;
 
 function renderMLTab_envios() {
   var now = new Date();
@@ -8046,8 +8048,15 @@ function renderMLTab_envios() {
 }
 
 function mlBillingChangeMes(mes) {
-  _mlBillingMes = mes;
+  _mlBillingMes    = mes;
+  _mlBillingFilter = 'all';
+  _mlBillingCache  = null;
   loadMLBilling(mes);
+}
+
+function mlBillingSetFilter(f) {
+  _mlBillingFilter = f;
+  if (_mlBillingCache) _mlBillingRender(_mlBillingCache.byItem, _mlBillingCache.totals);
 }
 
 function loadMLBilling(mes) {
@@ -8088,6 +8097,8 @@ function loadMLBilling(mes) {
     var n = Object.keys(byItem).length;
     var nEnvios = totals.count_cff + totals.count_cxd;
     if (statusEl) statusEl.textContent = n + ' productos · ' + nEnvios + ' envíos';
+    _mlBillingCache = { byItem: byItem, totals: totals };
+    _mlBillingFilter = 'all';
     _mlBillingRender(byItem, totals);
   }).catch(function(e) {
     contentEl.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>';
@@ -8100,39 +8111,47 @@ function _mlBillingRender(byItem, totals) {
   var bonus = totals.bff + totals.bxd;
   var neto  = totals.cff + totals.cxd - bonus;
   var nEnvios = totals.count_cff + totals.count_cxd;
+  var f = _mlBillingFilter;
+  function cardStyle(active, bg) {
+    return 'flex:1;min-width:100px;background:' + bg + ';border-radius:8px;padding:10px 14px;cursor:pointer;transition:box-shadow .15s' +
+      (active ? ';box-shadow:0 0 0 2.5px #374151' : ';opacity:' + (f === 'all' ? '1' : '.45'));
+  }
+  var mesVentas = (ML_2026_DATA.meses[_mlBillingMes] || {}).ventas || 0;
+  var pctVenta  = mesVentas > 0 ? (neto / mesVentas * 100).toFixed(1) + '% de ventas' : '';
   var sumHtml =
     '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">' +
-      '<div style="flex:1;min-width:100px;background:#ede9fe;border-radius:8px;padding:10px 14px">' +
+      '<div style="' + cardStyle(f==='cff','#ede9fe') + '" onclick="mlBillingSetFilter(\'' + (f==='cff'?'all':'cff') + '\')">' +
         '<div style="font-size:10px;color:#7c3aed;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Full ML (CFF)</div>' +
         '<div style="font-size:20px;font-weight:800;color:#7c3aed">$' + totals.cff.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div>' +
         '<div style="font-size:10px;color:#7c3aed;opacity:.7">' + totals.count_cff + ' envíos</div>' +
       '</div>' +
-      '<div style="flex:1;min-width:100px;background:#dbeafe;border-radius:8px;padding:10px 14px">' +
+      '<div style="' + cardStyle(f==='cxd','#dbeafe') + '" onclick="mlBillingSetFilter(\'' + (f==='cxd'?'all':'cxd') + '\')">' +
         '<div style="font-size:10px;color:#2563eb;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Drop-off (CXD)</div>' +
         '<div style="font-size:20px;font-weight:800;color:#2563eb">$' + totals.cxd.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div>' +
         '<div style="font-size:10px;color:#2563eb;opacity:.7">' + totals.count_cxd + ' envíos</div>' +
       '</div>' +
-      '<div style="flex:1;min-width:100px;background:#d1fae5;border-radius:8px;padding:10px 14px">' +
+      '<div style="' + cardStyle(f==='bon','#d1fae5') + '" onclick="mlBillingSetFilter(\'' + (f==='bon'?'all':'bon') + '\')">' +
         '<div style="font-size:10px;color:#065f46;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Bonificaciones</div>' +
         '<div style="font-size:20px;font-weight:800;color:#059669">-$' + bonus.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div>' +
         '<div style="font-size:10px;color:#059669;opacity:.7">BFF + BXD</div>' +
       '</div>' +
-      (function(){
-        var mesVentas = (ML_2026_DATA.meses[_mlBillingMes] || {}).ventas || 0;
-        var pctVenta  = mesVentas > 0 ? (neto / mesVentas * 100).toFixed(1) + '% de ventas' : '';
-        return '<div style="flex:1;min-width:100px;background:#fef9c3;border-radius:8px;padding:10px 14px">' +
-          '<div style="font-size:10px;color:#92400e;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Costo Neto</div>' +
-          '<div style="font-size:20px;font-weight:800;color:#b45309">$' + neto.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div>' +
-          '<div style="font-size:10px;color:#b45309;opacity:.7">' + nEnvios + ' envíos' + (pctVenta ? ' · <b>' + pctVenta + '</b>' : '') + '</div>' +
-        '</div>';
-      })() +
+      '<div style="' + cardStyle(f==='all','#fef9c3') + '" onclick="mlBillingSetFilter(\'all\')">' +
+        '<div style="font-size:10px;color:#92400e;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Costo Neto</div>' +
+        '<div style="font-size:20px;font-weight:800;color:#b45309">$' + neto.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div>' +
+        '<div style="font-size:10px;color:#b45309;opacity:.7">' + nEnvios + ' envíos' + (pctVenta ? ' · <b>' + pctVenta + '</b>' : '') + '</div>' +
+      '</div>' +
     '</div>';
 
-  var sorted = Object.keys(byItem).map(function(id) {
+  var allSorted = Object.keys(byItem).map(function(id) {
     var d = byItem[id];
     var bruto = d.cff + d.cxd, bon = d.bff + d.bxd, net = bruto - bon, cnt = d.count_cff + d.count_cxd;
     return { id: id, title: d.title, price: d.price, cff: d.cff, cxd: d.cxd, bon: bon, net: net, cnt: cnt, avg: cnt > 0 ? net/cnt : 0 };
   }).sort(function(a,b){ return b.net - a.net; });
+
+  var sorted = f === 'cff' ? allSorted.filter(function(p){ return p.cff > 0; })
+             : f === 'cxd' ? allSorted.filter(function(p){ return p.cxd > 0; })
+             : f === 'bon' ? allSorted.filter(function(p){ return p.bon > 0; })
+             : allSorted;
 
   if (!sorted.length) {
     contentEl.innerHTML = sumHtml + '<div style="padding:20px;text-align:center;color:var(--muted)">Sin registros de envío en este mes</div>';
