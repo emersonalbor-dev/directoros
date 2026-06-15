@@ -7809,9 +7809,13 @@ function mlResponder(qId) {
 }
 
 /* ── PUBLICIDAD TAB ─────────────────────────────────────────────────── */
-var _mlAdsMes = '';
+var _mlAdsMes        = '';
+var _mlAdsCampFilter = 'all';  // 'all' | 'active' | 'inactive'
+var _mlAdsCampsData  = null;
 
 function renderMLTab_publicidad() {
+  _mlAdsCampsData  = null;
+  _mlAdsCampFilter = 'all';
   var now = new Date();
   var yr = now.getFullYear(), mo = now.getMonth() + 1;
   _mlAdsMes = yr + '-' + String(mo).padStart(2,'0');
@@ -7831,6 +7835,11 @@ function renderMLTab_publicidad() {
       '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">' +
         '<label style="font-size:12px;color:var(--muted)">Mes:</label>' +
         '<select id="mlAdsMesSel" onchange="mlAdsChangeMes(this.value)" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);font-size:12px">' + opts + '</select>' +
+        '<div style="display:flex;gap:5px">' +
+          '<button id="mlAdsFAll"   class="ml-pub-filter active" onclick="mlAdsCampFilter(\'all\',this)">Todas</button>' +
+          '<button id="mlAdsFAct"   class="ml-pub-filter"        onclick="mlAdsCampFilter(\'active\',this)">Activas</button>' +
+          '<button id="mlAdsFInact" class="ml-pub-filter"        onclick="mlAdsCampFilter(\'inactive\',this)">Inactivas</button>' +
+        '</div>' +
         '<a href="https://publicidad.mercadolibre.com.mx/" target="_blank" style="margin-left:auto;font-size:11px;color:#f59e0b;font-weight:600;text-decoration:none">Ir a ML Publicidad <i class="ti ti-external-link" style="font-size:10px"></i></a>' +
       '</div>' +
       '<div id="mlAdsBillingCard"></div>' +
@@ -7843,8 +7852,16 @@ function renderMLTab_publicidad() {
 
 function mlAdsChangeMes(mes) {
   _mlAdsMes = mes;
+  _mlAdsCampsData = null;
   _mlAdsLoadBilling(mes);
   _mlAdsLoad(mes);
+}
+
+function mlAdsCampFilter(f, btn) {
+  _mlAdsCampFilter = f;
+  document.querySelectorAll('#mlTabContent .ml-pub-filter').forEach(function(b){ b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  if (_mlAdsCampsData) _mlAdsRenderCamps(_mlAdsCampsData);
 }
 
 function _mlAdsLoadBilling(mes) {
@@ -7889,7 +7906,6 @@ function _mlAdsLoad(mes) {
   var df = mes + '-01';
   var dt = mes + '-' + String(new Date(yr, mo, 0).getDate()).padStart(2,'0');
 
-  /* Step 1: get all ads */
   var allAds = [];
   function getAds(offset) {
     return mlApiFetch(BASE + '/ads/search?seller_id=' + sid + '&limit=100&offset=' + offset)
@@ -7902,7 +7918,6 @@ function _mlAdsLoad(mes) {
   }
 
   getAds(0).then(function() {
-    /* Step 2: group by campaign_id */
     var byCamp = {};
     allAds.forEach(function(ad) {
       var cid = String(ad.campaign_id || '');
@@ -7912,11 +7927,10 @@ function _mlAdsLoad(mes) {
     });
     var cids = Object.keys(byCamp);
     if (!cids.length) {
-      el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">No se encontraron campañas activas. (Ads: ' + allAds.length + ')</div>';
+      el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">No se encontraron campañas. (Ads: ' + allAds.length + ')</div>';
       return;
     }
 
-    /* Step 3: fetch data for each campaign */
     return Promise.all(cids.map(function(cid) {
       var ads = byCamp[cid];
       var ids = ads.map(function(a){ return a.id; });
@@ -7941,73 +7955,144 @@ function _mlAdsLoad(mes) {
   })
   .then(function(camps) {
     if (!camps) return;
-    /* Step 4: render */
     camps.sort(function(a,b){ return ((b.metrics||{}).cost||0) - ((a.metrics||{}).cost||0); });
-
-    var thead = '<thead><tr style="background:var(--bg);border-bottom:2px solid var(--border)">' +
-      '<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Título</th>' +
-      '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Ventas Ads</th>' +
-      '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Ingresos</th>' +
-      '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Inversión</th>' +
-      '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">ACOS</th>' +
-    '</tr></thead>';
-
-    function row(ad, m) {
-      m = m || {};
-      var cost = m.cost || 0;
-      var rev  = m.amount_total || 0;
-      var sold = m.sold_quantity_direct || 0;
-      var acos = rev > 0 ? (cost/rev*100).toFixed(1)+'%' : '—';
-      var acosCol = rev > 0 ? (cost/rev < 0.15 ? '#059669' : cost/rev < 0.25 ? '#d97706' : '#dc2626') : 'var(--muted)';
-      var img = ad.thumbnail
-        ? '<img src="' + ad.thumbnail.replace('http://','https://') + '" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0">'
-        : '<div style="width:40px;height:40px;border-radius:6px;background:var(--line);flex-shrink:0"></div>';
-      var active = ad.status === 'active';
-      return '<tr style="border-bottom:1px solid var(--border)' + (!active ? ';opacity:.55' : '') + '">' +
-        '<td style="padding:10px 12px"><div style="display:flex;align-items:center;gap:10px">' + img +
-          '<div>' +
-            '<div style="font-weight:600;font-size:12px;max-width:340px">' + (ad.title||ad.id||'').slice(0,60) + '</div>' +
-            '<div style="font-size:10px;color:var(--muted);margin-top:2px">' + ad.id +
-              (ad.price ? ' · $' + Number(ad.price).toLocaleString('es-MX',{maximumFractionDigits:0}) : '') + '</div>' +
-          '</div>' +
-        '</div></td>' +
-        '<td style="padding:10px 12px;text-align:right;font-size:13px">' + (sold > 0 ? sold : '—') + '</td>' +
-        '<td style="padding:10px 12px;text-align:right;font-size:13px">' + (rev > 0 ? '$'+Math.round(rev).toLocaleString('es-MX') : '—') + '</td>' +
-        '<td style="padding:10px 12px;text-align:right;font-size:13px;font-weight:700;color:' + (cost>0?'#b45309':'var(--muted)') + '">' + (cost > 0 ? '$'+cost.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—') + '</td>' +
-        '<td style="padding:10px 12px;text-align:right;font-size:13px;font-weight:700;color:' + acosCol + '">' + acos + '</td>' +
-      '</tr>';
-    }
-
-    var html = '';
-    camps.forEach(function(c) {
-      var cname = (c.info && c.info.name) || 'Campaña';
-      var ccost = (c.metrics && c.metrics.cost) || 0;
-      var cclics = (c.metrics && c.metrics.clicks) || 0;
-      var ctacos = (c.metrics && c.metrics.tacos) || 0;
-      var cst = (c.info && c.info.status) || '';
-      var cBg = cst==='active' ? '#d1fae5' : '#f3f4f6';
-      var cCol = cst==='active' ? '#059669' : '#6b7280';
-      var sortedAds = c.ads.slice().sort(function(a,b){ return ((c.im[b.id]&&c.im[b.id].cost)||0)-((c.im[a.id]&&c.im[a.id].cost)||0); });
-
-      html += '<div style="margin-bottom:22px;border:1px solid var(--line);border-radius:10px;overflow:hidden">' +
-        '<div style="padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--bg)">' +
-          '<span style="font-weight:700;font-size:13px;color:var(--ink)">' + cname + '</span>' +
-          (cst ? '<span style="padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:' + cBg + ';color:' + cCol + '">' + cst + '</span>' : '') +
-          '<span style="font-size:11px;color:var(--muted)">' + cclics.toLocaleString('es-MX') + ' clics · TACOS ' + ctacos + '% · ' + c.ads.length + ' pubs</span>' +
-          (ccost > 0 ? '<span style="margin-left:auto;font-size:15px;font-weight:800;color:#b45309">$' + ccost.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</span>' : '') +
-        '</div>' +
-        '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">' +
-        thead + '<tbody>' +
-        sortedAds.map(function(ad){ return row(ad, c.im[ad.id]); }).join('') +
-        '</tbody></table></div></div>';
-    });
-
-    el.innerHTML = html || '<div style="padding:20px;text-align:center;color:var(--muted)">Sin campañas con datos.</div>';
+    _mlAdsCampsData = camps;
+    // Update filter button counts
+    var nAct = camps.filter(function(c){ return (c.info&&c.info.status)==='active'; }).length;
+    var fAll = document.getElementById('mlAdsFAll');
+    var fAct = document.getElementById('mlAdsFAct');
+    var fInact = document.getElementById('mlAdsFInact');
+    if (fAll)   fAll.textContent   = 'Todas (' + camps.length + ')';
+    if (fAct)   fAct.textContent   = 'Activas (' + nAct + ')';
+    if (fInact) fInact.textContent = 'Inactivas (' + (camps.length - nAct) + ')';
+    _mlAdsRenderCamps(camps);
   })
   .catch(function(e) {
     var c = document.getElementById('mlAdsContent');
     if (c) c.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + (e && e.message ? e.message : String(e)) + '</div>';
   });
+}
+
+function _mlAdsRenderCamps(camps) {
+  var el = document.getElementById('mlAdsContent');
+  if (!el) return;
+
+  var filtered = camps.filter(function(c) {
+    var st = (c.info && c.info.status) || '';
+    if (_mlAdsCampFilter === 'active')   return st === 'active';
+    if (_mlAdsCampFilter === 'inactive') return st !== 'active';
+    return true;
+  });
+
+  if (!filtered.length) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Sin campañas ' + (_mlAdsCampFilter==='active'?'activas':_mlAdsCampFilter==='inactive'?'inactivas':'') + '.</div>';
+    return;
+  }
+
+  var ventaMes = (ML_2026_DATA.meses[_mlAdsMes] || {}).ventas || 0;
+
+  var thead = '<thead><tr style="background:var(--bg);border-bottom:2px solid var(--border)">' +
+    '<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Título</th>' +
+    '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Ventas Ads</th>' +
+    '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Ingresos</th>' +
+    '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Inversión</th>' +
+    '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">ACOS</th>' +
+  '</tr></thead>';
+
+  function acosCol(ratio) {
+    return ratio < 0.15 ? '#059669' : ratio < 0.25 ? '#d97706' : '#dc2626';
+  }
+
+  function row(ad, m) {
+    m = m || {};
+    var cost = m.cost || 0;
+    var rev  = m.amount_total || 0;
+    var sold = m.sold_quantity_direct || 0;
+    var acos = rev > 0 ? (cost/rev*100).toFixed(1)+'%' : '—';
+    var ac   = rev > 0 ? acosCol(cost/rev) : 'var(--muted)';
+    var img  = ad.thumbnail
+      ? '<img src="' + ad.thumbnail.replace('http://','https://') + '" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0">'
+      : '<div style="width:40px;height:40px;border-radius:6px;background:var(--line);flex-shrink:0"></div>';
+    var active = ad.status === 'active';
+    return '<tr style="border-bottom:1px solid var(--border)' + (!active ? ';opacity:.55' : '') + '">' +
+      '<td style="padding:10px 12px"><div style="display:flex;align-items:center;gap:10px">' + img +
+        '<div>' +
+          '<div style="font-weight:600;font-size:12px;max-width:340px">' + (ad.title||ad.id||'').slice(0,60) + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);margin-top:2px">' + ad.id +
+            (ad.price ? ' · $' + Number(ad.price).toLocaleString('es-MX',{maximumFractionDigits:0}) : '') + '</div>' +
+        '</div>' +
+      '</div></td>' +
+      '<td style="padding:10px 12px;text-align:right;font-size:13px">' + (sold > 0 ? sold : '—') + '</td>' +
+      '<td style="padding:10px 12px;text-align:right;font-size:13px">' + (rev > 0 ? '$'+Math.round(rev).toLocaleString('es-MX') : '—') + '</td>' +
+      '<td style="padding:10px 12px;text-align:right;font-size:13px;font-weight:700;color:' + (cost>0?'#b45309':'var(--muted)') + '">' + (cost > 0 ? '$'+cost.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—') + '</td>' +
+      '<td style="padding:10px 12px;text-align:right;font-size:13px;font-weight:700;color:' + ac + '">' + acos + '</td>' +
+    '</tr>';
+  }
+
+  var grandCost = 0, grandRev = 0, grandSold = 0;
+  var html = '';
+
+  filtered.forEach(function(c) {
+    var cname  = (c.info && c.info.name) || 'Campaña';
+    var ccost  = (c.metrics && c.metrics.cost) || 0;
+    var cclics = (c.metrics && c.metrics.clicks) || 0;
+    var cst    = (c.info && c.info.status) || '';
+    var cBg    = cst==='active' ? '#d1fae5' : '#f3f4f6';
+    var cCol   = cst==='active' ? '#059669' : '#6b7280';
+
+    // Sum per-item metrics for this campaign
+    var campRev = 0, campSold = 0;
+    c.ads.forEach(function(ad) {
+      var m = c.im[ad.id] || {};
+      campRev  += m.amount_total || 0;
+      campSold += m.sold_quantity_direct || 0;
+    });
+    grandCost += ccost;
+    grandRev  += campRev;
+    grandSold += campSold;
+
+    var campAcos    = campRev > 0 ? (ccost/campRev*100).toFixed(1)+'%' : '—';
+    var campAcosCol = campRev > 0 ? acosCol(ccost/campRev) : '#6b7280';
+    var campTacos   = ventaMes > 0 && ccost > 0 ? (ccost/ventaMes*100).toFixed(1)+'%' : '';
+
+    var sortedAds = c.ads.slice().sort(function(a,b){ return ((c.im[b.id]&&c.im[b.id].cost)||0)-((c.im[a.id]&&c.im[a.id].cost)||0); });
+
+    var totalsRow = '<tr style="background:var(--bg);border-top:2px solid var(--border)">' +
+      '<td style="padding:7px 12px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Total campaña</td>' +
+      '<td style="padding:7px 12px;text-align:right;font-size:12px;font-weight:700">' + (campSold > 0 ? campSold : '—') + '</td>' +
+      '<td style="padding:7px 12px;text-align:right;font-size:12px;font-weight:700">' + (campRev > 0 ? '$'+Math.round(campRev).toLocaleString('es-MX') : '—') + '</td>' +
+      '<td style="padding:7px 12px;text-align:right;font-size:12px;font-weight:800;color:#b45309">' + (ccost > 0 ? '$'+ccost.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—') + '</td>' +
+      '<td style="padding:7px 12px;text-align:right;font-size:12px;font-weight:800;color:' + campAcosCol + '">' + campAcos +
+        (campTacos ? '<div style="font-size:10px;font-weight:500;color:var(--muted)">TACOS ' + campTacos + '</div>' : '') +
+      '</td>' +
+    '</tr>';
+
+    html += '<div style="margin-bottom:22px;border:1px solid var(--line);border-radius:10px;overflow:hidden">' +
+      '<div style="padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--bg)">' +
+        '<span style="font-weight:700;font-size:13px;color:var(--ink)">' + cname + '</span>' +
+        (cst ? '<span style="padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:' + cBg + ';color:' + cCol + '">' + cst + '</span>' : '') +
+        '<span style="font-size:11px;color:var(--muted)">' + cclics.toLocaleString('es-MX') + ' clics · ' + c.ads.length + ' pubs</span>' +
+        (ccost > 0 ? '<span style="margin-left:auto;font-size:15px;font-weight:800;color:#b45309">$' + ccost.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</span>' : '') +
+      '</div>' +
+      '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">' +
+      thead + '<tbody>' + sortedAds.map(function(ad){ return row(ad, c.im[ad.id]); }).join('') + totalsRow +
+      '</tbody></table></div></div>';
+  });
+
+  // Grand total bar
+  var gAcos  = grandRev > 0 ? (grandCost/grandRev*100).toFixed(1)+'%' : '—';
+  var gAcosC = grandRev > 0 ? acosCol(grandCost/grandRev) : '#6b7280';
+  var gTacos = ventaMes > 0 && grandCost > 0 ? (grandCost/ventaMes*100).toFixed(1)+'%' : '—';
+  html += '<div style="background:var(--bg);border:2px solid var(--line);border-radius:10px;padding:12px 18px;display:flex;gap:20px;flex-wrap:wrap;align-items:center">' +
+    '<span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Total general</span>' +
+    '<span style="font-size:13px"><b>' + grandSold + '</b> ventas</span>' +
+    '<span style="font-size:13px"><b>$' + Math.round(grandRev).toLocaleString('es-MX') + '</b> ingresos</span>' +
+    '<span style="font-size:15px;font-weight:800;color:#b45309">$' + grandCost.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</span>' +
+    '<span style="font-size:13px;font-weight:700;color:' + gAcosC + '">ACOS ' + gAcos + '</span>' +
+    (ventaMes > 0 ? '<span style="font-size:13px;font-weight:700;color:var(--muted)">TACOS ' + gTacos + '</span>' : '') +
+  '</div>';
+
+  el.innerHTML = html;
 }
 
 /* ── Envíos — costos reales cobrados por ML (billing API) ─────── */
