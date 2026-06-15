@@ -9108,9 +9108,16 @@ function loadMLBilling(mes) {
         if (t === 'BXD') { byItem[id].bxd += amt; totals.bxd += amt; }
       }
       if (data.last_id) {
-        if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + ' cargada, continuando…';
-        return new Promise(function(r) { setTimeout(r, 3000); })
-          .then(function() { return fetchPage(data.last_id); });
+        var nextId = data.last_id;
+        var t = 0;
+        function tick() {
+          if (gen !== _mlBillingGen) return Promise.resolve();
+          if (t >= 13) return fetchPage(nextId);
+          if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + ' — esperando ' + (13-t) + 's…';
+          t++;
+          return new Promise(function(r) { setTimeout(r, 1000); }).then(tick);
+        }
+        return tick();
       }
     });
   }
@@ -9384,9 +9391,16 @@ function loadMLEstado(mes) {
         else if (grp === 'CHARGE')                            add('otros', amt);
       }
       if (data.last_id) {
-        if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + ' cargada, continuando…';
-        return new Promise(function(r) { setTimeout(r, 3000); })
-          .then(function() { return fetchPage(data.last_id); });
+        var nextId = data.last_id;
+        var t = 0;
+        function tick() {
+          if (gen !== _mlEstadoGen) return Promise.resolve();
+          if (t >= 13) return fetchPage(nextId);
+          if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + ' cargada — esperando ' + (13-t) + 's…';
+          t++;
+          return new Promise(function(r) { setTimeout(r, 1000); }).then(tick);
+        }
+        return tick();
       }
     });
   }
