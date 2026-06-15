@@ -8738,13 +8738,11 @@ function mlFullRenderMeses() {
   var MES_ABBR = ['Ene','Feb','Mar','Abr','May','Jun'];
   var rows = MES_KEYS.map(function(mes, i) {
     var c = _mlEstadoCacheGet(mes);
-    var ventas = (ML_2026_DATA.meses[mes] || {}).ventas || 0;
-    if (!c) return { mes: mes, abbr: MES_ABBR[i], loaded: false, loading: !!_mlFullLoadingSet[mes], ventas: ventas };
+    if (!c) return { mes: mes, abbr: MES_ABBR[i], loaded: false, loading: !!_mlFullLoadingSet[mes] };
     var efull   = c.envios_full || 0;
     var almacen = c.cfwa || 0;
     var totalFull = efull + almacen;
-    var pct = ventas > 0 ? (totalFull / ventas * 100) : 0;
-    return { mes: mes, abbr: MES_ABBR[i], loaded: true, ventas: ventas, efull: efull, almacen: almacen, totalFull: totalFull, pct: pct };
+    return { mes: mes, abbr: MES_ABBR[i], loaded: true, efull: efull, almacen: almacen, totalFull: totalFull };
   });
   var faltantes = rows.filter(function(r){ return !r.loaded && !r.loading; });
   var loadedRows = rows.filter(function(r){ return r.loaded; });
@@ -8769,24 +8767,21 @@ function mlFullRenderMeses() {
       '</div>' +
       '<div style="font-size:10px;font-weight:600;color:var(--ink)">' + r.abbr + '</div>' +
       '<div style="font-size:10px;color:var(--accent);font-weight:700">$' + Math.round(r.totalFull).toLocaleString('es-MX') + '</div>' +
-      '<div style="font-size:9px;color:var(--muted)">' + r.pct.toFixed(1) + '% vta</div>' +
     '</div>';
   }).join('');
   var tableRows = rows.map(function(r) {
     if (!r.loaded) {
       var cell = r.loading
-        ? '<td colspan="5" style="padding:8px 10px;text-align:center;font-size:11px;color:var(--accent)"><i class="ti ti-loader-2 mlspin"></i> Cargando...</td>'
-        : '<td colspan="4" style="padding:8px 10px;text-align:center;font-size:11px;color:var(--muted)">Sin datos</td>' +
+        ? '<td colspan="3" style="padding:8px 10px;text-align:center;font-size:11px;color:var(--accent)"><i class="ti ti-loader-2 mlspin"></i> Cargando...</td>'
+        : '<td colspan="2" style="padding:8px 10px;text-align:center;font-size:11px;color:var(--muted)">Sin datos</td>' +
           '<td style="padding:8px 6px;text-align:center"><button onclick="_mlFullLoadMes(\''+r.mes+'\')" style="font-size:11px;padding:3px 10px;border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:5px;cursor:pointer"><i class="ti ti-refresh"></i> Cargar</button></td>';
       return '<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 10px;font-weight:600">' + r.abbr + ' 2026</td>' + cell + '</tr>';
     }
     return '<tr style="border-bottom:1px solid var(--border)">' +
       '<td style="padding:8px 10px;font-weight:700;color:var(--ink)">' + r.abbr + ' 2026</td>' +
-      '<td style="padding:8px 10px;text-align:right">$' + (r.ventas||0).toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td>' +
       '<td style="padding:8px 10px;text-align:right;color:#3b82f6;font-weight:600">$' + r.efull.toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td>' +
       '<td style="padding:8px 10px;text-align:right;color:#8b5cf6;font-weight:600">$' + r.almacen.toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td>' +
       '<td style="padding:8px 10px;text-align:right;font-weight:700">$' + Math.round(r.totalFull).toLocaleString('es-MX') + '</td>' +
-      '<td style="padding:8px 10px;text-align:right;color:var(--muted)">' + r.pct.toFixed(1) + '%</td>' +
     '</tr>';
   }).join('');
   var cargarTodosBtn = faltantes.length > 0
@@ -8803,11 +8798,9 @@ function mlFullRenderMeses() {
       '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">' +
         '<thead><tr style="border-bottom:2px solid var(--line)">' +
           '<th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Mes</th>' +
-          '<th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Venta</th>' +
           '<th style="padding:7px 10px;text-align:right;font-size:10px;color:#3b82f6;font-weight:700;text-transform:uppercase">Envíos Full</th>' +
           '<th style="padding:7px 10px;text-align:right;font-size:10px;color:#8b5cf6;font-weight:700;text-transform:uppercase">Almacenaje</th>' +
           '<th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Total FULL</th>' +
-          '<th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">% / Acción</th>' +
         '</tr></thead><tbody>'+tableRows+'</tbody>'+
       '</table></div>' +
     '</div>';
