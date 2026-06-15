@@ -9281,7 +9281,9 @@ function _mlEstadoUpdatePills() {
         ico.title = 'Mes en curso';
       } else if (cached) {
         ico.style.color = isActive ? 'rgba(255,255,255,.85)' : '#16a34a';
-        ico.innerHTML = '<i class="ti ti-circle-check-filled"></i>';
+        ico.innerHTML = '<i class="ti ti-circle-check-filled"></i>' +
+          '<i class="ti ti-refresh" onclick="event.stopPropagation();mlEstadoForzarRecarga(\'' + mes + '\')" ' +
+          'style="margin-left:3px;opacity:.5;cursor:pointer;font-size:9px" title="Volver a descargar"></i>';
         ico.title = 'Datos en caché';
       } else {
         ico.style.color = isActive ? 'rgba(255,255,255,.7)' : 'var(--muted)';
@@ -9290,6 +9292,15 @@ function _mlEstadoUpdatePills() {
       }
     }
   });
+}
+
+function mlEstadoForzarRecarga(mes) {
+  delete _mlEstadoMemCache[mes];
+  var ls = typeof localStorage !== 'undefined' ? localStorage : null;
+  if (ls) ls.removeItem('ml_estado_v2_' + mes);
+  _mlEstadoMes = mes;
+  _mlEstadoUpdatePills();
+  loadMLEstado(mes);
 }
 
 function mlEstadoSelectMes(mes) {
@@ -9310,7 +9321,7 @@ function _mlEstadoCacheGet(mes) {
   var ls = typeof localStorage !== 'undefined' ? localStorage : null;
   if (!ls) return null;
   try {
-    var raw = ls.getItem('ml_estado_v1_' + mes);
+    var raw = ls.getItem('ml_estado_v2_' + mes);
     if (raw) { var d = JSON.parse(raw); _mlEstadoMemCache[mes] = d; return d; }
   } catch(e) {}
   return null;
@@ -9320,7 +9331,7 @@ function _mlEstadoCachePut(mes, acc, pages) {
   var d = Object.assign({}, acc, { _pages: pages });
   _mlEstadoMemCache[mes] = d;
   var ls = typeof localStorage !== 'undefined' ? localStorage : null;
-  if (ls) { try { ls.setItem('ml_estado_v1_' + mes, JSON.stringify(d)); } catch(e) {} }
+  if (ls) { try { ls.setItem('ml_estado_v2_' + mes, JSON.stringify(d)); } catch(e) {} }
 }
 
 function loadMLEstado(mes) {
