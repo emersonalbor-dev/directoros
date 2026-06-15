@@ -8739,28 +8739,29 @@ function mlFullRenderMeses() {
   var rows = MES_KEYS.map(function(mes, i) {
     var c = _mlEstadoCacheGet(mes);
     var ventas = (ML_2026_DATA.meses[mes] || {}).ventas || 0;
-    if (!c) return { mes: mes, abbr: MES_ABBR[i], loaded: false, ventas: ventas };
-    var efull  = c.envios_full || 0;
-    var efull_legacy = (c.envios || 0); // pre-v7 cache: combined, use as fallback label
+    if (!c) return { mes: mes, abbr: MES_ABBR[i], loaded: false, loading: !!_mlFullLoadingSet[mes], ventas: ventas };
+    var efull   = c.envios_full || 0;
     var almacen = c.cfwa || 0;
     var totalFull = efull + almacen;
     var pct = ventas > 0 ? (totalFull / ventas * 100) : 0;
-    return { mes: mes, abbr: MES_ABBR[i], loaded: true, ventas: ventas, efull: efull, efull_legacy: efull_legacy, almacen: almacen, totalFull: totalFull, pct: pct };
+    return { mes: mes, abbr: MES_ABBR[i], loaded: true, ventas: ventas, efull: efull, almacen: almacen, totalFull: totalFull, pct: pct };
   });
+  var faltantes = rows.filter(function(r){ return !r.loaded && !r.loading; });
   var loadedRows = rows.filter(function(r){ return r.loaded; });
   var maxFull = loadedRows.length ? Math.max.apply(null, loadedRows.map(function(r){ return r.totalFull||0; })) : 1;
   var chartBars = rows.map(function(r) {
     if (!r.loaded) {
       return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">' +
-        '<div style="height:70px;display:flex;align-items:flex-end;justify-content:center;width:100%">' +
-          '<div style="width:24px;height:4px;background:var(--border);border-radius:3px"></div>' +
+        '<div style="height:70px;display:flex;align-items:flex-end;justify-content:center">' +
+          (r.loading ? '<i class="ti ti-loader-2 mlspin" style="color:var(--accent);font-size:16px"></i>'
+                     : '<div style="width:24px;height:4px;background:var(--border);border-radius:3px"></div>') +
         '</div>' +
         '<div style="font-size:10px;color:var(--muted)">' + r.abbr + '</div>' +
-        '<div style="font-size:9px;color:var(--border)">sin datos</div>' +
+        '<div style="font-size:9px;color:var(--border)">' + (r.loading ? '...' : '--') + '</div>' +
       '</div>';
     }
-    var hAlm  = maxFull > 0 ? Math.max(3, Math.round((r.almacen  / maxFull) * 60)) : 3;
-    var hEnv  = maxFull > 0 ? Math.max(0, Math.round((r.efull    / maxFull) * 60)) : 0;
+    var hAlm = maxFull > 0 ? Math.max(3, Math.round((r.almacen / maxFull) * 60)) : 3;
+    var hEnv = maxFull > 0 ? Math.max(0, Math.round((r.efull   / maxFull) * 60)) : 0;
     return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">' +
       '<div style="height:70px;display:flex;align-items:flex-end;justify-content:center;width:100%;gap:2px">' +
         '<div title="Envíos Full: $'+r.efull.toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:0})+'" style="width:12px;height:'+hEnv+'px;background:#3b82f6;border-radius:3px 3px 0 0"></div>' +
@@ -8772,22 +8773,28 @@ function mlFullRenderMeses() {
     '</div>';
   }).join('');
   var tableRows = rows.map(function(r) {
-    if (!r.loaded) return '<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 10px;font-weight:600">' + r.abbr + ' 2026</td>' +
-      '<td colspan="4" style="padding:8px 10px;text-align:center;font-size:11px;color:var(--muted)">Sin datos · carga el mes en Estado de Cuenta</td></tr>';
-    var hasLegacy = r.efull === 0 && r.efull_legacy > 0;
-    var envLabel  = hasLegacy ? '<span style="font-size:9px;color:var(--muted)">(caché v6)</span>' : '';
+    if (!r.loaded) {
+      var cell = r.loading
+        ? '<td colspan="5" style="padding:8px 10px;text-align:center;font-size:11px;color:var(--accent)"><i class="ti ti-loader-2 mlspin"></i> Cargando...</td>'
+        : '<td colspan="4" style="padding:8px 10px;text-align:center;font-size:11px;color:var(--muted)">Sin datos</td>' +
+          '<td style="padding:8px 6px;text-align:center"><button onclick="_mlFullLoadMes(\''+r.mes+'\')" style="font-size:11px;padding:3px 10px;border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:5px;cursor:pointer"><i class="ti ti-refresh"></i> Cargar</button></td>';
+      return '<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 10px;font-weight:600">' + r.abbr + ' 2026</td>' + cell + '</tr>';
+    }
     return '<tr style="border-bottom:1px solid var(--border)">' +
       '<td style="padding:8px 10px;font-weight:700;color:var(--ink)">' + r.abbr + ' 2026</td>' +
       '<td style="padding:8px 10px;text-align:right">$' + (r.ventas||0).toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td>' +
-      '<td style="padding:8px 10px;text-align:right;color:#3b82f6;font-weight:600">$' + r.efull.toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:0}) + ' ' + envLabel + '</td>' +
+      '<td style="padding:8px 10px;text-align:right;color:#3b82f6;font-weight:600">$' + r.efull.toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td>' +
       '<td style="padding:8px 10px;text-align:right;color:#8b5cf6;font-weight:600">$' + r.almacen.toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:0}) + '</td>' +
       '<td style="padding:8px 10px;text-align:right;font-weight:700">$' + Math.round(r.totalFull).toLocaleString('es-MX') + '</td>' +
       '<td style="padding:8px 10px;text-align:right;color:var(--muted)">' + r.pct.toFixed(1) + '%</td>' +
     '</tr>';
   }).join('');
+  var cargarTodosBtn = faltantes.length > 0
+    ? '<button onclick="_mlFullLoadAllMeses()" style="font-size:11px;padding:4px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-download"></i> Cargar ' + faltantes.length + ' mes' + (faltantes.length > 1 ? 'es' : '') + ' faltante' + (faltantes.length > 1 ? 's' : '') + '</button>'
+    : '';
   el.innerHTML =
     '<div class="ml-card">' +
-      '<div class="ml-card-h"><i class="ti ti-chart-bar"></i> Desempeño FULL por Mes</div>' +
+      '<div class="ml-card-h" style="display:flex;align-items:center;justify-content:space-between"><span><i class="ti ti-chart-bar"></i> Desempeño FULL por Mes</span>' + cargarTodosBtn + '</div>' +
       '<div style="display:flex;gap:12px;align-items:flex-end;padding:8px 0 4px;margin-bottom:8px">'+chartBars+'</div>' +
       '<div style="display:flex;gap:16px;font-size:11px;color:var(--muted);margin-bottom:16px;padding-left:4px">' +
         '<span><span style="display:inline-block;width:10px;height:10px;background:#3b82f6;border-radius:2px;margin-right:4px"></span>Envíos Full (CFF)</span>' +
@@ -8800,11 +8807,81 @@ function mlFullRenderMeses() {
           '<th style="padding:7px 10px;text-align:right;font-size:10px;color:#3b82f6;font-weight:700;text-transform:uppercase">Envíos Full</th>' +
           '<th style="padding:7px 10px;text-align:right;font-size:10px;color:#8b5cf6;font-weight:700;text-transform:uppercase">Almacenaje</th>' +
           '<th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Total FULL</th>' +
-          '<th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">% Venta</th>' +
+          '<th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">% / Acción</th>' +
         '</tr></thead><tbody>'+tableRows+'</tbody>'+
       '</table></div>' +
-      '<p style="font-size:10px;color:var(--muted);margin:12px 0 0">Los meses sin datos se llenan automáticamente al cargar Estado de Cuenta.</p>' +
     '</div>';
+}
+
+var _mlFullLoadingSet = {};
+
+function _mlFullLoadMes(mes) {
+  if (_mlFullLoadingSet[mes]) return;
+  _mlFullLoadingSet[mes] = true;
+  if (_mlFullSubTab === 'meses') mlFullRenderMeses();
+  var parts = mes.split('-'), periodKey = parts[0] + '-' + parts[1];
+  var acc = {}, pages = 0;
+  function add(k, v) { acc[k] = (acc[k]||0) + v; }
+  function procML(rec) {
+    var t = (rec.charge_info||{}).detail_sub_type||'', amt = Math.abs((rec.charge_info||{}).detail_amount||0), grp = (rec.charge_info||{}).detail_type||'';
+    if (t==='CV') add('cv',amt); else if (t==='CFF') add('envios_full',amt); else if (t==='CXD'||t==='CDSD') add('envios_xd',amt);
+    else if (t==='PADS'||t==='CBADS') add('publicidad',amt); else if (t==='CFWA'||t==='CFCB'||t==='CFRS'||t==='CFPB'||t==='CFBA') add('cfwa',amt);
+    else if (t==='CESM') add('cesm',amt); else if (t==='BV') add('bv',amt); else if (t==='BFF'||t==='BXD') add('benvios',amt);
+    else if (grp==='BONUS') add('bv',amt); else if (grp==='CHARGE') add('otros',amt);
+  }
+  function procMP(rec) {
+    var t = (rec.charge_info||{}).detail_sub_type||'', amt = Math.abs((rec.charge_info||{}).detail_amount||0), grp = (rec.charge_info||{}).detail_type||'';
+    if (t==='CRIA') add('adelanto',amt); else if (t==='CPOPC') add('servicios_mp',amt); else if (grp==='CHARGE') add('otros',amt);
+  }
+  function fetchML(fromId) {
+    var url = 'https://api.mercadolibre.com/billing/integration/periods/key/'+periodKey+'/group/ML/details?document_type=BILL&limit=1000&from_id='+fromId+'&sort_by=ID&order_by=ASC';
+    return mlApiFetch(url).then(function(data) {
+      pages++; (data.results||[]).forEach(procML);
+      if (data.last_id && (data.results||[]).length > 0)
+        return new Promise(function(r){setTimeout(r,13000);}).then(function(){return fetchML(data.last_id);});
+    });
+  }
+  function fetchMP(fromId) {
+    var url = 'https://api.mercadolibre.com/billing/integration/periods/key/'+periodKey+'/group/MP/details?document_type=BILL&limit=1000&from_id='+fromId+'&sort_by=ID&order_by=ASC';
+    return mlApiFetch(url).then(function(data) {
+      (data.results||[]).forEach(procMP);
+      if (data.last_id && (data.results||[]).length > 0)
+        return new Promise(function(r){setTimeout(r,13000);}).then(function(){return fetchMP(data.last_id);});
+    });
+  }
+  fetchML(0).then(function(){return fetchMP(0);}).then(function() {
+    _mlEstadoCachePut(mes, acc, pages);
+    delete _mlFullLoadingSet[mes];
+    if (_mlFullSubTab === 'meses') mlFullRenderMeses();
+  }).catch(function() { delete _mlFullLoadingSet[mes]; if (_mlFullSubTab === 'meses') mlFullRenderMeses(); });
+}
+
+function _mlFullLoadAllMeses() {
+  var MES_KEYS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06'];
+  var faltantes = MES_KEYS.filter(function(m){ return !_mlEstadoCacheGet(m) && !_mlFullLoadingSet[m]; });
+  if (!faltantes.length) return;
+  // Cargar en serie: cada mes espera al anterior para no saturar el rate limit
+  faltantes.reduce(function(chain, mes) {
+    return chain.then(function() {
+      return new Promise(function(resolve) {
+        if (_mlFullLoadingSet[mes]) { resolve(); return; }
+        _mlFullLoadingSet[mes] = true;
+        if (_mlFullSubTab === 'meses') mlFullRenderMeses();
+        var parts = mes.split('-'), periodKey = parts[0] + '-' + parts[1];
+        var acc = {}, pages = 0;
+        function add(k,v){acc[k]=(acc[k]||0)+v;}
+        function procML(rec){var t=(rec.charge_info||{}).detail_sub_type||'',amt=Math.abs((rec.charge_info||{}).detail_amount||0),grp=(rec.charge_info||{}).detail_type||'';if(t==='CV')add('cv',amt);else if(t==='CFF')add('envios_full',amt);else if(t==='CXD'||t==='CDSD')add('envios_xd',amt);else if(t==='PADS'||t==='CBADS')add('publicidad',amt);else if(t==='CFWA'||t==='CFCB'||t==='CFRS'||t==='CFPB'||t==='CFBA')add('cfwa',amt);else if(t==='CESM')add('cesm',amt);else if(t==='BV')add('bv',amt);else if(t==='BFF'||t==='BXD')add('benvios',amt);else if(grp==='BONUS')add('bv',amt);else if(grp==='CHARGE')add('otros',amt);}
+        function procMP(rec){var t=(rec.charge_info||{}).detail_sub_type||'',amt=Math.abs((rec.charge_info||{}).detail_amount||0),grp=(rec.charge_info||{}).detail_type||'';if(t==='CRIA')add('adelanto',amt);else if(t==='CPOPC')add('servicios_mp',amt);else if(grp==='CHARGE')add('otros',amt);}
+        function fetchML(fromId){var url='https://api.mercadolibre.com/billing/integration/periods/key/'+periodKey+'/group/ML/details?document_type=BILL&limit=1000&from_id='+fromId+'&sort_by=ID&order_by=ASC';return mlApiFetch(url).then(function(data){pages++;(data.results||[]).forEach(procML);if(data.last_id&&(data.results||[]).length>0)return new Promise(function(r){setTimeout(r,13000);}).then(function(){return fetchML(data.last_id);});});}
+        function fetchMP(fromId){var url='https://api.mercadolibre.com/billing/integration/periods/key/'+periodKey+'/group/MP/details?document_type=BILL&limit=1000&from_id='+fromId+'&sort_by=ID&order_by=ASC';return mlApiFetch(url).then(function(data){(data.results||[]).forEach(procMP);if(data.last_id&&(data.results||[]).length>0)return new Promise(function(r){setTimeout(r,13000);}).then(function(){return fetchMP(data.last_id);});});}
+        fetchML(0).then(function(){return fetchMP(0);}).then(function(){
+          _mlEstadoCachePut(mes, acc, pages); delete _mlFullLoadingSet[mes];
+          if (_mlFullSubTab === 'meses') mlFullRenderMeses();
+          resolve();
+        }).catch(function(){ delete _mlFullLoadingSet[mes]; resolve(); });
+      });
+    });
+  }, Promise.resolve());
 }
 
 /* ── sub-tab: DEJASTE DE MANDAR ── */
