@@ -9766,9 +9766,14 @@ function loadMLEstado(mes) {
     return fetchMPPage(0);
   }).then(function() {
     if (gen !== _mlEstadoGen) return; // cancelled
-    if (!isCurrent) _mlEstadoCachePut(mes, acc, pageCount);
+    // Always cache in memory so Por Mes tab can read it; only persist to localStorage for past months
+    if (!isCurrent) {
+      _mlEstadoCachePut(mes, acc, pageCount);
+    } else {
+      _mlEstadoMemCache[mes] = Object.assign({}, acc, { _pages: pageCount });
+    }
     _mlEstadoUpdatePills();
-    if (statusEl) statusEl.textContent = pageCount + ' página(s)' + (!isCurrent ? ' · guardado ✓' : '');
+    if (statusEl) statusEl.textContent = pageCount + ' página(s)' + (!isCurrent ? ' · guardado ✓' : ' · en memoria');
     _mlEstadoRender(acc, mes);
   }).catch(function(e) {
     if (gen !== _mlEstadoGen) return;
