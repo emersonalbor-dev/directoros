@@ -9189,31 +9189,74 @@ function renderMLTab_estado() {
   _mlEstadoMes = yr + '-' + String(mo).padStart(2,'0');
   var el = document.getElementById('mlTabContent');
   if (!el) return;
-  var mnames = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  var opts = '';
-  for (var i = 0; i < 6; i++) {
+  var mshort = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+  var pills = '';
+  for (var i = 5; i >= 0; i--) {
     var m = mo - i, y = yr;
     if (m <= 0) { m += 12; y--; }
     var k = y + '-' + String(m).padStart(2,'0');
-    opts += '<option value="' + k + '"' + (i===0?' selected':'') + '>' + mnames[m] + ' ' + y + '</option>';
+    pills += '<button id="mlEstPill_' + k + '" data-mes="' + k + '" onclick="mlEstadoSelectMes(\'' + k + '\')" ' +
+      'style="display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:20px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap">' +
+      mshort[m] + ' ' + y +
+      '<span id="mlEstPillIco_' + k + '" style="display:inline-flex;align-items:center;font-size:10px"></span>' +
+    '</button>';
   }
+
   el.innerHTML =
     '<div class="ml-card">' +
       '<div class="ml-card-h"><i class="ti ti-report-money"></i> Estado de Cuenta — Cargos por ML</div>' +
-      '<div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap">' +
-        '<label style="font-size:12px;color:var(--muted)">Mes:</label>' +
-        '<select id="mlEstadoMesSel" onchange="mlEstadoChangeMes(this.value)" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);font-size:12px">' + opts + '</select>' +
-        '<span id="mlEstadoStatus" style="font-size:11px;color:var(--muted)"></span>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:16px">' +
+        pills +
+        '<span id="mlEstadoStatus" style="font-size:11px;color:var(--muted);margin-left:4px"></span>' +
       '</div>' +
       '<div id="mlEstadoContent"><div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando...</div></div>' +
     '</div>';
+
   if (!ML_TOKEN) { document.getElementById('mlEstadoContent').innerHTML = '<div class="ml-no-token"><i class="ti ti-key"></i> Ingresa el token para continuar</div>'; return; }
+  _mlEstadoUpdatePills();
   loadMLEstado(_mlEstadoMes);
 }
 
-function mlEstadoChangeMes(mes) {
+function _mlEstadoUpdatePills() {
+  var curMes = _mlCurMes();
+  document.querySelectorAll('[id^="mlEstPill_"]').forEach(function(pill) {
+    var mes = pill.getAttribute('data-mes');
+    var ico = document.getElementById('mlEstPillIco_' + mes);
+    var isActive  = mes === _mlEstadoMes;
+    var isCurrent = mes >= curMes;
+    var cached    = !isCurrent && !!_mlEstadoCacheGet(mes);
+
+    pill.style.background   = isActive ? 'var(--accent, #2563eb)' : 'var(--bg)';
+    pill.style.color        = isActive ? '#fff' : 'var(--text)';
+    pill.style.borderColor  = isActive ? 'var(--accent, #2563eb)' : (cached ? '#16a34a' : 'var(--line)');
+    pill.style.fontWeight   = isActive ? '700' : '500';
+
+    if (ico) {
+      if (isCurrent) {
+        ico.innerHTML = '<i class="ti ti-refresh" style="opacity:.65"></i>';
+        ico.title = 'Mes en curso';
+      } else if (cached) {
+        ico.style.color = isActive ? 'rgba(255,255,255,.85)' : '#16a34a';
+        ico.innerHTML = '<i class="ti ti-circle-check-filled"></i>';
+        ico.title = 'Datos en caché';
+      } else {
+        ico.style.color = isActive ? 'rgba(255,255,255,.7)' : 'var(--muted)';
+        ico.innerHTML = '<i class="ti ti-cloud-download"></i>';
+        ico.title = 'Sin cargar — click para descargar';
+      }
+    }
+  });
+}
+
+function mlEstadoSelectMes(mes) {
   _mlEstadoMes = mes;
+  _mlEstadoUpdatePills();
   loadMLEstado(mes);
+}
+
+function mlEstadoChangeMes(mes) {
+  mlEstadoSelectMes(mes);
 }
 
 var _mlEstadoGen = 0;
@@ -9297,6 +9340,7 @@ function loadMLEstado(mes) {
   fetchPage(0).then(function() {
     if (gen !== _mlEstadoGen) return; // cancelled
     if (!isCurrent) _mlEstadoCachePut(mes, acc, pageCount);
+    _mlEstadoUpdatePills();
     if (statusEl) statusEl.textContent = pageCount + ' página(s)' + (!isCurrent ? ' · guardado ✓' : '');
     _mlEstadoRender(acc, mes);
   }).catch(function(e) {
