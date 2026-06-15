@@ -8127,8 +8127,9 @@ function toggleMLTokenPanel() {
   }
 }
 
-function mlApiFetch(url, opts) {
+function mlApiFetch(url, opts, _retries) {
   opts = opts || {};
+  _retries = _retries || 0;
   var method = (opts.method || 'GET').toUpperCase();
   var fetchUrl = url;
   var fetchOpts = Object.assign({}, opts);
@@ -8148,8 +8149,28 @@ function mlApiFetch(url, opts) {
       if (panel) panel.style.display = 'block';
       return Promise.reject(new Error('Token expirado · Actualiza el token'));
     }
+    // Rate limit: wait and retry (max 4 attempts, backoff 15s/30s/45s/60s)
+    if (r.status === 429) {
+      if (_retries < 4) {
+        var wait = 15000 * (_retries + 1);
+        return new Promise(function(res) { setTimeout(res, wait); })
+          .then(function() { return mlApiFetch(url, opts, _retries + 1); });
+      }
+      return Promise.reject(new Error('Rate limit excedido. Intenta de nuevo en un momento.'));
+    }
     return r.json().then(function(json) {
-      if (!r.ok) return Promise.reject(new Error(json.message || ('Error ' + r.status)));
+      if (!r.ok) {
+        // Also retry on rate limit returned as 200 with error body
+        var msg = json.message || '';
+        if (msg.indexOf('rate limit') !== -1 || msg.indexOf('Rate limit') !== -1) {
+          if (_retries < 4) {
+            var wait2 = 15000 * (_retries + 1);
+            return new Promise(function(res) { setTimeout(res, wait2); })
+              .then(function() { return mlApiFetch(url, opts, _retries + 1); });
+          }
+        }
+        return Promise.reject(new Error(msg || ('Error ' + r.status)));
+      }
       return json;
     });
   });
@@ -8879,7 +8900,10 @@ function loadMLBilling(mes) {
         if (t === 'BFF') { byItem[id].bff += amt; totals.bff += amt; }
         if (t === 'BXD') { byItem[id].bxd += amt; totals.bxd += amt; }
       }
-      if (results.length === 1000 && data.last_id) return fetchPage(data.last_id);
+      if (results.length === 1000 && data.last_id) {
+        // 3s delay between pages to stay under rate limit (5 req/min)
+        return new Promise(function(r) { setTimeout(r, 3000); }).then(function() { return fetchPage(data.last_id); });
+      }
     });
   }
 
