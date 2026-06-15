@@ -9078,14 +9078,15 @@ function loadMLEstado(mes) {
         var t = (rec.charge_info || {}).detail_sub_type || '';
         var amt = Math.abs((rec.charge_info || {}).detail_amount || 0);
         var grp = (rec.charge_info || {}).detail_type || '';
-        if (t === 'CV')   add('cv', amt);
-        else if (t === 'CFF' || t === 'CXD') add('envios', amt);
-        else if (t === 'PADS' || t === 'CBADS') add('publicidad', amt);
-        else if (t === 'CFWA') add('cfwa', amt);
-        else if (t === 'CESM') add('cesm', amt);
-        else if (t === 'BV')  add('bv', amt);
-        else if (t === 'BFF' || t === 'BXD') add('benvios', amt);
-        else if (grp === 'CHARGE') add('otros', amt);
+        if (t === 'CV')                                        add('cv', amt);
+        else if (t === 'CFF' || t === 'CXD' || t === 'CDSD') add('envios', amt);
+        else if (t === 'PADS' || t === 'CBADS')               add('publicidad', amt);
+        else if (t === 'CFWA' || t === 'CFCB' || t === 'CFRS') add('cfwa', amt);
+        else if (t === 'CESM')                                add('cesm', amt);
+        else if (t === 'BV')                                  add('bv', amt);
+        else if (t === 'BFF' || t === 'BXD')                  add('benvios', amt);
+        else if (grp === 'BONUS')                             add('bv', amt);
+        else if (grp === 'CHARGE')                            add('otros', amt);
       }
       if (results.length === 1000 && data.last_id) return fetchPage(data.last_id);
     });
