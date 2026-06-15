@@ -7554,7 +7554,9 @@ function renderMLTab_resumen() {
   }).join('');
 
   el.innerHTML =
-    '<div class="ml-month-pills">' + pillsHtml + '</div>' +
+    '<div class="ml-month-pills" style="align-items:center">' + pillsHtml +
+    '<button id="mlRefreshBtn" onclick="mlRefreshCurrentMonth()" style="margin-left:auto;padding:5px 13px;font-size:11px;font-weight:600;border:1.5px solid var(--line);background:transparent;color:var(--muted);border-radius:20px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s" onmouseover="this.style.borderColor=\'#f59e0b\';this.style.color=\'#d97706\'" onmouseout="this.style.borderColor=\'var(--line)\';this.style.color=\'var(--muted)\'"><i class="ti ti-refresh"></i> Actualizar junio</button>' +
+    '</div>' +
     '<div class="ml-kpis" id="mlKpis"></div>' +
     '<div class="ml-grid2">' +
       '<div>' +
@@ -7809,6 +7811,74 @@ function buscarCompetidores() {
         '<div style="border:1px solid var(--line);border-radius:8px;overflow:hidden">' + cards + '</div>';
     })
     .catch(function(e){ el.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> Error: ' + e.message + '</div>'; });
+}
+
+/* ── ACTUALIZAR MES ACTUAL EN VIVO ─────────────────────────────────── */
+function mlRefreshCurrentMonth() {
+  var mes = '2026-06';
+  var btn = document.getElementById('mlRefreshBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2 mlspin"></i> Actualizando...'; }
+
+  var now = new Date();
+  var year = now.getFullYear(), month = String(now.getMonth() + 1).padStart(2, '0');
+  var from = encodeURIComponent(year + '-' + month + '-01T00:00:00.000-06:00');
+  var to   = encodeURIComponent(now.toISOString().slice(0, 10) + 'T23:59:59.000-06:00');
+  var base = 'https://api.mercadolibre.com/orders/search?seller=' + ML_SELLER_ID +
+    '&order.status=paid&order.date_created.from=' + from + '&order.date_created.to=' + to;
+
+  mlApiFetch(base + '&limit=50&offset=0')
+    .then(function(first) {
+      var total = (first.paging || {}).total || 0;
+      var fetches = [Promise.resolve(first)];
+      if (total <= 600) {
+        for (var o = 50; o < total; o += 50) fetches.push(mlApiFetch(base + '&limit=50&offset=' + o));
+      } else {
+        var dists = [];
+        for (var i = 1; i <= 9; i++) dists.push(Math.floor(total * i / 10));
+        dists.push(Math.max(0, total - 50));
+        dists.filter(function(v,i,a){ return v > 0 && a.indexOf(v) === i; })
+             .forEach(function(o){ fetches.push(mlApiFetch(base + '&limit=50&offset=' + o)); });
+      }
+      return Promise.all(fetches).then(function(pages){ return {total: total, pages: pages, sampled: total > 600}; });
+    })
+    .then(function(r) {
+      var agg = {}, seen = {}, ventas = 0, unidades = 0, skus = {}, sampledN = 0;
+      r.pages.forEach(function(page) {
+        (page.results || []).forEach(function(order) {
+          if (seen[order.id]) return;
+          seen[order.id] = true; sampledN++;
+          var ok = !(order.payments && order.payments.length) ||
+            order.payments.some(function(p){ return p.status === 'approved'; });
+          if (!ok) return;
+          (order.order_items || []).forEach(function(it) {
+            var t = (it.item && it.item.title) ? it.item.title : 'Producto';
+            var q = it.quantity || 0, p = it.unit_price || 0;
+            ventas += q * p; unidades += q;
+            if (it.item && it.item.id) skus[it.item.id] = true;
+            if (!agg[t]) agg[t] = {ingresos: 0, unidades: 0};
+            agg[t].ingresos += q * p; agg[t].unidades += q;
+          });
+        });
+      });
+      var scale = (r.sampled && sampledN > 0) ? r.total / sampledN : 1;
+      var top = Object.keys(agg)
+        .map(function(t){ return {titulo: t, ingresos: Math.round(agg[t].ingresos), unidades: Math.round(agg[t].unidades)}; })
+        .sort(function(a,b){ return b.ingresos - a.ingresos; }).slice(0, 10);
+      var mnames = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+      ML_2026_DATA.meses[mes] = {
+        ventas: Math.round(ventas * scale), ordenes: r.total,
+        unidades: Math.round(unidades * scale), skus: Object.keys(skus).length,
+        parcial: true, parcialLabel: 'al ' + now.getDate() + ' de ' + mnames[now.getMonth()],
+        top: top
+      };
+      _mlMesActivo = mes;
+      if (_mlActiveTab === 'resumen') renderMLTab_resumen();
+      else { _renderMLKpis(mes); _renderMLTops(mes); }
+    })
+    .catch(function(e) {
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-refresh"></i> Actualizar junio'; }
+      alert('Error al actualizar: ' + e.message);
+    });
 }
 
 function switchAdminTab(name, el) {
