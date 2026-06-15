@@ -8152,9 +8152,9 @@ var _mlRefreshing = null;
 
 function mlTryRefreshToken() {
   var ls = typeof localStorage !== 'undefined' ? localStorage : null;
-  var secret  = ls && ls.getItem('ml_client_secret')  || '';
-  var refresh = ls && ls.getItem('ml_refresh_token')   || '';
-  var cid     = ls && ls.getItem('ml_client_id')       || '3229341112864987';
+  var secret  = (ls && ls.getItem('ml_client_secret'))  || 'dXOYxPIKcbuH2iXu61b53SuLVbwvq6rk';
+  var refresh = (ls && ls.getItem('ml_refresh_token'))   || 'TG-6a3009dc9f369f000113d1de-244438069';
+  var cid     = (ls && ls.getItem('ml_client_id'))       || '3229341112864987';
   if (!secret || !refresh) return Promise.reject(new Error('no_creds'));
   if (_mlRefreshing) return _mlRefreshing;
   _mlRefreshing = fetch('https://api.mercadolibre.com/oauth/token', {
