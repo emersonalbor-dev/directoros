@@ -9304,7 +9304,7 @@ function _mlEstadoUpdatePills() {
 function mlEstadoForzarRecarga(mes) {
   delete _mlEstadoMemCache[mes];
   var ls = typeof localStorage !== 'undefined' ? localStorage : null;
-  if (ls) ls.removeItem('ml_estado_v2_' + mes);
+  if (ls) ls.removeItem('ml_estado_v3_' + mes);
   _mlEstadoMes = mes;
   _mlEstadoUpdatePills();
   loadMLEstado(mes);
@@ -9328,7 +9328,7 @@ function _mlEstadoCacheGet(mes) {
   var ls = typeof localStorage !== 'undefined' ? localStorage : null;
   if (!ls) return null;
   try {
-    var raw = ls.getItem('ml_estado_v2_' + mes);
+    var raw = ls.getItem('ml_estado_v3_' + mes);
     if (raw) { var d = JSON.parse(raw); _mlEstadoMemCache[mes] = d; return d; }
   } catch(e) {}
   return null;
@@ -9338,7 +9338,7 @@ function _mlEstadoCachePut(mes, acc, pages) {
   var d = Object.assign({}, acc, { _pages: pages });
   _mlEstadoMemCache[mes] = d;
   var ls = typeof localStorage !== 'undefined' ? localStorage : null;
-  if (ls) { try { ls.setItem('ml_estado_v2_' + mes, JSON.stringify(d)); } catch(e) {} }
+  if (ls) { try { ls.setItem('ml_estado_v3_' + mes, JSON.stringify(d)); } catch(e) {} }
 }
 
 function loadMLEstado(mes) {
