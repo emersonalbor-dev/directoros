@@ -8095,7 +8095,26 @@ var ML_2026_DATA = {
 
 var _mlMesActivo = '2026-06';
 var _mlActiveTab = 'resumen';
-var ML_TOKEN = (typeof localStorage !== 'undefined' && localStorage.getItem('ml_token')) || 'APP_USR-3229341112864987-061422-278303d16006fd284bf4ea97c237c137-244438069';
+
+/* ── Inyección de credenciales por URL hash (un solo clic de setup) ── */
+(function() {
+  try {
+    var h = location.hash;
+    if (h && h.indexOf('#ml_setup=') === 0) {
+      var d = JSON.parse(atob(h.slice(10)));
+      var ls = typeof localStorage !== 'undefined' ? localStorage : null;
+      if (!ls) return;
+      if (d.t)  ls.setItem('ml_token', d.t);
+      if (d.r)  ls.setItem('ml_refresh_token', d.r);
+      if (d.s)  ls.setItem('ml_client_secret', d.s);
+      if (d.c)  ls.setItem('ml_client_id', d.c);
+      history.replaceState(null, '', location.pathname + location.search);
+      location.reload();
+    }
+  } catch(e) {}
+})();
+
+var ML_TOKEN = (typeof localStorage !== 'undefined' && localStorage.getItem('ml_token')) || 'APP_USR-3229341112864987-061510-4fe6c0cdb086208798e040fb07e72a89-244438069';
 var ML_SELLER_ID = '244438069';
 
 function mlSaveToken(t) {
