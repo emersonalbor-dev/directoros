@@ -7786,16 +7786,22 @@ function mlResponder(qId) {
 }
 
 /* ── PUBLICIDAD TAB ─────────────────────────────────────────────────── */
+var _mlAdsData = null;
+var _mlAdsFilter = 'all';
+
 function renderMLTab_publicidad() {
+  _mlAdsData = null;
+  _mlAdsFilter = 'all';
   var el = document.getElementById('mlTabContent');
   if (!el) return;
   el.innerHTML =
     '<div class="ml-card">' +
       '<div class="ml-card-h"><i class="ti ti-speakerphone"></i> Publicidad · Product Ads por publicación</div>' +
-      '<div style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:12px;display:flex;align-items:center;gap:10px">' +
-        '<i class="ti ti-info-circle" style="color:#f59e0b;font-size:16px;flex-shrink:0"></i>' +
-        '<span style="color:var(--muted)">Gestiona Product Ads por publicación. Para ver reportes de gasto y campañas generales, visita </span>' +
-        '<a href="https://www.mercadolibre.com.mx/advertising" target="_blank" style="color:#f59e0b;font-weight:600;text-decoration:none">ML Advertising <i class="ti ti-external-link" style="font-size:10px"></i></a>' +
+      '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">' +
+        '<button class="ml-pub-filter active" id="mlAdsFAll" onclick="mlAdsSetFilter(\'all\',this)">Todos</button>' +
+        '<button class="ml-pub-filter" id="mlAdsFCon" onclick="mlAdsSetFilter(\'con\',this)">Con anuncio</button>' +
+        '<button class="ml-pub-filter" id="mlAdsFSin" onclick="mlAdsSetFilter(\'sin\',this)">Sin anuncio</button>' +
+        '<a href="https://publicidad.mercadolibre.com.mx/" target="_blank" style="margin-left:auto;font-size:11px;color:#f59e0b;font-weight:600;text-decoration:none">Ir a ML Publicidad <i class="ti ti-external-link" style="font-size:10px"></i></a>' +
       '</div>' +
       '<div id="mlAdsContent"><div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando publicaciones...</div></div>' +
     '</div>';
@@ -7810,7 +7816,6 @@ function renderMLTab_publicidad() {
     })
     .then(function(result) {
       if (!result) return;
-      // Check ad status for each item in parallel
       return Promise.all(result.ids.map(function(id) {
         return mlApiFetch('https://api.mercadolibre.com/advertising/product_ads/' + id)
           .then(function(ad) { return { id: id, ad: ad }; })
@@ -7823,36 +7828,87 @@ function renderMLTab_publicidad() {
     })
     .then(function(r) {
       if (!r) return;
-      var rows = r.items.map(function(w) {
+      // Build enriched list and separate by ad status
+      var conAnuncio = [], sinAnuncio = [];
+      r.items.forEach(function(w) {
         var it = w.body || w;
-        if (!it || !it.id) return '';
+        if (!it || !it.id) return;
         var ad = r.adMap[it.id];
-        var adStatus = ad ? ad.status : null;
-        var budget = ad && ad.daily_budget ? '$' + Number(ad.daily_budget).toLocaleString('es-MX', {maximumFractionDigits:0}) + '/día' : '—';
-        var badgeHtml = adStatus === 'active'
-          ? '<span class="ml-item-status active">Activo</span>'
-          : adStatus === 'paused'
-            ? '<span class="ml-item-status paused">Pausado</span>'
-            : '<span style="font-size:10px;color:var(--muted)">Sin anuncio</span>';
-        var mlAdsUrl = 'https://publicidad.mercadolibre.com.mx/';
-        var actionHtml = adStatus === 'active'
-          ? '<a href="' + mlAdsUrl + '" target="_blank" style="padding:3px 10px;font-size:10px;background:#fef9c3;color:#a16207;border:1px solid #fde047;border-radius:5px;cursor:pointer;font-weight:600;text-decoration:none;display:inline-block">Pausar <i class="ti ti-external-link" style="font-size:9px"></i></a>'
-          : adStatus === 'paused'
-            ? '<a href="' + mlAdsUrl + '" target="_blank" style="padding:3px 10px;font-size:10px;background:#dcfce7;color:#15803d;border:1px solid #86efac;border-radius:5px;cursor:pointer;font-weight:600;text-decoration:none;display:inline-block">Activar <i class="ti ti-external-link" style="font-size:9px"></i></a>'
-            : '<a href="' + mlAdsUrl + '" target="_blank" style="padding:3px 10px;font-size:10px;background:var(--bg);color:var(--muted);border:1px solid var(--line);border-radius:5px;cursor:pointer;font-weight:600;text-decoration:none;display:inline-block">+ Anunciar <i class="ti ti-external-link" style="font-size:9px"></i></a>';
-        var title = (it.title || '').slice(0, 50) + (it.title && it.title.length > 50 ? '…' : '');
-        return '<tr id="adrow_' + it.id + '">' +
-          '<td style="text-align:left"><div style="font-weight:600;font-size:12px">' + title + '</div><div style="font-size:10px;color:var(--muted)">' + it.id + '</div></td>' +
-          '<td>' + badgeHtml + '</td>' +
-          '<td>' + budget + '</td>' +
-          '<td>' + actionHtml + '</td>' +
-          '</tr>';
-      }).join('');
-      document.getElementById('mlAdsContent').innerHTML =
-        '<div style="overflow-x:auto"><table class="ml-top-t"><thead><tr><th style="text-align:left">Publicación</th><th>Estado</th><th>Presupuesto</th><th>Acción</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
-        '<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:8px">Mostrando primeras 20 publicaciones · Precio de anuncio por defecto: $50 MXN/día</div>';
+        var obj = { it: it, ad: ad, adStatus: ad ? ad.status : null };
+        if (ad) conAnuncio.push(obj);
+        else sinAnuncio.push(obj);
+      });
+      _mlAdsData = { conAnuncio: conAnuncio, sinAnuncio: sinAnuncio };
+      // Update button labels with counts
+      var fAll = document.getElementById('mlAdsFAll');
+      var fCon = document.getElementById('mlAdsFCon');
+      var fSin = document.getElementById('mlAdsFSin');
+      if (fAll) fAll.textContent = 'Todos (' + (conAnuncio.length + sinAnuncio.length) + ')';
+      if (fCon) fCon.textContent = 'Con anuncio (' + conAnuncio.length + ')';
+      if (fSin) fSin.textContent = 'Sin anuncio (' + sinAnuncio.length + ')';
+      mlAdsRender();
     })
     .catch(function(e) { document.getElementById('mlAdsContent').innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>'; });
+}
+
+function mlAdsSetFilter(filter, btn) {
+  document.querySelectorAll('#mlTabContent .ml-pub-filter').forEach(function(b){ b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  _mlAdsFilter = filter;
+  if (_mlAdsData) mlAdsRender();
+}
+
+function mlAdsRender() {
+  var el = document.getElementById('mlAdsContent');
+  if (!el || !_mlAdsData) return;
+  var mlAdsUrl = 'https://publicidad.mercadolibre.com.mx/';
+
+  function buildRow(obj) {
+    var it = obj.it, ad = obj.ad, adStatus = obj.adStatus;
+    var budget = ad && ad.daily_budget ? '$' + Number(ad.daily_budget).toLocaleString('es-MX', {maximumFractionDigits:0}) + '/día' : '—';
+    var badgeHtml = adStatus === 'active'
+      ? '<span class="ml-item-status active">Activo</span>'
+      : adStatus === 'paused'
+        ? '<span class="ml-item-status paused">Pausado</span>'
+        : '<span style="font-size:10px;color:var(--muted)">Sin anuncio</span>';
+    var actionHtml = adStatus === 'active'
+      ? '<a href="' + mlAdsUrl + '" target="_blank" style="padding:3px 10px;font-size:10px;background:#fef9c3;color:#a16207;border:1px solid #fde047;border-radius:5px;font-weight:600;text-decoration:none;display:inline-block">Pausar <i class="ti ti-external-link" style="font-size:9px"></i></a>'
+      : adStatus === 'paused'
+        ? '<a href="' + mlAdsUrl + '" target="_blank" style="padding:3px 10px;font-size:10px;background:#dcfce7;color:#15803d;border:1px solid #86efac;border-radius:5px;font-weight:600;text-decoration:none;display:inline-block">Activar <i class="ti ti-external-link" style="font-size:9px"></i></a>'
+        : '<a href="' + mlAdsUrl + '" target="_blank" style="padding:3px 10px;font-size:10px;background:var(--bg);color:var(--muted);border:1px solid var(--line);border-radius:5px;font-weight:600;text-decoration:none;display:inline-block">+ Anunciar <i class="ti ti-external-link" style="font-size:9px"></i></a>';
+    var title = (it.title || '').slice(0, 50) + (it.title && it.title.length > 50 ? '…' : '');
+    return '<tr>' +
+      '<td style="text-align:left"><div style="font-weight:600;font-size:12px">' + title + '</div><div style="font-size:10px;color:var(--muted)">' + it.id + '</div></td>' +
+      '<td>' + badgeHtml + '</td>' +
+      '<td>' + budget + '</td>' +
+      '<td>' + actionHtml + '</td>' +
+      '</tr>';
+  }
+
+  function buildTable(items) {
+    if (!items.length) return '<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px">Sin resultados</div>';
+    return '<div style="overflow-x:auto"><table class="ml-top-t"><thead><tr><th style="text-align:left">Publicación</th><th>Estado</th><th>Presupuesto</th><th>Acción</th></tr></thead><tbody>' +
+      items.map(buildRow).join('') + '</tbody></table></div>';
+  }
+
+  var html = '';
+  if (_mlAdsFilter === 'con') {
+    html = buildTable(_mlAdsData.conAnuncio);
+  } else if (_mlAdsFilter === 'sin') {
+    html = buildTable(_mlAdsData.sinAnuncio);
+  } else {
+    // Todos: two sections
+    if (_mlAdsData.conAnuncio.length) {
+      html += '<div style="font-size:11px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;align-items:center;gap:6px"><i class="ti ti-speakerphone"></i> Con anuncio · ' + _mlAdsData.conAnuncio.length + '</div>';
+      html += buildTable(_mlAdsData.conAnuncio);
+    }
+    if (_mlAdsData.sinAnuncio.length) {
+      html += '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:' + (_mlAdsData.conAnuncio.length ? '16px' : '0') + ' 0 6px;display:flex;align-items:center;gap:6px"><i class="ti ti-ad-off"></i> Sin anuncio · ' + _mlAdsData.sinAnuncio.length + '</div>';
+      html += buildTable(_mlAdsData.sinAnuncio);
+    }
+  }
+  html += '<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:8px">Mostrando primeras 20 publicaciones activas</div>';
+  el.innerHTML = html;
 }
 
 function mlActivateAd(itemId) {
