@@ -8267,17 +8267,19 @@ function mlApiFetch(url, opts, _retries) {
       return Promise.reject(new Error('Rate limit excedido. Intenta de nuevo en un momento.'));
     }
     return r.json().then(function(json) {
-      if (!r.ok) {
-        // Also retry on rate limit returned as 200 with error body
-        var msg = json.message || '';
-        if (msg.indexOf('rate limit') !== -1 || msg.indexOf('Rate limit') !== -1) {
-          if (_retries < 4) {
-            var wait2 = 15000 * (_retries + 1);
-            return new Promise(function(res) { setTimeout(res, wait2); })
-              .then(function() { return mlApiFetch(url, opts, _retries + 1); });
-          }
+      // Rate limit puede venir como 200 con error en body (ML lo hace así)
+      var isRateLimit = json.error === 'too_many_requests' ||
+        (json.message && json.message.toLowerCase().indexOf('rate limit') !== -1);
+      if (isRateLimit) {
+        if (_retries < 4) {
+          var wait2 = 15000 * (_retries + 1);
+          return new Promise(function(res2) { setTimeout(res2, wait2); })
+            .then(function() { return mlApiFetch(url, opts, _retries + 1); });
         }
-        return Promise.reject(new Error(msg || ('Error ' + r.status)));
+        return Promise.reject(new Error('Rate limit excedido. Intenta de nuevo en un momento.'));
+      }
+      if (!r.ok) {
+        return Promise.reject(new Error(json.message || ('Error ' + r.status)));
       }
       return json;
     });
@@ -9043,7 +9045,11 @@ function loadMLBilling(mes) {
         if (t === 'BFF') { byItem[id].bff += amt; totals.bff += amt; }
         if (t === 'BXD') { byItem[id].bxd += amt; totals.bxd += amt; }
       }
-      if (results.length === 1000 && data.last_id) return fetchPage(data.last_id);
+      if (results.length === 1000 && data.last_id) {
+        if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + ' cargada, continuando…';
+        return new Promise(function(r) { setTimeout(r, 3000); })
+          .then(function() { return fetchPage(data.last_id); });
+      }
     });
   }
 
@@ -9226,7 +9232,11 @@ function loadMLEstado(mes) {
         else if (grp === 'BONUS')                             add('bv', amt);
         else if (grp === 'CHARGE')                            add('otros', amt);
       }
-      if (results.length === 1000 && data.last_id) return fetchPage(data.last_id);
+      if (results.length === 1000 && data.last_id) {
+        if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + ' cargada, continuando…';
+        return new Promise(function(r) { setTimeout(r, 3000); })
+          .then(function() { return fetchPage(data.last_id); });
+      }
     });
   }
 
