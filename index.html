@@ -4911,7 +4911,7 @@ async function actualizarVentas() {
       if (existing.mes !== mes) existing = {};
       localStorage.setItem('ventas_cache_v2', JSON.stringify({
         mes: mes, ts: Date.now(),
-        walmart:      data.walmart      || existing.walmart      || null,
+        walmart:      null,
         mercadolibre: data.mercadolibre || existing.mercadolibre || null,
         amazon:       data.amazon       || existing.amazon       || null,
         maraga_mx:    data.maraga_mx    || existing.maraga_mx    || null,
