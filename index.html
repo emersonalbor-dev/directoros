@@ -9011,12 +9011,32 @@ function mlBillingSetFilter(f) {
 }
 
 var _mlBillingGen = 0;
+var _mlBillingMonthCache = {};
+
+function _mlCurMes() {
+  var d = new Date();
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2);
+}
 
 function loadMLBilling(mes) {
   var gen = ++_mlBillingGen;
   var statusEl  = document.getElementById('mlBillingStatus');
   var contentEl = document.getElementById('mlBillingContent');
   if (!contentEl) return;
+
+  var isCurrent = mes >= _mlCurMes();
+
+  // Meses pasados: usar caché en memoria
+  if (!isCurrent && _mlBillingMonthCache[mes]) {
+    var c = _mlBillingMonthCache[mes];
+    _mlBillingCache  = c;
+    _mlBillingFilter = 'all';
+    var nEnviosCached = c.totals.count_cff + c.totals.count_cxd;
+    if (statusEl) statusEl.textContent = Object.keys(c.byItem).length + ' prods · ' + nEnviosCached + ' envíos · ✓ caché';
+    _mlBillingRender(c.byItem, c.totals);
+    return;
+  }
+
   contentEl.innerHTML = '<div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando registros...</div>';
   var periodKey = mes + '-01';
   var byItem = {}, totals = { cff:0, cxd:0, bff:0, bxd:0, count_cff:0, count_cxd:0 };
@@ -9057,8 +9077,10 @@ function loadMLBilling(mes) {
     if (gen !== _mlBillingGen) return; // cancelled
     var n = Object.keys(byItem).length;
     var nEnvios = totals.count_cff + totals.count_cxd;
+    var result = { byItem: byItem, totals: totals };
+    if (!isCurrent) _mlBillingMonthCache[mes] = result;
     if (statusEl) statusEl.textContent = n + ' productos · ' + nEnvios + ' envíos';
-    _mlBillingCache = { byItem: byItem, totals: totals };
+    _mlBillingCache = result;
     _mlBillingFilter = 'all';
     _mlBillingRender(byItem, totals);
   }).catch(function(e) {
@@ -9195,12 +9217,44 @@ function mlEstadoChangeMes(mes) {
 }
 
 var _mlEstadoGen = 0;
+var _mlEstadoMemCache = {};
+
+function _mlEstadoCacheGet(mes) {
+  if (_mlEstadoMemCache[mes]) return _mlEstadoMemCache[mes];
+  var ls = typeof localStorage !== 'undefined' ? localStorage : null;
+  if (!ls) return null;
+  try {
+    var raw = ls.getItem('ml_estado_v1_' + mes);
+    if (raw) { var d = JSON.parse(raw); _mlEstadoMemCache[mes] = d; return d; }
+  } catch(e) {}
+  return null;
+}
+
+function _mlEstadoCachePut(mes, acc, pages) {
+  var d = Object.assign({}, acc, { _pages: pages });
+  _mlEstadoMemCache[mes] = d;
+  var ls = typeof localStorage !== 'undefined' ? localStorage : null;
+  if (ls) { try { ls.setItem('ml_estado_v1_' + mes, JSON.stringify(d)); } catch(e) {} }
+}
 
 function loadMLEstado(mes) {
   var gen = ++_mlEstadoGen;
   var statusEl  = document.getElementById('mlEstadoStatus');
   var contentEl = document.getElementById('mlEstadoContent');
   if (!contentEl) return;
+
+  var isCurrent = mes >= _mlCurMes();
+
+  // Meses pasados: usar caché (memoria → localStorage)
+  if (!isCurrent) {
+    var cached = _mlEstadoCacheGet(mes);
+    if (cached) {
+      if (statusEl) statusEl.textContent = (cached._pages || '?') + ' pág. · ✓ caché';
+      _mlEstadoRender(cached, mes);
+      return;
+    }
+  }
+
   contentEl.innerHTML = '<div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando registros...</div>';
   var periodKey = mes + '-01';
   var acc = {};
@@ -9242,7 +9296,8 @@ function loadMLEstado(mes) {
 
   fetchPage(0).then(function() {
     if (gen !== _mlEstadoGen) return; // cancelled
-    if (statusEl) statusEl.textContent = pageCount + ' página(s)';
+    if (!isCurrent) _mlEstadoCachePut(mes, acc, pageCount);
+    if (statusEl) statusEl.textContent = pageCount + ' página(s)' + (!isCurrent ? ' · guardado ✓' : '');
     _mlEstadoRender(acc, mes);
   }).catch(function(e) {
     if (gen !== _mlEstadoGen) return;
