@@ -9304,7 +9304,7 @@ function _mlEstadoUpdatePills() {
 function mlEstadoForzarRecarga(mes) {
   delete _mlEstadoMemCache[mes];
   var ls = typeof localStorage !== 'undefined' ? localStorage : null;
-  if (ls) ls.removeItem('ml_estado_v3_' + mes);
+  if (ls) ls.removeItem('ml_estado_v4_' + mes);
   _mlEstadoMes = mes;
   _mlEstadoUpdatePills();
   loadMLEstado(mes);
@@ -9328,7 +9328,7 @@ function _mlEstadoCacheGet(mes) {
   var ls = typeof localStorage !== 'undefined' ? localStorage : null;
   if (!ls) return null;
   try {
-    var raw = ls.getItem('ml_estado_v3_' + mes);
+    var raw = ls.getItem('ml_estado_v4_' + mes);
     if (raw) { var d = JSON.parse(raw); _mlEstadoMemCache[mes] = d; return d; }
   } catch(e) {}
   return null;
@@ -9338,7 +9338,7 @@ function _mlEstadoCachePut(mes, acc, pages) {
   var d = Object.assign({}, acc, { _pages: pages });
   _mlEstadoMemCache[mes] = d;
   var ls = typeof localStorage !== 'undefined' ? localStorage : null;
-  if (ls) { try { ls.setItem('ml_estado_v3_' + mes, JSON.stringify(d)); } catch(e) {} }
+  if (ls) { try { ls.setItem('ml_estado_v4_' + mes, JSON.stringify(d)); } catch(e) {} }
 }
 
 function loadMLEstado(mes) {
@@ -9389,6 +9389,7 @@ function loadMLEstado(mes) {
         else if (t === 'BFF' || t === 'BXD')                  add('benvios', amt);
         else if (grp === 'BONUS')                             add('bv', amt);
         else if (grp === 'CHARGE')                            add('otros', amt);
+        else { add('sin_clasificar', amt); console.log('[EC] tipo no mapeado sub_type=' + JSON.stringify(t) + ' detail_type=' + JSON.stringify(grp) + ' amt=' + amt + ' id=' + (rec.id || '')); }
       }
       if (data.last_id) {
         var nextId = data.last_id;
@@ -9424,16 +9425,17 @@ function _mlEstadoRender(acc, mes) {
 
   var ventaMXN = (ML_2026_DATA.meses[mes] || {}).ventas || 0;
 
-  var cv        = acc.cv        || 0;
-  var envios    = acc.envios    || 0;
-  var publicidad= acc.publicidad|| 0;
-  var cfwa      = acc.cfwa      || 0;
-  var cesm      = acc.cesm      || 0;
-  var otros     = acc.otros     || 0;
-  var bv        = acc.bv        || 0;
-  var benvios   = acc.benvios   || 0;
-  var anulaciones = bv + benvios;
-  var totalCargos = cv + envios + publicidad + cfwa + cesm + otros - anulaciones;
+  var cv             = acc.cv             || 0;
+  var envios         = acc.envios         || 0;
+  var publicidad     = acc.publicidad     || 0;
+  var cfwa           = acc.cfwa           || 0;
+  var cesm           = acc.cesm           || 0;
+  var otros          = acc.otros          || 0;
+  var sin_clasificar = acc.sin_clasificar || 0;
+  var bv             = acc.bv             || 0;
+  var benvios        = acc.benvios        || 0;
+  var anulaciones    = bv + benvios;
+  var totalCargos    = cv + envios + publicidad + cfwa + cesm + otros + sin_clasificar - anulaciones;
 
   function pct(val) {
     if (!ventaMXN || !val) return '';
@@ -9442,13 +9444,14 @@ function _mlEstadoRender(acc, mes) {
   function fmt(val) { return '$' + val.toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 
   var rows = [
-    { label: 'Cargos por venta',                    val: cv,          neg: false },
-    { label: 'Cargos de envíos de Mercado Libre',   val: envios,      neg: false },
-    { label: 'Cargos por publicidad',                val: publicidad,  neg: false },
-    { label: 'Cargos de envíos Full (almacenaje)',   val: cfwa,        neg: false },
-    { label: 'Cargos por servicios de Mercado Pago', val: cesm,        neg: false },
-    { label: 'Otros cargos',                         val: otros,       neg: false },
-    { label: 'Anulaciones / Bonificaciones',         val: anulaciones, neg: true  },
+    { label: 'Cargos por venta',                    val: cv,             neg: false },
+    { label: 'Cargos de envíos de Mercado Libre',   val: envios,         neg: false },
+    { label: 'Cargos por publicidad',               val: publicidad,     neg: false },
+    { label: 'Cargos de envíos Full (almacenaje)',  val: cfwa,           neg: false },
+    { label: 'Cargos de Mi página',                 val: cesm,           neg: false },
+    { label: 'Otros cargos',                        val: otros,          neg: false },
+    { label: 'Otros (sin clasificar)',              val: sin_clasificar, neg: false },
+    { label: 'Anulaciones / Bonificaciones',        val: anulaciones,    neg: true  },
   ];
 
   var html = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">' +
