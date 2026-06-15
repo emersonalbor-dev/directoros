@@ -9224,18 +9224,22 @@ function mlRefreshCurrentMonth() {
       return Promise.all(fetches).then(function(pages){ return {total: total, pages: pages, sampled: total > 600}; });
     })
     .then(function(r) {
-      var agg = {}, seen = {}, ventas = 0, unidades = 0, skus = {}, sampledN = 0;
+      var agg = {}, byId = {}, seen = {}, ventas = 0, unidades = 0, sampledN = 0;
       r.pages.forEach(function(page) {
         (page.results || []).forEach(function(order) {
           if (seen[order.id]) return;
           seen[order.id] = true; sampledN++;
           (order.order_items || []).forEach(function(it) {
-            var t = (it.item && it.item.title) ? it.item.title : 'Producto';
-            var q = it.quantity || 0, p = it.unit_price || 0;
+            var t  = (it.item && it.item.title) ? it.item.title : 'Producto';
+            var id = it.item && it.item.id;
+            var q  = it.quantity || 0, p = it.unit_price || 0;
             ventas += q * p; unidades += q;
-            if (it.item && it.item.id) skus[it.item.id] = true;
             if (!agg[t]) agg[t] = {ingresos: 0, unidades: 0};
             agg[t].ingresos += q * p; agg[t].unidades += q;
+            if (id) {
+              if (!byId[id]) byId[id] = {titulo: t, ingresos: 0, unidades: 0};
+              byId[id].ingresos += q * p; byId[id].unidades += q;
+            }
           });
         });
       });
@@ -9243,12 +9247,16 @@ function mlRefreshCurrentMonth() {
       var top = Object.keys(agg)
         .map(function(t){ return {titulo: t, ingresos: Math.round(agg[t].ingresos), unidades: Math.round(agg[t].unidades)}; })
         .sort(function(a,b){ return b.ingresos - a.ingresos; }).slice(0, 10);
+      var items = {};
+      Object.keys(byId).forEach(function(id) {
+        items[id] = {titulo: byId[id].titulo, ingresos: Math.round(byId[id].ingresos * scale), unidades: Math.round(byId[id].unidades * scale)};
+      });
       var mnames = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
       ML_2026_DATA.meses[mes] = {
         ventas: Math.round(ventas * scale), ordenes: r.total,
-        unidades: Math.round(unidades * scale), skus: Object.keys(skus).length,
+        unidades: Math.round(unidades * scale), skus: Object.keys(byId).length,
         parcial: true, parcialLabel: 'al ' + now.getDate() + ' de ' + mnames[now.getMonth()],
-        top: top
+        top: top, items: items
       };
       _mlMesActivo = mes;
       if (_mlActiveTab === 'resumen') renderMLTab_resumen();
