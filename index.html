@@ -8120,10 +8120,95 @@ function toggleMLTokenPanel() {
   var p = document.getElementById('mlTokenPanel');
   if (!p) return;
   var show = p.style.display === 'none';
+  if (show) _mlAutoRenewUpdateBadge();
   p.style.display = show ? 'block' : 'none';
   if (show) {
     var inp = document.getElementById('mlTokenInput2');
     if (inp) { inp.value = ML_TOKEN; inp.focus(); }
+  }
+}
+
+/* ── AUTO-RENOVACIÓN DE TOKEN ───────────────────────────────────────── */
+var _mlRefreshing = null;
+
+function mlTryRefreshToken() {
+  var ls = typeof localStorage !== 'undefined' ? localStorage : null;
+  var secret  = ls && ls.getItem('ml_client_secret')  || '';
+  var refresh = ls && ls.getItem('ml_refresh_token')   || '';
+  var cid     = ls && ls.getItem('ml_client_id')       || '3229341112864987';
+  if (!secret || !refresh) return Promise.reject(new Error('no_creds'));
+  if (_mlRefreshing) return _mlRefreshing;
+  _mlRefreshing = fetch('https://api.mercadolibre.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+    body: 'grant_type=refresh_token' +
+      '&client_id='     + encodeURIComponent(cid) +
+      '&client_secret=' + encodeURIComponent(secret) +
+      '&refresh_token=' + encodeURIComponent(refresh)
+  }).then(function(r) { return r.json(); })
+  .then(function(data) {
+    _mlRefreshing = null;
+    if (!data.access_token) throw new Error(data.message || 'Sin access_token en respuesta');
+    ML_TOKEN = data.access_token;
+    if (ls) {
+      ls.setItem('ml_token', data.access_token);
+      if (data.refresh_token) ls.setItem('ml_refresh_token', data.refresh_token);
+    }
+    _updateMLTokenBtn();
+    _mlAutoRenewUpdateBadge();
+    return data.access_token;
+  }).catch(function(e) { _mlRefreshing = null; throw e; });
+  return _mlRefreshing;
+}
+
+function mlSaveAutoRenew() {
+  var ls = typeof localStorage !== 'undefined' ? localStorage : null;
+  if (!ls) return;
+  var secret  = (document.getElementById('mlSecretInput')  || {}).value || '';
+  var refresh = (document.getElementById('mlRefreshInput') || {}).value || '';
+  var cid     = (document.getElementById('mlClientIdInput')|| {}).value || '3229341112864987';
+  if (!secret || !refresh) { alert('Ingresa Client Secret y Refresh Token'); return; }
+  ls.setItem('ml_client_secret',  secret.trim());
+  ls.setItem('ml_refresh_token',  refresh.trim());
+  ls.setItem('ml_client_id',      cid.trim());
+  _mlAutoRenewUpdateBadge();
+  var btn = document.getElementById('mlAutoRenewSaveBtn');
+  if (btn) { btn.textContent = '✓ Guardado'; btn.style.background = '#22c55e';
+    setTimeout(function(){ btn.textContent = 'Guardar'; btn.style.background = '#f59e0b'; }, 2000); }
+}
+
+function mlClearAutoRenew() {
+  var ls = typeof localStorage !== 'undefined' ? localStorage : null;
+  if (!ls) return;
+  ls.removeItem('ml_client_secret'); ls.removeItem('ml_refresh_token'); ls.removeItem('ml_client_id');
+  _mlAutoRenewUpdateBadge();
+  var s = document.getElementById('mlSecretInput');  if (s) s.value = '';
+  var r = document.getElementById('mlRefreshInput'); if (r) r.value = '';
+}
+
+function _mlAutoRenewUpdateBadge() {
+  var ls = typeof localStorage !== 'undefined' ? localStorage : null;
+  var active = ls && ls.getItem('ml_client_secret') && ls.getItem('ml_refresh_token');
+  var badge = document.getElementById('mlAutoRenewBadge');
+  if (badge) {
+    badge.textContent = active ? 'Activa' : 'No configurada';
+    badge.style.background = active ? '#dcfce7' : '#f3f4f6';
+    badge.style.color = active ? '#15803d' : '#6b7280';
+  }
+}
+
+function toggleMLAutoRenewSection() {
+  var sec  = document.getElementById('mlAutoRenewSection');
+  var chev = document.getElementById('mlAutoRenewChev');
+  if (!sec) return;
+  var open = sec.style.display !== 'none';
+  sec.style.display = open ? 'none' : 'block';
+  if (chev) chev.style.transform = open ? '' : 'rotate(180deg)';
+  if (!open) {
+    var ls = typeof localStorage !== 'undefined' ? localStorage : null;
+    var s = document.getElementById('mlSecretInput');  if (s && ls) s.value = ls.getItem('ml_client_secret') || '';
+    var r = document.getElementById('mlRefreshInput'); if (r && ls) r.value = ls.getItem('ml_refresh_token') || '';
+    var c = document.getElementById('mlClientIdInput'); if (c && ls) c.value = ls.getItem('ml_client_id') || '3229341112864987';
   }
 }
 
@@ -8145,9 +8230,13 @@ function mlApiFetch(url, opts, _retries) {
 
   return fetch(fetchUrl, fetchOpts).then(function(r) {
     if (r.status === 401) {
-      var panel = document.getElementById('mlTokenPanel');
-      if (panel) panel.style.display = 'block';
-      return Promise.reject(new Error('Token expirado · Actualiza el token'));
+      return mlTryRefreshToken().then(function() {
+        return mlApiFetch(url, opts, 0); // reintentar con token nuevo
+      }).catch(function() {
+        var panel = document.getElementById('mlTokenPanel');
+        if (panel) panel.style.display = 'block';
+        return Promise.reject(new Error('Token expirado · Actualiza el token'));
+      });
     }
     // Rate limit: wait and retry (max 4 attempts, backoff 15s/30s/45s/60s)
     if (r.status === 429) {
@@ -8254,6 +8343,36 @@ function renderMLFull(mes) {
         '<span style="font-weight:600;color:var(--ink)">Access Token ML</span>' +
         '<input id="mlTokenInput2" type="password" placeholder="APP_USR-..." style="flex:1;font-size:11px;padding:5px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)">' +
         '<button onclick="mlSaveToken(document.getElementById(\'mlTokenInput2\').value)" style="padding:5px 14px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Guardar</button>' +
+      '</div>' +
+      '<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">' +
+        '<div onclick="toggleMLAutoRenewSection()" style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">' +
+          '<i class="ti ti-refresh" style="font-size:13px;color:var(--muted)"></i>' +
+          '<span style="font-size:11px;font-weight:600;color:var(--muted)">Auto-renovación de token</span>' +
+          '<span id="mlAutoRenewBadge" style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;background:#f3f4f6;color:#6b7280">No configurada</span>' +
+          '<i id="mlAutoRenewChev" class="ti ti-chevron-down" style="font-size:11px;color:var(--muted);margin-left:auto;transition:transform .2s"></i>' +
+        '</div>' +
+        '<div id="mlAutoRenewSection" style="display:none;margin-top:10px">' +
+          '<p style="font-size:11px;color:var(--muted);margin:0 0 8px">Configura una vez y el token se renueva solo cuando expire. Obtén estos datos en tu <strong>app de desarrollador</strong> en Mercado Libre.</p>' +
+          '<div style="display:grid;gap:6px">' +
+            '<div style="display:flex;align-items:center;gap:8px">' +
+              '<label style="font-size:11px;color:var(--muted);width:100px;flex-shrink:0">Client ID</label>' +
+              '<input id="mlClientIdInput" type="text" placeholder="3229341112864987" style="flex:1;font-size:11px;padding:4px 8px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink)">' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:8px">' +
+              '<label style="font-size:11px;color:var(--muted);width:100px;flex-shrink:0">Client Secret</label>' +
+              '<input id="mlSecretInput" type="password" placeholder="tu client secret..." style="flex:1;font-size:11px;padding:4px 8px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink)">' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:8px">' +
+              '<label style="font-size:11px;color:var(--muted);width:100px;flex-shrink:0">Refresh Token</label>' +
+              '<input id="mlRefreshInput" type="password" placeholder="TG-..." style="flex:1;font-size:11px;padding:4px 8px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink)">' +
+            '</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:8px;margin-top:8px;align-items:center">' +
+            '<button id="mlAutoRenewSaveBtn" onclick="mlSaveAutoRenew()" style="padding:5px 14px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Guardar</button>' +
+            '<button onclick="mlClearAutoRenew()" style="padding:5px 14px;background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:6px;font-size:11px;cursor:pointer">Limpiar</button>' +
+            '<span style="font-size:10px;color:var(--muted);flex:1;text-align:right">Guardado solo en este navegador</span>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
     '</div>' +
     '<div id="mlTabContent"></div>';
