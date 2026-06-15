@@ -8141,6 +8141,9 @@ function _mlBillingRender(byItem, totals) {
     else if (p.cff > 0) typeBadge = '<span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:#ede9fe;color:#7c3aed">Full ML</span>';
     else typeBadge = '<span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:#dbeafe;color:#2563eb">Drop-off</span>';
     var bonHtml = p.bon > 0 ? '<span style="color:#059669">-$' + p.bon.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</span>' : '<span style="color:var(--muted)">—</span>';
+    var pct = (p.price && p.avg) ? (p.avg / Number(p.price) * 100) : null;
+    var pctColor = pct === null ? 'var(--muted)' : pct < 10 ? '#059669' : pct < 20 ? '#d97706' : '#dc2626';
+    var pctHtml = pct !== null ? '<span style="font-weight:700;color:' + pctColor + '">' + pct.toFixed(1) + '%</span>' : '<span style="color:var(--muted)">—</span>';
     return '<tr>' +
       '<td style="text-align:left">' +
         '<div style="font-weight:600;font-size:12px">' + (p.title||'').slice(0,60) + ((p.title||'').length>60?'…':'') + '</div>' +
@@ -8152,6 +8155,7 @@ function _mlBillingRender(byItem, totals) {
       '<td style="text-align:right">' + bonHtml + '</td>' +
       '<td style="text-align:right;font-weight:700;color:var(--accent)">$' + p.net.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</td>' +
       '<td style="text-align:right;color:var(--muted)">$' + p.avg.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</td>' +
+      '<td style="text-align:right">' + pctHtml + '</td>' +
     '</tr>';
   }).join('');
 
@@ -8164,6 +8168,7 @@ function _mlBillingRender(byItem, totals) {
       '<th style="text-align:right">Bonif.</th>' +
       '<th style="text-align:right">Neto</th>' +
       '<th style="text-align:right">Prom/envío</th>' +
+      '<th style="text-align:right">% de venta</th>' +
     '</tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
 
