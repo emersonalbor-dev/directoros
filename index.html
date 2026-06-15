@@ -7423,12 +7423,24 @@ function toggleMLTokenPanel() {
 
 function mlApiFetch(url, opts) {
   opts = opts || {};
-  var headers = Object.assign({ Authorization: 'Bearer ' + ML_TOKEN }, opts.headers || {});
-  return fetch(url, Object.assign({}, opts, { headers: headers })).then(function(r) {
+  var method = (opts.method || 'GET').toUpperCase();
+  var fetchUrl = url;
+  var fetchOpts = Object.assign({}, opts);
+
+  if (method === 'GET') {
+    // GET: pass token as query param → "simple request", no CORS preflight
+    fetchUrl = url + (url.indexOf('?') !== -1 ? '&' : '?') + 'access_token=' + encodeURIComponent(ML_TOKEN);
+    delete fetchOpts.headers;
+  } else {
+    // POST/PUT: header auth + JSON content-type
+    fetchOpts.headers = Object.assign({ 'Authorization': 'Bearer ' + ML_TOKEN }, opts.headers || {});
+  }
+
+  return fetch(fetchUrl, fetchOpts).then(function(r) {
     if (r.status === 401) {
       var panel = document.getElementById('mlTokenPanel');
       if (panel) panel.style.display = 'block';
-      return Promise.reject(new Error('Token expirado (401) · Actualiza el token'));
+      return Promise.reject(new Error('Token expirado · Actualiza el token'));
     }
     return r.json().then(function(json) {
       if (!r.ok) return Promise.reject(new Error(json.message || ('Error ' + r.status)));
