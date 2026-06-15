@@ -7529,6 +7529,7 @@ function renderMLFull(mes) {
       '<button class="ml-tab-btn" data-tab="preguntas" onclick="setMLTab(\'preguntas\',this)"><i class="ti ti-message-circle"></i> Preguntas</button>' +
       '<button class="ml-tab-btn" data-tab="publicidad" onclick="setMLTab(\'publicidad\',this)"><i class="ti ti-speakerphone"></i> Publicidad</button>' +
       '<button class="ml-tab-btn" data-tab="envios" onclick="setMLTab(\'envios\',this)"><i class="ti ti-truck"></i> Envíos</button>' +
+      '<button class="ml-tab-btn" data-tab="estado" onclick="setMLTab(\'estado\',this)"><i class="ti ti-report-money"></i> Estado de Cuenta</button>' +
       '<button class="ml-tab-token" id="mlTokenStatus" onclick="toggleMLTokenPanel()"></button>' +
     '</div>' +
     '<div id="mlTokenPanel" style="display:none;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:14px">' +
@@ -7549,7 +7550,7 @@ function setMLTab(tab, btn) {
   _mlActiveTab = tab;
   document.querySelectorAll('.ml-tab-btn').forEach(function(b) { b.classList.remove('active'); });
   if (btn) btn.classList.add('active');
-  var fns = { resumen: renderMLTab_resumen, publicaciones: renderMLTab_publicaciones, preguntas: renderMLTab_preguntas, publicidad: renderMLTab_publicidad, envios: renderMLTab_envios };
+  var fns = { resumen: renderMLTab_resumen, publicaciones: renderMLTab_publicaciones, preguntas: renderMLTab_preguntas, publicidad: renderMLTab_publicidad, envios: renderMLTab_envios, estado: renderMLTab_estado };
   if (fns[tab]) fns[tab]();
 }
 
@@ -8193,6 +8194,192 @@ function _mlBillingRender(byItem, totals) {
       '<th style="text-align:right">Prom/envío</th>' +
       '<th style="text-align:right">% de venta</th>' +
     '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+/* ── Estado de Cuenta ML ────────────────────────────────────────────── */
+var _mlEstadoMes = '';
+
+function renderMLTab_estado() {
+  var now = new Date();
+  var yr = now.getFullYear(), mo = now.getMonth() + 1;
+  _mlEstadoMes = yr + '-' + String(mo).padStart(2,'0');
+  var el = document.getElementById('mlTabContent');
+  if (!el) return;
+  var mnames = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var opts = '';
+  for (var i = 0; i < 6; i++) {
+    var m = mo - i, y = yr;
+    if (m <= 0) { m += 12; y--; }
+    var k = y + '-' + String(m).padStart(2,'0');
+    opts += '<option value="' + k + '"' + (i===0?' selected':'') + '>' + mnames[m] + ' ' + y + '</option>';
+  }
+  el.innerHTML =
+    '<div class="ml-card">' +
+      '<div class="ml-card-h"><i class="ti ti-report-money"></i> Estado de Cuenta — Cargos por ML</div>' +
+      '<div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap">' +
+        '<label style="font-size:12px;color:var(--muted)">Mes:</label>' +
+        '<select id="mlEstadoMesSel" onchange="mlEstadoChangeMes(this.value)" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);font-size:12px">' + opts + '</select>' +
+        '<span id="mlEstadoStatus" style="font-size:11px;color:var(--muted)"></span>' +
+      '</div>' +
+      '<div id="mlEstadoContent"><div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando...</div></div>' +
+    '</div>';
+  if (!ML_TOKEN) { document.getElementById('mlEstadoContent').innerHTML = '<div class="ml-no-token"><i class="ti ti-key"></i> Ingresa el token para continuar</div>'; return; }
+  loadMLEstado(_mlEstadoMes);
+}
+
+function mlEstadoChangeMes(mes) {
+  _mlEstadoMes = mes;
+  loadMLEstado(mes);
+}
+
+function loadMLEstado(mes) {
+  var statusEl  = document.getElementById('mlEstadoStatus');
+  var contentEl = document.getElementById('mlEstadoContent');
+  if (!contentEl) return;
+  contentEl.innerHTML = '<div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando registros...</div>';
+  var periodKey = mes + '-01';
+  var acc = {};
+  var pageCount = 0;
+
+  function add(key, amt) { acc[key] = (acc[key] || 0) + amt; }
+
+  function fetchPage(fromId) {
+    var url = 'https://api.mercadolibre.com/billing/integration/periods/key/' + periodKey +
+      '/group/ML/details?document_type=BILL&limit=1000&from_id=' + fromId + '&sort_by=ID&order_by=ASC';
+    return mlApiFetch(url).then(function(data) {
+      var results = data.results || [];
+      pageCount++;
+      if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + '…';
+      for (var i = 0; i < results.length; i++) {
+        var rec = results[i];
+        var t = (rec.charge_info || {}).detail_sub_type || '';
+        var amt = Math.abs((rec.charge_info || {}).detail_amount || 0);
+        var grp = (rec.charge_info || {}).detail_type || '';
+        if (t === 'CV')   add('cv', amt);
+        else if (t === 'CFF' || t === 'CXD') add('envios', amt);
+        else if (t === 'PADS' || t === 'CBADS') add('publicidad', amt);
+        else if (t === 'CFWA') add('cfwa', amt);
+        else if (t === 'CESM') add('cesm', amt);
+        else if (t === 'BV')  add('bv', amt);
+        else if (t === 'BFF' || t === 'BXD') add('benvios', amt);
+        else if (grp === 'CHARGE') add('otros', amt);
+      }
+      if (results.length === 1000 && data.last_id) return fetchPage(data.last_id);
+    });
+  }
+
+  fetchPage(0).then(function() {
+    if (statusEl) statusEl.textContent = pageCount + ' página(s) procesada(s)';
+    _mlEstadoRender(acc, mes);
+  }).catch(function(e) {
+    contentEl.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>';
+  });
+}
+
+function _mlEstadoRender(acc, mes) {
+  var contentEl = document.getElementById('mlEstadoContent');
+  if (!contentEl) return;
+
+  var ventaMXN = (ML_2026_DATA.meses[mes] || {}).ventas || 0;
+
+  var cv        = acc.cv        || 0;
+  var envios    = acc.envios    || 0;
+  var publicidad= acc.publicidad|| 0;
+  var cfwa      = acc.cfwa      || 0;
+  var cesm      = acc.cesm      || 0;
+  var otros     = acc.otros     || 0;
+  var bv        = acc.bv        || 0;
+  var benvios   = acc.benvios   || 0;
+  var anulaciones = bv + benvios;
+  var totalCargos = cv + envios + publicidad + cfwa + cesm + otros - anulaciones;
+
+  function pct(val) {
+    if (!ventaMXN || !val) return '';
+    return (val / ventaMXN * 100).toFixed(2) + '%';
+  }
+  function fmt(val) { return '$' + val.toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+  var rows = [
+    { label: 'Cargos por venta',                    val: cv,          neg: false },
+    { label: 'Cargos de envíos de Mercado Libre',   val: envios,      neg: false },
+    { label: 'Cargos por publicidad',                val: publicidad,  neg: false },
+    { label: 'Cargos de envíos Full (almacenaje)',   val: cfwa,        neg: false },
+    { label: 'Cargos por servicios de Mercado Pago', val: cesm,        neg: false },
+    { label: 'Otros cargos',                         val: otros,       neg: false },
+    { label: 'Anulaciones / Bonificaciones',         val: anulaciones, neg: true  },
+  ];
+
+  var html = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">' +
+    '<thead><tr style="border-bottom:2px solid var(--line)">' +
+      '<th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em">Cargos</th>' +
+      '<th style="text-align:right;padding:8px 12px;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em">Monto</th>' +
+      '<th style="text-align:right;padding:8px 12px;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em">% de venta</th>' +
+    '</tr></thead><tbody>';
+
+  rows.forEach(function(r) {
+    if (!r.val) return;
+    var bg   = r.neg ? 'background:#f0fdf4' : '';
+    var col  = r.neg ? 'color:#059669;font-weight:600' : 'color:var(--text)';
+    var sign = r.neg ? '-' : '';
+    var pctVal = pct(r.val);
+    var pctCol = '';
+    if (!r.neg && pctVal) {
+      var n = parseFloat(pctVal);
+      pctCol = n >= 15 ? 'color:#dc2626;font-weight:700' : n >= 8 ? 'color:#d97706;font-weight:600' : 'color:var(--muted)';
+    } else if (r.neg) { pctCol = 'color:#059669;font-weight:600'; }
+    html +=
+      '<tr style="border-bottom:1px solid var(--border);' + bg + '">' +
+        '<td style="padding:9px 12px;' + col + '">' + r.label + '</td>' +
+        '<td style="padding:9px 12px;text-align:right;' + col + '">' + sign + fmt(r.val) + '</td>' +
+        '<td style="padding:9px 12px;text-align:right;' + pctCol + '">' + (r.neg ? '-' : '') + pctVal + '</td>' +
+      '</tr>';
+  });
+
+  // Separador + Total de cargos
+  html +=
+    '<tr style="border-top:2px solid var(--line)">' +
+      '<td style="padding:10px 12px;font-weight:800;color:var(--ink)">Total de cargos</td>' +
+      '<td style="padding:10px 12px;text-align:right;font-weight:800;color:var(--ink)">' + fmt(totalCargos) + '</td>' +
+      '<td style="padding:10px 12px;text-align:right;font-weight:700;color:#dc2626">' + pct(totalCargos) + '</td>' +
+    '</tr>';
+
+  // Venta MXN
+  if (ventaMXN) {
+    html +=
+      '<tr style="background:var(--bg);border-top:1px solid var(--line)">' +
+        '<td style="padding:9px 12px;font-weight:700;color:var(--accent)">Venta MXN</td>' +
+        '<td style="padding:9px 12px;text-align:right;font-weight:700;color:var(--accent)">' + fmt(ventaMXN) + '</td>' +
+        '<td style="padding:9px 12px;text-align:right;color:var(--muted)">100%</td>' +
+      '</tr>';
+  }
+
+  html += '</tbody></table></div>';
+
+  // Mini tarjetas resumen
+  var summaryHtml = '';
+  if (ventaMXN) {
+    var margen = ventaMXN - totalCargos;
+    var margenPct = (margen / ventaMXN * 100).toFixed(1);
+    summaryHtml =
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">' +
+        '<div style="flex:1;min-width:110px;background:#dbeafe;border-radius:8px;padding:10px 14px">' +
+          '<div style="font-size:10px;color:#1d4ed8;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Venta bruta</div>' +
+          '<div style="font-size:18px;font-weight:800;color:#1d4ed8">$' + Math.round(ventaMXN).toLocaleString('es-MX') + '</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:110px;background:#fee2e2;border-radius:8px;padding:10px 14px">' +
+          '<div style="font-size:10px;color:#dc2626;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Total cargos ML</div>' +
+          '<div style="font-size:18px;font-weight:800;color:#dc2626">$' + Math.round(totalCargos).toLocaleString('es-MX') + '</div>' +
+          '<div style="font-size:10px;color:#dc2626;opacity:.8">' + pct(totalCargos) + ' de la venta</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:110px;background:' + (margen >= 0 ? '#d1fae5' : '#fee2e2') + ';border-radius:8px;padding:10px 14px">' +
+          '<div style="font-size:10px;color:' + (margen >= 0 ? '#065f46' : '#dc2626') + ';font-weight:700;text-transform:uppercase;letter-spacing:.05em">Ingreso neto (sin COGS)</div>' +
+          '<div style="font-size:18px;font-weight:800;color:' + (margen >= 0 ? '#059669' : '#dc2626') + '">$' + Math.round(margen).toLocaleString('es-MX') + '</div>' +
+          '<div style="font-size:10px;opacity:.8;color:' + (margen >= 0 ? '#059669' : '#dc2626') + '">' + margenPct + '% quedan después de cargos ML</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  contentEl.innerHTML = summaryHtml + html;
 }
 
 /* ── ACTUALIZAR MES ACTUAL EN VIVO ─────────────────────────────────── */
