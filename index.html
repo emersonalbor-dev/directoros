@@ -8108,24 +8108,8 @@ function _mlAdsRenderCampaigns(campaigns, mes, contentEl) {
     .sort(function(a,b){ return (b.metrics.cost||0) - (a.metrics.cost||0); });
   var zeroCost = campaigns.filter(function(c){ return !(c.metrics.cost||0); });
 
-  var ventaMXN = (ML_2026_DATA.meses[mes] || {}).ventas || 0;
-  var totalCost = withCost.reduce(function(s,c){ return s + (c.metrics.cost||0); }, 0);
-
-  // Summary card
-  var sumHtml = '';
-  if (totalCost > 0) {
-    var pctV = ventaMXN ? ' · ' + (totalCost/ventaMXN*100).toFixed(1) + '% de ventas' : '';
-    sumHtml = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">' +
-      '<div style="flex:1;min-width:120px;background:#fef9c3;border-radius:8px;padding:10px 14px">' +
-        '<div style="font-size:10px;color:#92400e;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Total gastado</div>' +
-        '<div style="font-size:22px;font-weight:800;color:#b45309">$' + totalCost.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
-        '<div style="font-size:10px;color:#b45309;opacity:.8">' + withCost.length + ' campaña(s) activa(s)' + pctV + '</div>' +
-      '</div>' +
-    '</div>';
-  }
-
   if (!withCost.length) {
-    contentEl.innerHTML = sumHtml + '<div style="padding:20px;text-align:center;color:var(--muted)">Sin gasto en publicidad este mes.</div>';
+    contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Sin gasto en publicidad este mes.</div>';
     document.getElementById('mlAdsPager') && (document.getElementById('mlAdsPager').style.display = 'none');
     return;
   }
@@ -8182,7 +8166,7 @@ function _mlAdsRenderCampaigns(campaigns, mes, contentEl) {
       '<div style="margin-top:10px">' + zeroCost.map(renderCampaign).join('') + '</div></details>';
   }
 
-  contentEl.innerHTML = sumHtml + html;
+  contentEl.innerHTML = html;
   var pager = document.getElementById('mlAdsPager');
   if (pager) pager.style.display = 'none';
 }
