@@ -864,6 +864,32 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 .ml-q-stat{flex:1;background:var(--bg);border-radius:8px;padding:12px;text-align:center}
 .ml-q-num{font-size:26px;font-weight:800;color:var(--ink)}
 .ml-q-lbl{font-size:10px;color:var(--muted);font-weight:500;margin-top:2px}
+.ml-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:18px;border-bottom:2px solid var(--line);padding-bottom:0;align-items:flex-end}
+.ml-tab-btn{padding:8px 14px;font-size:12px;font-weight:600;border:2px solid transparent;border-bottom:none;background:transparent;color:var(--muted);cursor:pointer;border-radius:8px 8px 0 0;display:inline-flex;align-items:center;gap:5px;transition:all .15s;position:relative;bottom:-2px}
+.ml-tab-btn:hover{color:var(--ink);background:var(--bg)}
+.ml-tab-btn.active{color:#f59e0b;background:var(--paper);border-color:var(--line);border-bottom:2px solid var(--paper)}
+.ml-tab-btn i{font-size:13px}
+.ml-tab-token{margin-left:auto;padding:5px 12px;font-size:11px;font-weight:600;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;border-radius:20px;display:inline-flex;align-items:center;gap:5px;transition:all .15s;align-self:center;position:relative;bottom:4px}
+.ml-tab-token:hover{border-color:#f59e0b;color:#d97706}
+.ml-item-status{padding:3px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.ml-item-status.active{background:#dcfce7;color:#15803d}
+.ml-item-status.paused{background:#fef9c3;color:#a16207}
+.ml-loading-msg{padding:24px;text-align:center;color:var(--muted);font-size:12px;display:flex;align-items:center;justify-content:center;gap:8px}
+.ml-error-msg{padding:12px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#b91c1c;font-size:12px;display:flex;align-items:center;gap:8px;margin-top:8px}
+.ml-no-token{padding:20px;text-align:center;color:var(--muted);font-size:12px}
+.ml-q-card{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.ml-q-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.ml-q-buyer{font-size:11px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:4px}
+.ml-q-date-small{font-size:10px;color:var(--muted)}
+.ml-q-text{font-size:13px;color:var(--ink);font-weight:500;line-height:1.4}
+.ml-q-reply{margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.ml-q-answer{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;padding:8px 12px;font-size:12px;color:#166534;margin-top:8px;display:flex;align-items:flex-start;gap:6px}
+.ml-pub-filter{padding:5px 14px;font-size:11px;font-weight:600;border-radius:20px;cursor:pointer;border:1.5px solid var(--line);background:transparent;color:var(--muted);transition:all .15s}
+.ml-pub-filter:hover{border-color:#f59e0b;color:#d97706}
+.ml-pub-filter.active{background:#f59e0b;border-color:#f59e0b;color:#fff}
+@keyframes mlspin{to{transform:rotate(360deg)}}
+.mlspin{animation:mlspin .8s linear infinite;display:inline-block}
+.ml-act-btn{padding:3px 8px;font-size:10px;background:var(--accent);color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:600;transition:background .15s}
 
 /* ── Recursos submodule tabs ──────────────────────────────────────── */
 .recursos-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;background:var(--bg);border-radius:10px;padding:5px;width:fit-content}
@@ -7362,6 +7388,54 @@ var ML_2026_DATA = {
 };
 
 var _mlMesActivo = '2026-06';
+var _mlActiveTab = 'resumen';
+var ML_TOKEN = (typeof localStorage !== 'undefined' && localStorage.getItem('ml_token')) || '';
+var ML_SELLER_ID = '244438069';
+
+function mlSaveToken(t) {
+  ML_TOKEN = (t || '').trim();
+  if (typeof localStorage !== 'undefined') localStorage.setItem('ml_token', ML_TOKEN);
+  var panel = document.getElementById('mlTokenPanel');
+  if (panel) panel.style.display = 'none';
+  var banner = document.getElementById('mlTokenBanner');
+  if (banner) banner.style.display = 'none';
+  _updateMLTokenBtn();
+}
+
+function _updateMLTokenBtn() {
+  var btn = document.getElementById('mlTokenStatus');
+  if (!btn) return;
+  btn.innerHTML = ML_TOKEN
+    ? '<i class="ti ti-key" style="color:#22c55e;font-size:12px"></i> Token activo'
+    : '<i class="ti ti-key" style="color:#ef4444;font-size:12px"></i> Sin token';
+}
+
+function toggleMLTokenPanel() {
+  var p = document.getElementById('mlTokenPanel');
+  if (!p) return;
+  var show = p.style.display === 'none';
+  p.style.display = show ? 'block' : 'none';
+  if (show) {
+    var inp = document.getElementById('mlTokenInput2');
+    if (inp) { inp.value = ML_TOKEN; inp.focus(); }
+  }
+}
+
+function mlApiFetch(url, opts) {
+  opts = opts || {};
+  var headers = Object.assign({ Authorization: 'Bearer ' + ML_TOKEN }, opts.headers || {});
+  return fetch(url, Object.assign({}, opts, { headers: headers })).then(function(r) {
+    if (r.status === 401) {
+      var panel = document.getElementById('mlTokenPanel');
+      if (panel) panel.style.display = 'block';
+      return Promise.reject(new Error('Token expirado (401) · Actualiza el token'));
+    }
+    return r.json().then(function(json) {
+      if (!r.ok) return Promise.reject(new Error(json.message || ('Error ' + r.status)));
+      return json;
+    });
+  });
+}
 
 function setMLMes(mes) {
   _mlMesActivo = mes;
@@ -7406,20 +7480,61 @@ function renderMLFull(mes) {
   var el = document.getElementById('mlDashboard');
   if (!el) return;
   _mlMesActivo = mes;
+  _mlActiveTab = 'resumen';
+
+  el.innerHTML =
+    '<div id="mlTokenBanner" style="display:' + (ML_TOKEN ? 'none' : 'flex') + ';align-items:center;gap:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px">' +
+      '<i class="ti ti-key" style="font-size:16px;color:#ef4444;flex-shrink:0"></i>' +
+      '<div style="flex:1"><strong style="color:#b91c1c">Token de ML requerido</strong><br><span style="color:#7f1d1d">Ingresa tu access token para habilitar las funciones en vivo</span></div>' +
+      '<input id="mlTokenInput" type="password" placeholder="APP_USR-..." style="font-size:11px;padding:5px 10px;border:1px solid #fca5a5;border-radius:6px;width:280px;background:#fff">' +
+      '<button onclick="mlSaveToken(document.getElementById(\'mlTokenInput\').value)" style="padding:5px 14px;background:#ef4444;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Guardar</button>' +
+    '</div>' +
+    '<div class="ml-tabs">' +
+      '<button class="ml-tab-btn active" data-tab="resumen" onclick="setMLTab(\'resumen\',this)"><i class="ti ti-layout-dashboard"></i> Resumen</button>' +
+      '<button class="ml-tab-btn" data-tab="publicaciones" onclick="setMLTab(\'publicaciones\',this)"><i class="ti ti-package"></i> Publicaciones</button>' +
+      '<button class="ml-tab-btn" data-tab="preguntas" onclick="setMLTab(\'preguntas\',this)"><i class="ti ti-message-circle"></i> Preguntas</button>' +
+      '<button class="ml-tab-btn" data-tab="publicidad" onclick="setMLTab(\'publicidad\',this)"><i class="ti ti-speakerphone"></i> Publicidad</button>' +
+      '<button class="ml-tab-btn" data-tab="competidores" onclick="setMLTab(\'competidores\',this)"><i class="ti ti-eye"></i> Competidores</button>' +
+      '<button class="ml-tab-token" id="mlTokenStatus" onclick="toggleMLTokenPanel()"></button>' +
+    '</div>' +
+    '<div id="mlTokenPanel" style="display:none;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:14px">' +
+      '<div style="display:flex;align-items:center;gap:10px;font-size:12px">' +
+        '<i class="ti ti-key" style="color:#f59e0b;font-size:15px"></i>' +
+        '<span style="font-weight:600;color:var(--ink)">Access Token ML</span>' +
+        '<input id="mlTokenInput2" type="password" placeholder="APP_USR-..." style="flex:1;font-size:11px;padding:5px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)">' +
+        '<button onclick="mlSaveToken(document.getElementById(\'mlTokenInput2\').value)" style="padding:5px 14px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Guardar</button>' +
+      '</div>' +
+    '</div>' +
+    '<div id="mlTabContent"></div>';
+
+  _updateMLTokenBtn();
+  renderMLTab_resumen();
+}
+
+function setMLTab(tab, btn) {
+  _mlActiveTab = tab;
+  document.querySelectorAll('.ml-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  var fns = { resumen: renderMLTab_resumen, publicaciones: renderMLTab_publicaciones, preguntas: renderMLTab_preguntas, publicidad: renderMLTab_publicidad, competidores: renderMLTab_competidores };
+  if (fns[tab]) fns[tab]();
+}
+
+function renderMLTab_resumen() {
+  var el = document.getElementById('mlTabContent');
+  if (!el) return;
+  var mes = _mlMesActivo;
   var r = ML_2026_DATA.reputacion;
   var pub = ML_2026_DATA.publicaciones;
   var q = ML_2026_DATA.preguntas;
   var KEYS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06'];
   var ABBR = ['Ene','Feb','Mar','Abr','May','Jun'];
 
-  // Pills
   var pillsHtml = KEYS.map(function(k, i) {
     var isParcial = ML_2026_DATA.meses[k] && ML_2026_DATA.meses[k].parcial;
     return '<button class="ml-mpill' + (k===mes?' active':'') + '" data-mes="' + k + '" onclick="setMLMes(\'' + k + '\')">' +
       ABBR[i] + (isParcial ? ' <span style="font-size:8px">◉</span>' : '') + '</button>';
   }).join('');
 
-  // Bar chart
   var maxV = Math.max.apply(null, KEYS.map(function(k){ return (ML_2026_DATA.meses[k]||{}).ventas||0; }));
   var barsHtml = '<div class="ml-chart-wrap" style="position:relative">' +
     KEYS.map(function(k, i) {
@@ -7430,7 +7545,6 @@ function renderMLFull(mes) {
         '<span class="ml-bar-lbl">' + ABBR[i] + '</span></div>';
     }).join('') + '</div>';
 
-  // Ratings
   var ratingsHtml = [
     {l:'Positivas', v:r.ratings.positivo, c:'#22c55e'},
     {l:'Neutrales',  v:r.ratings.neutral,  c:'#f59e0b'},
@@ -7455,12 +7569,13 @@ function renderMLFull(mes) {
           '<div class="ml-stat"><span class="sk">Transacciones históricas</span><span class="sv">' + r.transacciones.total.toLocaleString('es-MX') + ' total · ' + r.transacciones.canceladas + ' canceladas</span></div>' +
         '</div>' +
         '<div class="ml-card">' +
-          '<div class="ml-card-h"><i class="ti ti-list"></i> Publicaciones</div>' +
+          '<div class="ml-card-h"><i class="ti ti-package"></i> Publicaciones</div>' +
           '<div class="ml-pub-row">' +
             '<div class="ml-pub-item"><div class="pn" style="color:#22c55e">' + pub.activas + '</div><div class="pl">Activas</div></div>' +
             '<div class="ml-pub-item"><div class="pn" style="color:#f59e0b">' + pub.pausadas + '</div><div class="pl">Pausadas</div></div>' +
           '</div>' +
           '<div class="ml-stat" style="margin-top:10px"><span class="sk">Total catálogo</span><span class="sv">' + (pub.activas + pub.pausadas) + ' publicaciones</span></div>' +
+          '<div style="margin-top:10px"><button onclick="setMLTab(\'publicaciones\',document.querySelector(\'[data-tab=publicaciones]\'))" style="font-size:11px;padding:5px 12px;background:var(--bg);border:1px solid var(--line);border-radius:6px;cursor:pointer;color:var(--muted);width:100%"><i class="ti ti-arrow-right"></i> Ver y editar publicaciones</button></div>' +
         '</div>' +
       '</div>' +
       '<div>' +
@@ -7474,7 +7589,8 @@ function renderMLFull(mes) {
             '<div class="ml-q-stat"><div class="ml-q-num" style="color:' + (q.sinResponder > 0 ? 'var(--red)' : '#22c55e') + '">' + q.sinResponder + '</div><div class="ml-q-lbl">Sin responder</div></div>' +
             '<div class="ml-q-stat"><div class="ml-q-num">' + q.respondidas + '</div><div class="ml-q-lbl">Respondidas (total)</div></div>' +
           '</div>' +
-          (q.sinResponder === 0 ? '<p style="font-size:11px;color:var(--muted);margin-top:12px;margin-bottom:0;display:flex;align-items:center;gap:6px"><i class="ti ti-circle-check" style="color:#22c55e;font-size:14px"></i> Todas las preguntas están respondidas</p>' : '') +
+          (q.sinResponder === 0 ? '<p style="font-size:11px;color:var(--muted);margin-top:10px;margin-bottom:0;display:flex;align-items:center;gap:6px"><i class="ti ti-circle-check" style="color:#22c55e;font-size:14px"></i> Todas respondidas</p>' : '') +
+          '<div style="margin-top:10px"><button onclick="setMLTab(\'preguntas\',document.querySelector(\'[data-tab=preguntas]\'))" style="font-size:11px;padding:5px 12px;background:var(--bg);border:1px solid var(--line);border-radius:6px;cursor:pointer;color:var(--muted);width:100%"><i class="ti ti-arrow-right"></i> Ver y responder preguntas</button></div>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -7485,6 +7601,214 @@ function renderMLFull(mes) {
 
   _renderMLKpis(mes);
   _renderMLTops(mes);
+}
+
+/* ── PUBLICACIONES TAB ─────────────────────────────────────────────── */
+function renderMLTab_publicaciones() {
+  var el = document.getElementById('mlTabContent');
+  if (!el) return;
+  var pub = ML_2026_DATA.publicaciones;
+  el.innerHTML =
+    '<div class="ml-card">' +
+      '<div class="ml-card-h"><i class="ti ti-package"></i> Publicaciones · Catálogo en vivo</div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:14px">' +
+        '<button class="ml-pub-filter active" id="mlPubFilterA" onclick="loadMLPublicaciones(\'active\',this)">Activas (' + pub.activas + ')</button>' +
+        '<button class="ml-pub-filter" id="mlPubFilterP" onclick="loadMLPublicaciones(\'paused\',this)">Pausadas (' + pub.pausadas + ')</button>' +
+      '</div>' +
+      '<div id="mlPubList"><div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Consultando Mercado Libre...</div></div>' +
+    '</div>';
+  if (!ML_TOKEN) { document.getElementById('mlPubList').innerHTML = '<div class="ml-no-token"><i class="ti ti-key"></i> Ingresa el token de ML para cargar publicaciones</div>'; return; }
+  loadMLPublicaciones('active', document.getElementById('mlPubFilterA'));
+}
+
+function loadMLPublicaciones(status, btn) {
+  document.querySelectorAll('#mlTabContent .ml-pub-filter').forEach(function(b){ b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  var el = document.getElementById('mlPubList');
+  if (!el) return;
+  el.innerHTML = '<div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando...</div>';
+  mlApiFetch('https://api.mercadolibre.com/users/' + ML_SELLER_ID + '/items/search?status=' + status + '&limit=50')
+    .then(function(data) {
+      var ids = (data.results || []).slice(0, 20);
+      if (!ids.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">No hay publicaciones ' + (status === 'active' ? 'activas' : 'pausadas') + '</div>'; return null; }
+      return mlApiFetch('https://api.mercadolibre.com/items?ids=' + ids.join(','));
+    })
+    .then(function(items) {
+      if (!items) return;
+      var rows = items.map(function(w) {
+        var it = w.body || w;
+        if (!it || !it.id) return '';
+        var img = (it.pictures && it.pictures[0]) ? '<img src="' + it.pictures[0].url.replace('http://','https://') + '" style="width:40px;height:40px;object-fit:cover;border-radius:6px" onerror="this.style.visibility=\'hidden\'">' : '<div style="width:40px;height:40px;background:var(--bg);border-radius:6px"></div>';
+        var title = (it.title || '').slice(0, 55) + (it.title && it.title.length > 55 ? '…' : '');
+        return '<tr><td style="width:48px">' + img + '</td>' +
+          '<td style="text-align:left;max-width:220px"><div style="font-weight:600;font-size:12px">' + title + '</div><div style="font-size:10px;color:var(--muted)">' + it.id + '</div></td>' +
+          '<td><div style="display:flex;align-items:center;gap:4px;justify-content:flex-end"><input type="number" id="mlp_' + it.id + '" value="' + (it.price||0) + '" style="width:80px;font-size:11px;padding:3px 6px;border:1px solid var(--line);border-radius:5px;text-align:right;background:var(--bg);color:var(--ink)"><button onclick="mlUpdatePrice(\'' + it.id + '\')" class="ml-act-btn">OK</button></div></td>' +
+          '<td><div style="display:flex;align-items:center;gap:4px;justify-content:flex-end"><input type="number" id="mls_' + it.id + '" value="' + (it.available_quantity||0) + '" style="width:60px;font-size:11px;padding:3px 6px;border:1px solid var(--line);border-radius:5px;text-align:right;background:var(--bg);color:var(--ink)"><button onclick="mlUpdateStock(\'' + it.id + '\')" class="ml-act-btn" style="background:#22c55e">OK</button></div></td>' +
+          '<td><span class="ml-item-status ' + (it.status === 'active' ? 'active' : 'paused') + '">' + (it.status === 'active' ? 'Activa' : 'Pausada') + '</span></td></tr>';
+      }).join('');
+      el.innerHTML = '<div style="overflow-x:auto"><table class="ml-top-t" style="min-width:580px"><thead><tr><th></th><th style="text-align:left">Producto</th><th>Precio MXN</th><th>Stock</th><th>Estado</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+        '<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:8px">Primeros 20 · Edita precio o stock y presiona OK para guardar</div>';
+    })
+    .catch(function(e) { el.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>'; });
+}
+
+function mlUpdatePrice(id) {
+  var inp = document.getElementById('mlp_' + id), btn = inp && inp.nextElementSibling;
+  if (!inp || !btn) return;
+  var price = parseFloat(inp.value);
+  if (!price || price <= 0) return;
+  btn.textContent = '…'; btn.disabled = true;
+  mlApiFetch('https://api.mercadolibre.com/items/' + id, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({price: price}) })
+    .then(function() { btn.textContent = '✓'; btn.style.background = '#22c55e'; setTimeout(function(){ btn.textContent='OK'; btn.style.background=''; btn.disabled=false; }, 2000); })
+    .catch(function(e) { btn.textContent = '✗'; btn.style.background = '#ef4444'; btn.disabled = false; alert('Error precio: ' + e.message); setTimeout(function(){ btn.textContent='OK'; btn.style.background=''; }, 2000); });
+}
+
+function mlUpdateStock(id) {
+  var inp = document.getElementById('mls_' + id), btn = inp && inp.nextElementSibling;
+  if (!inp || !btn) return;
+  var qty = parseInt(inp.value, 10);
+  if (isNaN(qty) || qty < 0) return;
+  btn.textContent = '…'; btn.disabled = true;
+  mlApiFetch('https://api.mercadolibre.com/items/' + id, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({available_quantity: qty}) })
+    .then(function() { btn.textContent = '✓'; setTimeout(function(){ btn.textContent='OK'; btn.disabled=false; }, 2000); })
+    .catch(function(e) { btn.textContent = '✗'; btn.style.background = '#ef4444'; btn.disabled = false; alert('Error stock: ' + e.message); setTimeout(function(){ btn.textContent='OK'; btn.style.background=''; }, 2000); });
+}
+
+/* ── PREGUNTAS TAB ──────────────────────────────────────────────────── */
+function renderMLTab_preguntas() {
+  var el = document.getElementById('mlTabContent');
+  if (!el) return;
+  el.innerHTML =
+    '<div class="ml-card">' +
+      '<div class="ml-card-h"><i class="ti ti-message-circle"></i> Preguntas de clientes</div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:14px">' +
+        '<button class="ml-pub-filter active" id="mlQF1" onclick="loadMLPreguntas(\'UNANSWERED\',this)">Sin responder</button>' +
+        '<button class="ml-pub-filter" id="mlQF2" onclick="loadMLPreguntas(\'ANSWERED\',this)">Respondidas</button>' +
+      '</div>' +
+      '<div id="mlQList"><div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando...</div></div>' +
+    '</div>';
+  if (!ML_TOKEN) { document.getElementById('mlQList').innerHTML = '<div class="ml-no-token"><i class="ti ti-key"></i> Ingresa el token de ML para ver preguntas</div>'; return; }
+  loadMLPreguntas('UNANSWERED', document.getElementById('mlQF1'));
+}
+
+function loadMLPreguntas(status, btn) {
+  document.querySelectorAll('#mlTabContent .ml-pub-filter').forEach(function(b){ b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  var el = document.getElementById('mlQList');
+  if (!el) return;
+  el.innerHTML = '<div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Consultando...</div>';
+  mlApiFetch('https://api.mercadolibre.com/questions/search?seller_id=' + ML_SELLER_ID + '&status=' + status + '&limit=50&sort_fields=date_created&sort_types=DESC')
+    .then(function(data) {
+      var qs = data.questions || [];
+      if (!qs.length) {
+        el.innerHTML = '<div style="padding:28px;text-align:center;color:var(--muted)"><i class="ti ti-circle-check" style="font-size:30px;display:block;margin-bottom:8px;color:#22c55e"></i>' + (status === 'UNANSWERED' ? '¡Sin preguntas sin responder!' : 'No hay preguntas') + '</div>';
+        return;
+      }
+      el.innerHTML = qs.map(function(q) {
+        var dt = q.date_created ? new Date(q.date_created).toLocaleDateString('es-MX', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+        var answerHtml = status === 'UNANSWERED'
+          ? '<div class="ml-q-reply"><textarea id="mlReply_' + q.id + '" placeholder="Escribe tu respuesta..." style="width:100%;font-size:12px;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);resize:vertical;min-height:58px;box-sizing:border-box"></textarea><div style="display:flex;justify-content:flex-end;margin-top:6px"><button id="mlRBtn_' + q.id + '" onclick="mlResponder(' + q.id + ')" style="padding:6px 16px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer"><i class="ti ti-send"></i> Responder</button></div></div>'
+          : (q.answer ? '<div class="ml-q-answer"><i class="ti ti-arrow-back-up"></i> ' + q.answer.text + '</div>' : '');
+        return '<div class="ml-q-card" id="mlQCard_' + q.id + '">' +
+          '<div class="ml-q-meta"><span class="ml-q-buyer"><i class="ti ti-user"></i> ' + (q.from && q.from.nickname ? q.from.nickname : 'Usuario') + '</span><span class="ml-q-date-small">' + dt + '</span></div>' +
+          '<div class="ml-q-text">' + q.text + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);margin-top:3px">Item: ' + q.item_id + '</div>' +
+          answerHtml + '</div>';
+      }).join('');
+    })
+    .catch(function(e) { el.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>'; });
+}
+
+function mlResponder(qId) {
+  var ta = document.getElementById('mlReply_' + qId);
+  var btn = document.getElementById('mlRBtn_' + qId);
+  if (!ta || !ta.value.trim()) return;
+  var txt = ta.value.trim();
+  btn.innerHTML = '<i class="ti ti-loader-2 mlspin"></i> Enviando...'; btn.disabled = true;
+  mlApiFetch('https://api.mercadolibre.com/answers', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({question_id: qId, text: txt}) })
+    .then(function() {
+      var reply = ta.closest('.ml-q-reply');
+      if (reply) reply.innerHTML = '<div class="ml-q-answer"><i class="ti ti-circle-check" style="color:#22c55e"></i> Respuesta enviada: "' + txt + '"</div>';
+    })
+    .catch(function(e) { btn.innerHTML = '<i class="ti ti-send"></i> Responder'; btn.disabled = false; alert('Error: ' + e.message); });
+}
+
+/* ── PUBLICIDAD TAB ─────────────────────────────────────────────────── */
+function renderMLTab_publicidad() {
+  var el = document.getElementById('mlTabContent');
+  if (!el) return;
+  el.innerHTML =
+    '<div class="ml-card">' +
+      '<div class="ml-card-h"><i class="ti ti-speakerphone"></i> Publicidad · Product Ads</div>' +
+      '<div id="mlAdsContent"><div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando campañas...</div></div>' +
+    '</div>';
+  if (!ML_TOKEN) { document.getElementById('mlAdsContent').innerHTML = '<div class="ml-no-token"><i class="ti ti-key"></i> Ingresa el token para ver campañas</div>'; return; }
+  mlApiFetch('https://api.mercadolibre.com/advertising/product_campaigns?user_id=' + ML_SELLER_ID)
+    .then(function(data) {
+      var campaigns = data.results || (Array.isArray(data) ? data : []);
+      var el2 = document.getElementById('mlAdsContent');
+      if (!campaigns.length) { el2.innerHTML = '<div style="padding:28px;text-align:center;color:var(--muted)"><i class="ti ti-speakerphone" style="font-size:28px;display:block;margin-bottom:8px;opacity:.4"></i>No se encontraron campañas activas</div>'; return; }
+      var rows = campaigns.map(function(c) {
+        return '<tr>' +
+          '<td style="text-align:left;font-weight:600">' + (c.name || 'Campaña') + '</td>' +
+          '<td><span class="ml-item-status ' + (c.status === 'active' ? 'active' : 'paused') + '">' + (c.status || '—') + '</span></td>' +
+          '<td>$' + ((c.daily_budget || 0).toLocaleString('es-MX',{maximumFractionDigits:0})) + '</td>' +
+          '<td>$' + ((c.today_spend || c.spending || 0).toLocaleString('es-MX',{maximumFractionDigits:2})) + '</td>' +
+          '<td>' + (c.active_ads || c.ads_count || '—') + '</td></tr>';
+      }).join('');
+      el2.innerHTML = '<table class="ml-top-t"><thead><tr><th style="text-align:left">Campaña</th><th>Estado</th><th>Presupuesto/día</th><th>Gasto hoy</th><th>Anuncios</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    })
+    .catch(function(e) { document.getElementById('mlAdsContent').innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>'; });
+}
+
+/* ── COMPETIDORES TAB ───────────────────────────────────────────────── */
+function renderMLTab_competidores() {
+  var el = document.getElementById('mlTabContent');
+  if (!el) return;
+  var sugeridos = ['Careta Free450','Soldadora Arc160','Disco Diamante 14"','Clavos 2" 9000pz','Cortadora Metal 14"'];
+  el.innerHTML =
+    '<div class="ml-card">' +
+      '<div class="ml-card-h"><i class="ti ti-eye"></i> Análisis de Competidores</div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:10px">' +
+        '<input id="mlCompQ" type="text" placeholder="Buscar en Mercado Libre (ej: careta soldador, soldadora inversora...)" style="flex:1;padding:8px 12px;font-size:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)" onkeydown="if(event.key===\'Enter\')buscarCompetidores()">' +
+        '<button onclick="buscarCompetidores()" style="padding:8px 18px;background:#f59e0b;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer"><i class="ti ti-search"></i> Buscar</button>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">' +
+        sugeridos.map(function(s){ return '<button onclick="document.getElementById(\'mlCompQ\').value=\'' + s + '\';buscarCompetidores()" style="padding:4px 10px;font-size:11px;background:var(--bg);border:1px solid var(--line);border-radius:14px;cursor:pointer;color:var(--muted)">' + s + '</button>'; }).join('') +
+      '</div>' +
+      '<div id="mlCompResults"></div>' +
+    '</div>';
+}
+
+function buscarCompetidores() {
+  var q = (document.getElementById('mlCompQ') || {}).value || '';
+  q = q.trim();
+  if (!q) return;
+  var el = document.getElementById('mlCompResults');
+  if (!el) return;
+  el.innerHTML = '<div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Buscando en Mercado Libre...</div>';
+  fetch('https://api.mercadolibre.com/sites/MLM/search?q=' + encodeURIComponent(q) + '&limit=20')
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      var results = data.results || [];
+      if (!results.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Sin resultados para "' + q + '"</div>'; return; }
+      var cards = results.map(function(it) {
+        var img = it.thumbnail ? '<img src="' + it.thumbnail.replace('http://','https://') + '" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0">' : '<div style="width:48px;height:48px;background:var(--bg);border-radius:6px;flex-shrink:0"></div>';
+        var isUs = it.seller && it.seller.nickname && it.seller.nickname.toLowerCase().indexOf('maraga') !== -1;
+        var sold = it.sold_quantity ? '<span style="color:#22c55e;font-size:10px;font-weight:600">' + it.sold_quantity.toLocaleString('es-MX') + ' vendidos</span>' : '';
+        var ship = it.shipping && it.shipping.free_shipping ? '<span style="color:#3b82f6;font-size:10px"><i class="ti ti-truck"></i> Gratis</span>' : '';
+        return '<div style="display:flex;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);background:' + (isUs ? 'rgba(245,158,11,.07)' : 'transparent') + '">' +
+          img +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-size:12px;font-weight:' + (isUs ? '700' : '500') + ';color:' + (isUs ? '#d97706' : 'var(--ink)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (isUs ? '★ ' : '') + it.title + '</div>' +
+            '<div style="font-size:15px;font-weight:800;color:var(--ink);margin-top:2px">$' + (it.price||0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div>' +
+            '<div style="font-size:10px;color:var(--muted);display:flex;gap:8px;align-items:center;margin-top:2px"><span>' + (it.seller ? it.seller.nickname : '') + '</span>' + sold + ship + '</div>' +
+          '</div></div>';
+      }).join('');
+      el.innerHTML = '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">' + results.length + ' resultados · Los marcados con ★ son de Maraga</div>' +
+        '<div style="border:1px solid var(--line);border-radius:8px;overflow:hidden">' + cards + '</div>';
+    })
+    .catch(function(e){ el.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> Error: ' + e.message + '</div>'; });
 }
 
 function switchAdminTab(name, el) {
