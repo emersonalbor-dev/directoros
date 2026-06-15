@@ -9304,7 +9304,7 @@ function _mlEstadoUpdatePills() {
 function mlEstadoForzarRecarga(mes) {
   delete _mlEstadoMemCache[mes];
   var ls = typeof localStorage !== 'undefined' ? localStorage : null;
-  if (ls) ls.removeItem('ml_estado_v5_' + mes);
+  if (ls) ls.removeItem('ml_estado_v6_' + mes);
   _mlEstadoMes = mes;
   _mlEstadoUpdatePills();
   loadMLEstado(mes);
@@ -9328,7 +9328,7 @@ function _mlEstadoCacheGet(mes) {
   var ls = typeof localStorage !== 'undefined' ? localStorage : null;
   if (!ls) return null;
   try {
-    var raw = ls.getItem('ml_estado_v5_' + mes);
+    var raw = ls.getItem('ml_estado_v6_' + mes);
     if (raw) { var d = JSON.parse(raw); _mlEstadoMemCache[mes] = d; return d; }
   } catch(e) {}
   return null;
@@ -9338,7 +9338,7 @@ function _mlEstadoCachePut(mes, acc, pages) {
   var d = Object.assign({}, acc, { _pages: pages });
   _mlEstadoMemCache[mes] = d;
   var ls = typeof localStorage !== 'undefined' ? localStorage : null;
-  if (ls) { try { ls.setItem('ml_estado_v5_' + mes, JSON.stringify(d)); } catch(e) {} }
+  if (ls) { try { ls.setItem('ml_estado_v6_' + mes, JSON.stringify(d)); } catch(e) {} }
 }
 
 function loadMLEstado(mes) {
@@ -9406,7 +9406,35 @@ function loadMLEstado(mes) {
     });
   }
 
+  // Also fetch group/MP (Mercado Pago charges: adelanto de disponibilidad, servicios MP)
+  function fetchMPPage(fromId) {
+    if (gen !== _mlEstadoGen) return Promise.resolve();
+    var url = 'https://api.mercadolibre.com/billing/integration/periods/key/' + periodKey +
+      '/group/MP/details?document_type=BILL&limit=1000&from_id=' + fromId + '&sort_by=ID&order_by=ASC';
+    return mlApiFetch(url).then(function(data) {
+      if (gen !== _mlEstadoGen) return;
+      var results = data.results || [];
+      for (var i = 0; i < results.length; i++) {
+        var rec = results[i];
+        var t   = (rec.charge_info || {}).detail_sub_type || '';
+        var amt = Math.abs((rec.charge_info || {}).detail_amount || 0);
+        var grp = (rec.charge_info || {}).detail_type || '';
+        if      (t === 'CRIA')          add('adelanto', amt);
+        else if (t === 'CPOPC')         add('servicios_mp', amt);
+        else if (grp === 'CHARGE')      add('otros', amt);
+        else { add('sin_clasificar', amt); console.log('[EC-MP] tipo no mapeado sub_type=' + JSON.stringify(t) + ' grp=' + JSON.stringify(grp) + ' amt=' + amt); }
+      }
+      if (data.last_id && results.length > 0) {
+        return new Promise(function(r) { setTimeout(r, 14000); }).then(function() { return fetchMPPage(data.last_id); });
+      }
+    });
+  }
+
   fetchPage(0).then(function() {
+    if (gen !== _mlEstadoGen) return;
+    if (statusEl) statusEl.textContent = pageCount + ' pág. ML · cargando MP…';
+    return fetchMPPage(0);
+  }).then(function() {
     if (gen !== _mlEstadoGen) return; // cancelled
     if (!isCurrent) _mlEstadoCachePut(mes, acc, pageCount);
     _mlEstadoUpdatePills();
@@ -9431,11 +9459,13 @@ function _mlEstadoRender(acc, mes) {
   var cfwa           = acc.cfwa           || 0;
   var cesm           = acc.cesm           || 0;
   var otros          = acc.otros          || 0;
+  var adelanto       = acc.adelanto       || 0;
+  var servicios_mp   = acc.servicios_mp   || 0;
   var sin_clasificar = acc.sin_clasificar || 0;
   var bv             = acc.bv             || 0;
   var benvios        = acc.benvios        || 0;
   var anulaciones    = bv + benvios;
-  var totalCargos    = cv + envios + publicidad + cfwa + cesm + otros + sin_clasificar - anulaciones;
+  var totalCargos    = cv + envios + publicidad + cfwa + cesm + otros + adelanto + servicios_mp + sin_clasificar - anulaciones;
 
   function pct(val) {
     if (!ventaMXN || !val) return '';
@@ -9444,14 +9474,16 @@ function _mlEstadoRender(acc, mes) {
   function fmt(val) { return '$' + val.toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 
   var rows = [
-    { label: 'Cargos por venta',                    val: cv,             neg: false },
-    { label: 'Cargos de envíos de Mercado Libre',   val: envios,         neg: false },
-    { label: 'Cargos por publicidad',               val: publicidad,     neg: false },
-    { label: 'Cargos de envíos Full (almacenaje)',  val: cfwa,           neg: false },
-    { label: 'Cargos de Mi página',                 val: cesm,           neg: false },
-    { label: 'Otros cargos',                        val: otros,          neg: false },
-    { label: 'Otros (sin clasificar)',              val: sin_clasificar, neg: false },
-    { label: 'Anulaciones / Bonificaciones',        val: anulaciones,    neg: true  },
+    { label: 'Cargos por venta',                              val: cv,             neg: false },
+    { label: 'Cargos de envíos de Mercado Libre',             val: envios,         neg: false },
+    { label: 'Cargos por publicidad',                         val: publicidad,     neg: false },
+    { label: 'Cargos de envíos Full (almacenaje)',            val: cfwa,           neg: false },
+    { label: 'Cargos de Mi página',                           val: cesm,           neg: false },
+    { label: 'Otros cargos',                                  val: otros,          neg: false },
+    { label: 'Cargos por adelanto de disponibilidad',         val: adelanto,       neg: false },
+    { label: 'Cargos por servicios de Mercado Pago',          val: servicios_mp,   neg: false },
+    { label: 'Otros (sin clasificar)',                        val: sin_clasificar, neg: false },
+    { label: 'Anulaciones / Bonificaciones',                  val: anulaciones,    neg: true  },
   ];
 
   var html = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">' +
