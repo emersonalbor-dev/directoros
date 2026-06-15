@@ -9360,11 +9360,13 @@ function loadMLEstado(mes) {
   function add(key, amt) { acc[key] = (acc[key] || 0) + amt; }
 
   function fetchPage(fromId) {
-    if (gen !== _mlEstadoGen) return Promise.resolve(); // cancelled
+    console.log('[EC] fetchPage fromId=' + fromId + ' gen=' + gen + ' global=' + _mlEstadoGen);
+    if (gen !== _mlEstadoGen) { console.log('[EC] CANCELADO'); return Promise.resolve(); }
     var url = 'https://api.mercadolibre.com/billing/integration/periods/key/' + periodKey +
       '/group/ML/details?document_type=BILL&limit=1000&from_id=' + fromId + '&sort_by=ID&order_by=ASC';
     return mlApiFetch(url).then(function(data) {
-      if (gen !== _mlEstadoGen) return; // cancelled
+      console.log('[EC] pág recibida results=' + (data&&data.results?data.results.length:'null') + ' last_id=' + (data&&data.last_id) + ' gen=' + gen + '/' + _mlEstadoGen);
+      if (gen !== _mlEstadoGen) { console.log('[EC] CANCELADO tras fetch'); return; }
       var results = data.results || [];
       pageCount++;
       if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + '…';
