@@ -7834,11 +7834,12 @@ function renderMLTab_publicidad() {
           : adStatus === 'paused'
             ? '<span class="ml-item-status paused">Pausado</span>'
             : '<span style="font-size:10px;color:var(--muted)">Sin anuncio</span>';
+        var mlAdsUrl = 'https://publicidad.mercadolibre.com.mx/';
         var actionHtml = adStatus === 'active'
-          ? '<button onclick="mlPauseAd(\'' + it.id + '\')" style="padding:3px 10px;font-size:10px;background:#fef9c3;color:#a16207;border:1px solid #fde047;border-radius:5px;cursor:pointer;font-weight:600">Pausar</button>'
+          ? '<a href="' + mlAdsUrl + '" target="_blank" style="padding:3px 10px;font-size:10px;background:#fef9c3;color:#a16207;border:1px solid #fde047;border-radius:5px;cursor:pointer;font-weight:600;text-decoration:none;display:inline-block">Pausar <i class="ti ti-external-link" style="font-size:9px"></i></a>'
           : adStatus === 'paused'
-            ? '<button onclick="mlActivateAd(\'' + it.id + '\')" style="padding:3px 10px;font-size:10px;background:#dcfce7;color:#15803d;border:1px solid #86efac;border-radius:5px;cursor:pointer;font-weight:600">Activar</button>'
-            : '<button onclick="mlActivateAd(\'' + it.id + '\')" style="padding:3px 10px;font-size:10px;background:var(--bg);color:var(--muted);border:1px solid var(--line);border-radius:5px;cursor:pointer;font-weight:600">+ Anunciar</button>';
+            ? '<a href="' + mlAdsUrl + '" target="_blank" style="padding:3px 10px;font-size:10px;background:#dcfce7;color:#15803d;border:1px solid #86efac;border-radius:5px;cursor:pointer;font-weight:600;text-decoration:none;display:inline-block">Activar <i class="ti ti-external-link" style="font-size:9px"></i></a>'
+            : '<a href="' + mlAdsUrl + '" target="_blank" style="padding:3px 10px;font-size:10px;background:var(--bg);color:var(--muted);border:1px solid var(--line);border-radius:5px;cursor:pointer;font-weight:600;text-decoration:none;display:inline-block">+ Anunciar <i class="ti ti-external-link" style="font-size:9px"></i></a>';
         var title = (it.title || '').slice(0, 50) + (it.title && it.title.length > 50 ? '…' : '');
         return '<tr id="adrow_' + it.id + '">' +
           '<td style="text-align:left"><div style="font-weight:600;font-size:12px">' + title + '</div><div style="font-size:10px;color:var(--muted)">' + it.id + '</div></td>' +
@@ -7855,39 +7856,11 @@ function renderMLTab_publicidad() {
 }
 
 function mlActivateAd(itemId) {
-  var row = document.getElementById('adrow_' + itemId);
-  if (!row) return;
-  var btn = row.querySelector('button');
-  if (btn) { btn.textContent = '…'; btn.disabled = true; }
-  mlApiFetch('https://api.mercadolibre.com/advertising/product_ads', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ML_TOKEN },
-    body: JSON.stringify({ item_id: itemId, status: 'active', daily_budget: 50 })
-  }).then(function(res) {
-    if (btn) { btn.textContent = '✓ Activado'; btn.style.background = '#dcfce7'; btn.disabled = false; }
-    setTimeout(renderMLTab_publicidad, 1500);
-  }).catch(function(e) {
-    if (btn) { btn.textContent = 'Error'; btn.disabled = false; }
-    alert('Error al activar: ' + e.message);
-  });
+  window.open('https://publicidad.mercadolibre.com.mx/', '_blank');
 }
 
 function mlPauseAd(itemId) {
-  var row = document.getElementById('adrow_' + itemId);
-  if (!row) return;
-  var btn = row.querySelector('button');
-  if (btn) { btn.textContent = '…'; btn.disabled = true; }
-  mlApiFetch('https://api.mercadolibre.com/advertising/product_ads/' + itemId, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ML_TOKEN },
-    body: JSON.stringify({ status: 'paused' })
-  }).then(function() {
-    if (btn) { btn.textContent = '✓ Pausado'; btn.disabled = false; }
-    setTimeout(renderMLTab_publicidad, 1500);
-  }).catch(function(e) {
-    if (btn) { btn.textContent = 'Error'; btn.disabled = false; }
-    alert('Error al pausar: ' + e.message);
-  });
+  window.open('https://publicidad.mercadolibre.com.mx/', '_blank');
 }
 
 /* ── COMPETIDORES TAB ───────────────────────────────────────────────── */
