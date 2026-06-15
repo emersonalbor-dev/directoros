@@ -115,8 +115,13 @@ function aggregate(orders) {
 
       const titulo  = line.item?.productName || 'Producto';
       const qty     = Number(line.orderLineQuantity?.amount || 0);
-      const precio  = Number(line.item?.unitPrice?.amount || 0);
-      const total   = qty * precio;
+      // Sum ALL charge types (PRODUCT + SHIPPING, etc.) including tax to match Seller Central
+      const charges = line.charges || [];
+      const total   = charges.reduce((sum, c) => {
+        const base = Number(c.chargeAmount?.amount || 0);
+        const tax  = (c.tax || []).reduce((t, tx) => t + Number(tx.taxAmount?.amount || 0), 0);
+        return sum + base + tax;
+      }, 0);
 
       totalVentas   += total;
       totalUnidades += qty;
