@@ -8870,7 +8870,10 @@ function mlBillingSetFilter(f) {
   if (_mlBillingCache) _mlBillingRender(_mlBillingCache.byItem, _mlBillingCache.totals);
 }
 
+var _mlBillingGen = 0;
+
 function loadMLBilling(mes) {
+  var gen = ++_mlBillingGen;
   var statusEl  = document.getElementById('mlBillingStatus');
   var contentEl = document.getElementById('mlBillingContent');
   if (!contentEl) return;
@@ -8880,9 +8883,11 @@ function loadMLBilling(mes) {
   var pageCount = 0;
 
   function fetchPage(fromId) {
+    if (gen !== _mlBillingGen) return Promise.resolve(); // cancelled
     var url = 'https://api.mercadolibre.com/billing/integration/periods/key/' + periodKey +
       '/group/ML/details?document_type=BILL&limit=1000&from_id=' + fromId + '&sort_by=ID&order_by=ASC';
     return mlApiFetch(url).then(function(data) {
+      if (gen !== _mlBillingGen) return; // cancelled
       var results = data.results || [];
       pageCount++;
       if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + ' · ' + Object.keys(byItem).length + ' productos…';
@@ -8900,14 +8905,12 @@ function loadMLBilling(mes) {
         if (t === 'BFF') { byItem[id].bff += amt; totals.bff += amt; }
         if (t === 'BXD') { byItem[id].bxd += amt; totals.bxd += amt; }
       }
-      if (results.length === 1000 && data.last_id) {
-        // 3s delay between pages to stay under rate limit (5 req/min)
-        return new Promise(function(r) { setTimeout(r, 3000); }).then(function() { return fetchPage(data.last_id); });
-      }
+      if (results.length === 1000 && data.last_id) return fetchPage(data.last_id);
     });
   }
 
   fetchPage(0).then(function() {
+    if (gen !== _mlBillingGen) return; // cancelled
     var n = Object.keys(byItem).length;
     var nEnvios = totals.count_cff + totals.count_cxd;
     if (statusEl) statusEl.textContent = n + ' productos · ' + nEnvios + ' envíos';
@@ -8915,7 +8918,9 @@ function loadMLBilling(mes) {
     _mlBillingFilter = 'all';
     _mlBillingRender(byItem, totals);
   }).catch(function(e) {
-    contentEl.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>';
+    if (gen !== _mlBillingGen) return;
+    var c = document.getElementById('mlBillingContent');
+    if (c) c.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>';
   });
 }
 
@@ -9045,7 +9050,10 @@ function mlEstadoChangeMes(mes) {
   loadMLEstado(mes);
 }
 
+var _mlEstadoGen = 0;
+
 function loadMLEstado(mes) {
+  var gen = ++_mlEstadoGen;
   var statusEl  = document.getElementById('mlEstadoStatus');
   var contentEl = document.getElementById('mlEstadoContent');
   if (!contentEl) return;
@@ -9057,9 +9065,11 @@ function loadMLEstado(mes) {
   function add(key, amt) { acc[key] = (acc[key] || 0) + amt; }
 
   function fetchPage(fromId) {
+    if (gen !== _mlEstadoGen) return Promise.resolve(); // cancelled
     var url = 'https://api.mercadolibre.com/billing/integration/periods/key/' + periodKey +
       '/group/ML/details?document_type=BILL&limit=1000&from_id=' + fromId + '&sort_by=ID&order_by=ASC';
     return mlApiFetch(url).then(function(data) {
+      if (gen !== _mlEstadoGen) return; // cancelled
       var results = data.results || [];
       pageCount++;
       if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + '…';
@@ -9077,17 +9087,18 @@ function loadMLEstado(mes) {
         else if (t === 'BFF' || t === 'BXD') add('benvios', amt);
         else if (grp === 'CHARGE') add('otros', amt);
       }
-      if (results.length === 1000 && data.last_id) {
-        return new Promise(function(r) { setTimeout(r, 3000); }).then(function() { return fetchPage(data.last_id); });
-      }
+      if (results.length === 1000 && data.last_id) return fetchPage(data.last_id);
     });
   }
 
   fetchPage(0).then(function() {
-    if (statusEl) statusEl.textContent = pageCount + ' página(s) procesada(s)';
+    if (gen !== _mlEstadoGen) return; // cancelled
+    if (statusEl) statusEl.textContent = pageCount + ' página(s)';
     _mlEstadoRender(acc, mes);
   }).catch(function(e) {
-    contentEl.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>';
+    if (gen !== _mlEstadoGen) return;
+    var c = document.getElementById('mlEstadoContent');
+    if (c) c.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>';
   });
 }
 
