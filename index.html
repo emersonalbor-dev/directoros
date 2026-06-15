@@ -8014,189 +8014,157 @@ function mlAdsRender() {
 
 /* ── COMPETIDORES TAB ───────────────────────────────────────────────── */
 /* ── ENVÍOS TAB ─────────────────────────────────────────────────────── */
-var _mlEnviosState  = { offset: 0, total: 0 };
-var _mlEnviosFilter = 'all';
-var ML_ENV_PAGE     = 50;
+/* ── Envíos — costos reales cobrados por ML (billing API) ─────── */
+var _mlBillingMes = '';
 
 function renderMLTab_envios() {
-  _mlEnviosState  = { offset: 0, total: 0 };
-  _mlEnviosFilter = 'all';
+  var now = new Date();
+  var yr = now.getFullYear(), mo = now.getMonth() + 1;
+  _mlBillingMes = yr + '-' + String(mo).padStart(2,'0');
   var el = document.getElementById('mlTabContent');
   if (!el) return;
+  var mnames = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var opts = '';
+  for (var i = 0; i < 4; i++) {
+    var m = mo - i, y = yr;
+    if (m <= 0) { m += 12; y--; }
+    var k = y + '-' + String(m).padStart(2,'0');
+    opts += '<option value="' + k + '"' + (i===0?' selected':'') + '>' + mnames[m] + ' ' + y + '</option>';
+  }
   el.innerHTML =
     '<div class="ml-card">' +
-      '<div class="ml-card-h"><i class="ti ti-truck"></i> Costos de Envío por Publicación</div>' +
-      '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">' +
-        '<button class="ml-pub-filter active" id="mlEnvFAll" onclick="mlEnvSetFilter(\'all\',this)">Todos</button>' +
-        '<button class="ml-pub-filter" id="mlEnvFFull" onclick="mlEnvSetFilter(\'full\',this)">Full ML</button>' +
-        '<button class="ml-pub-filter" id="mlEnvFMe2" onclick="mlEnvSetFilter(\'me2\',this)">Mercado Envíos</button>' +
-        '<button class="ml-pub-filter" id="mlEnvFGratis" onclick="mlEnvSetFilter(\'gratis\',this)">Envío gratis</button>' +
-        '<button class="ml-pub-filter" id="mlEnvFPagado" onclick="mlEnvSetFilter(\'pagado\',this)">Envío pagado</button>' +
+      '<div class="ml-card-h"><i class="ti ti-receipt"></i> Costos de Envío Cobrados por ML</div>' +
+      '<div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap">' +
+        '<label style="font-size:12px;color:var(--muted)">Mes:</label>' +
+        '<select id="mlBillingMesSel" onchange="mlBillingChangeMes(this.value)" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);font-size:12px">' + opts + '</select>' +
+        '<span id="mlBillingStatus" style="font-size:11px;color:var(--muted)"></span>' +
       '</div>' +
-      '<div id="mlEnvContent"><div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando...</div></div>' +
-      '<div id="mlEnvPager" style="display:none;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">' +
-        '<button id="mlEnvPrev" onclick="mlEnvPage(-1)" style="padding:6px 16px;font-size:12px;font-weight:600;border:1.5px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;cursor:pointer"><i class="ti ti-chevron-left"></i> Anterior</button>' +
-        '<span id="mlEnvPagerInfo" style="font-size:12px;color:var(--muted)"></span>' +
-        '<button id="mlEnvNext" onclick="mlEnvPage(1)" style="padding:6px 16px;font-size:12px;font-weight:600;border:1.5px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;cursor:pointer">Siguiente <i class="ti ti-chevron-right"></i></button>' +
+      '<div id="mlBillingContent"><div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando billing...</div></div>' +
+    '</div>';
+  if (!ML_TOKEN) { document.getElementById('mlBillingContent').innerHTML = '<div class="ml-no-token"><i class="ti ti-key"></i> Ingresa el token para continuar</div>'; return; }
+  loadMLBilling(_mlBillingMes);
+}
+
+function mlBillingChangeMes(mes) {
+  _mlBillingMes = mes;
+  loadMLBilling(mes);
+}
+
+function loadMLBilling(mes) {
+  var statusEl  = document.getElementById('mlBillingStatus');
+  var contentEl = document.getElementById('mlBillingContent');
+  if (!contentEl) return;
+  contentEl.innerHTML = '<div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando registros...</div>';
+  var periodKey = mes + '-01';
+  var byItem = {}, totals = { cff:0, cxd:0, bff:0, bxd:0, count_cff:0, count_cxd:0 };
+  var pageCount = 0;
+
+  function fetchPage(fromId) {
+    var url = 'https://api.mercadolibre.com/billing/integration/periods/key/' + periodKey +
+      '/group/ML/details?document_type=BILL&limit=1000&from_id=' + fromId + '&sort_by=ID&order_by=ASC';
+    return mlApiFetch(url).then(function(data) {
+      var results = data.results || [];
+      pageCount++;
+      if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + ' · ' + Object.keys(byItem).length + ' productos…';
+      for (var i = 0; i < results.length; i++) {
+        var rec = results[i];
+        var t = (rec.charge_info || {}).detail_sub_type;
+        if (t !== 'CFF' && t !== 'CXD' && t !== 'BFF' && t !== 'BXD') continue;
+        var item = (rec.items_info || [])[0];
+        if (!item || !item.item_id) continue;
+        var id = item.item_id;
+        var amt = Math.abs((rec.charge_info || {}).detail_amount || 0);
+        if (!byItem[id]) byItem[id] = { title: item.item_title, price: item.item_price, cff:0, cxd:0, bff:0, bxd:0, count_cff:0, count_cxd:0 };
+        if (t === 'CFF') { byItem[id].cff += amt; byItem[id].count_cff++; totals.cff += amt; totals.count_cff++; }
+        if (t === 'CXD') { byItem[id].cxd += amt; byItem[id].count_cxd++; totals.cxd += amt; totals.count_cxd++; }
+        if (t === 'BFF') { byItem[id].bff += amt; totals.bff += amt; }
+        if (t === 'BXD') { byItem[id].bxd += amt; totals.bxd += amt; }
+      }
+      if (results.length === 1000 && data.last_id) return fetchPage(data.last_id);
+    });
+  }
+
+  fetchPage(0).then(function() {
+    var n = Object.keys(byItem).length;
+    var nEnvios = totals.count_cff + totals.count_cxd;
+    if (statusEl) statusEl.textContent = n + ' productos · ' + nEnvios + ' envíos';
+    _mlBillingRender(byItem, totals);
+  }).catch(function(e) {
+    contentEl.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>';
+  });
+}
+
+function _mlBillingRender(byItem, totals) {
+  var contentEl = document.getElementById('mlBillingContent');
+  if (!contentEl) return;
+  var bonus = totals.bff + totals.bxd;
+  var neto  = totals.cff + totals.cxd - bonus;
+  var nEnvios = totals.count_cff + totals.count_cxd;
+  var sumHtml =
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">' +
+      '<div style="flex:1;min-width:100px;background:#ede9fe;border-radius:8px;padding:10px 14px">' +
+        '<div style="font-size:10px;color:#7c3aed;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Full ML (CFF)</div>' +
+        '<div style="font-size:20px;font-weight:800;color:#7c3aed">$' + totals.cff.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div>' +
+        '<div style="font-size:10px;color:#7c3aed;opacity:.7">' + totals.count_cff + ' envíos</div>' +
+      '</div>' +
+      '<div style="flex:1;min-width:100px;background:#dbeafe;border-radius:8px;padding:10px 14px">' +
+        '<div style="font-size:10px;color:#2563eb;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Drop-off (CXD)</div>' +
+        '<div style="font-size:20px;font-weight:800;color:#2563eb">$' + totals.cxd.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div>' +
+        '<div style="font-size:10px;color:#2563eb;opacity:.7">' + totals.count_cxd + ' envíos</div>' +
+      '</div>' +
+      '<div style="flex:1;min-width:100px;background:#d1fae5;border-radius:8px;padding:10px 14px">' +
+        '<div style="font-size:10px;color:#065f46;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Bonificaciones</div>' +
+        '<div style="font-size:20px;font-weight:800;color:#059669">-$' + bonus.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div>' +
+        '<div style="font-size:10px;color:#059669;opacity:.7">BFF + BXD</div>' +
+      '</div>' +
+      '<div style="flex:1;min-width:100px;background:#fef9c3;border-radius:8px;padding:10px 14px">' +
+        '<div style="font-size:10px;color:#92400e;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Costo Neto</div>' +
+        '<div style="font-size:20px;font-weight:800;color:#b45309">$' + neto.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div>' +
+        '<div style="font-size:10px;color:#b45309;opacity:.7">' + nEnvios + ' envíos</div>' +
       '</div>' +
     '</div>';
-  if (!ML_TOKEN) { document.getElementById('mlEnvContent').innerHTML = '<div class="ml-no-token"><i class="ti ti-key"></i> Ingresa el token para continuar</div>'; return; }
-  loadMLEnvios();
-}
 
-function mlEnvPage(dir) {
-  var newOffset = _mlEnviosState.offset + dir * ML_ENV_PAGE;
-  if (newOffset < 0 || newOffset >= _mlEnviosState.total) return;
-  _mlEnviosState.offset = newOffset;
-  loadMLEnvios();
-}
+  var sorted = Object.keys(byItem).map(function(id) {
+    var d = byItem[id];
+    var bruto = d.cff + d.cxd, bon = d.bff + d.bxd, net = bruto - bon, cnt = d.count_cff + d.count_cxd;
+    return { id: id, title: d.title, price: d.price, cff: d.cff, cxd: d.cxd, bon: bon, net: net, cnt: cnt, avg: cnt > 0 ? net/cnt : 0 };
+  }).sort(function(a,b){ return b.net - a.net; });
 
-function mlEnvSetFilter(f, btn) {
-  document.querySelectorAll('#mlTabContent .ml-pub-filter').forEach(function(b){ b.classList.remove('active'); });
-  if (btn) btn.classList.add('active');
-  _mlEnviosFilter = f;
-  _mlEnviosState.offset = 0;
-  loadMLEnvios();
-}
+  if (!sorted.length) {
+    contentEl.innerHTML = sumHtml + '<div style="padding:20px;text-align:center;color:var(--muted)">Sin registros de envío en este mes</div>';
+    return;
+  }
 
-function _envLogisticLabel(it) {
-  var lt  = (it.shipping && it.shipping.logistic_type) || '';
-  var mode = (it.shipping && it.shipping.mode) || '';
-  if (lt === 'fulfillment')   return { label: 'Full ML',         color: '#7c3aed', bg: '#ede9fe' };
-  if (lt === 'xd_drop_off')   return { label: 'Drop-off ME2',    color: '#2563eb', bg: '#dbeafe' };
-  if (lt === 'cross_docking') return { label: 'ME2',             color: '#0284c7', bg: '#e0f2fe' };
-  if (mode === 'me2')         return { label: 'Mercado Envíos',  color: '#0284c7', bg: '#e0f2fe' };
-  if (lt === 'custom' || mode === 'custom') return { label: 'Directo', color: '#6b7280', bg: '#f3f4f6' };
-  return { label: mode || lt || '—', color: '#6b7280', bg: '#f3f4f6' };
-}
+  var rows = sorted.map(function(p) {
+    var typeBadge = '';
+    if (p.cff > 0 && p.cxd > 0) typeBadge = '<span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:#ede9fe;color:#7c3aed">Full</span> <span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:#dbeafe;color:#2563eb">DO</span>';
+    else if (p.cff > 0) typeBadge = '<span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:#ede9fe;color:#7c3aed">Full ML</span>';
+    else typeBadge = '<span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:#dbeafe;color:#2563eb">Drop-off</span>';
+    var bonHtml = p.bon > 0 ? '<span style="color:#059669">-$' + p.bon.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</span>' : '<span style="color:var(--muted)">—</span>';
+    return '<tr>' +
+      '<td style="text-align:left">' +
+        '<div style="font-weight:600;font-size:12px">' + (p.title||'').slice(0,60) + ((p.title||'').length>60?'…':'') + '</div>' +
+        '<div style="font-size:10px;color:var(--muted)">' + p.id + (p.price ? ' · $' + Number(p.price).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' c/u' : '') + '</div>' +
+      '</td>' +
+      '<td style="text-align:center">' + typeBadge + '</td>' +
+      '<td style="text-align:right;font-weight:600">' + p.cnt + '</td>' +
+      '<td style="text-align:right">$' + (p.cff+p.cxd).toLocaleString('es-MX',{maximumFractionDigits:0}) + '</td>' +
+      '<td style="text-align:right">' + bonHtml + '</td>' +
+      '<td style="text-align:right;font-weight:700;color:var(--accent)">$' + p.net.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</td>' +
+      '<td style="text-align:right;color:var(--muted)">$' + p.avg.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</td>' +
+    '</tr>';
+  }).join('');
 
-function loadMLEnvios() {
-  var contentEl = document.getElementById('mlEnvContent');
-  if (!contentEl) return;
-  contentEl.innerHTML = '<div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando...</div>';
-
-  // Construir filtro de búsqueda
-  var searchUrl = 'https://api.mercadolibre.com/users/' + ML_SELLER_ID + '/items/search?status=active&limit=' + ML_ENV_PAGE + '&offset=' + _mlEnviosState.offset;
-
-  mlApiFetch(searchUrl)
-    .then(function(data) {
-      _mlEnviosState.total = (data.paging || {}).total || 0;
-      var ids = data.results || [];
-      if (!ids.length) { contentEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Sin publicaciones activas</div>'; return null; }
-      return mlItemsMultiGet(ids, 'id,title,price,available_quantity,shipping,thumbnail');
-    })
-    .then(function(rawItems) {
-      if (!rawItems) return;
-      var items = rawItems.map(function(w){ return w.body || w; }).filter(function(it){ return it && it.id; });
-
-      // Filtrar por tipo
-      if (_mlEnviosFilter === 'full') items = items.filter(function(it){ return (it.shipping||{}).logistic_type === 'fulfillment'; });
-      else if (_mlEnviosFilter === 'me2') items = items.filter(function(it){ var lt=(it.shipping||{}).logistic_type; return lt==='xd_drop_off'||lt==='cross_docking'||(it.shipping||{}).mode==='me2'; });
-      else if (_mlEnviosFilter === 'gratis') items = items.filter(function(it){ return (it.shipping||{}).free_shipping; });
-      else if (_mlEnviosFilter === 'pagado') items = items.filter(function(it){ return !(it.shipping||{}).free_shipping; });
-
-      // Actualizar contadores
-      var fAll = document.getElementById('mlEnvFAll');
-      if (fAll) fAll.textContent = 'Todos (' + _mlEnviosState.total + ')';
-
-      // Resumen por tipo (sobre la página actual)
-      var allItems = rawItems.map(function(w){ return w.body || w; }).filter(function(it){ return it && it.id; });
-      var nFull   = allItems.filter(function(it){ return (it.shipping||{}).logistic_type==='fulfillment'; }).length;
-      var nMe2    = allItems.filter(function(it){ var lt=(it.shipping||{}).logistic_type; return lt==='xd_drop_off'||lt==='cross_docking'||(it.shipping||{}).mode==='me2'; }).length;
-      var nGratis = allItems.filter(function(it){ return (it.shipping||{}).free_shipping; }).length;
-
-      // Resumen top
-      var summaryHtml =
-        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">' +
-          '<div style="flex:1;min-width:120px;background:#ede9fe;border-radius:8px;padding:10px 14px">' +
-            '<div style="font-size:10px;color:#7c3aed;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Full ML</div>' +
-            '<div style="font-size:22px;font-weight:800;color:#7c3aed">' + nFull + '</div>' +
-            '<div style="font-size:10px;color:#7c3aed;opacity:.7">publicaciones</div>' +
-          '</div>' +
-          '<div style="flex:1;min-width:120px;background:#dbeafe;border-radius:8px;padding:10px 14px">' +
-            '<div style="font-size:10px;color:#2563eb;font-weight:700;text-transform:uppercase;letter-spacing:.05em">ME2 / Drop-off</div>' +
-            '<div style="font-size:22px;font-weight:800;color:#2563eb">' + nMe2 + '</div>' +
-            '<div style="font-size:10px;color:#2563eb;opacity:.7">publicaciones</div>' +
-          '</div>' +
-          '<div style="flex:1;min-width:120px;background:#d1fae5;border-radius:8px;padding:10px 14px">' +
-            '<div style="font-size:10px;color:#065f46;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Envío gratis</div>' +
-            '<div style="font-size:22px;font-weight:800;color:#059669">' + nGratis + '</div>' +
-            '<div style="font-size:10px;color:#059669;opacity:.7">tú pagas el envío</div>' +
-          '</div>' +
-        '</div>';
-
-      if (!items.length) {
-        contentEl.innerHTML = summaryHtml + '<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px">Sin publicaciones para este filtro en esta página</div>';
-        _mlEnvRenderPager();
-        return;
-      }
-
-      var rows = items.map(function(it) {
-        var ship  = it.shipping || {};
-        var logic = _envLogisticLabel(it);
-        var img   = it.thumbnail
-          ? '<img src="' + (it.thumbnail||'').replace('http://','https://') + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0">'
-          : '<div style="width:36px;height:36px;background:var(--bg);border-radius:4px;flex-shrink:0"></div>';
-
-        var logisticBadge = '<span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:' + logic.bg + ';color:' + logic.color + '">' + logic.label + '</span>';
-
-        var freeBadge = ship.free_shipping
-          ? '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:#d1fae5;color:#065f46"><i class="ti ti-truck" style="font-size:10px"></i> Gratis</span>'
-          : '<span style="font-size:10px;color:var(--muted)">Comprador paga</span>';
-
-        // Nota de costo estimado según tipo
-        var costNote = '';
-        var lt = ship.logistic_type || '';
-        if (lt === 'fulfillment') {
-          costNote = '<span style="font-size:10px;color:#7c3aed">ML almacena y envía · cobro por paquete</span>';
-        } else if (lt === 'xd_drop_off' || lt === 'cross_docking' || ship.mode === 'me2') {
-          costNote = ship.free_shipping
-            ? '<span style="font-size:10px;color:#059669">ML cobra tarifa a ti al hacer drop-off</span>'
-            : '<span style="font-size:10px;color:var(--muted)">Comprador paga la tarifa ME2</span>';
-        } else if (lt === 'custom' || ship.mode === 'custom') {
-          costNote = '<span style="font-size:10px;color:var(--muted)">Tú gestionas el envío</span>';
-        }
-
-        return '<tr>' +
-          '<td style="text-align:left">' +
-            '<div style="display:flex;align-items:center;gap:8px">' +
-              img +
-              '<div>' +
-                '<div style="font-weight:600;font-size:12px">' + (it.title||'').slice(0,55) + ((it.title||'').length>55?'…':'') + '</div>' +
-                '<div style="font-size:10px;color:var(--muted)">' + it.id + ' · $' + (it.price||0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' · stock: ' + (it.available_quantity||0) + '</div>' +
-              '</div>' +
-            '</div>' +
-          '</td>' +
-          '<td style="white-space:nowrap">' + logisticBadge + '</td>' +
-          '<td>' + freeBadge + '</td>' +
-          '<td>' + costNote + '</td>' +
-        '</tr>';
-      }).join('');
-
-      contentEl.innerHTML = summaryHtml +
-        '<div style="overflow-x:auto"><table class="ml-top-t"><thead><tr>' +
-          '<th style="text-align:left">Publicación</th>' +
-          '<th>Logística</th>' +
-          '<th>Envío</th>' +
-          '<th>Costo para ti</th>' +
-        '</tr></thead><tbody>' + rows + '</tbody></table></div>';
-
-      _mlEnvRenderPager();
-    })
-    .catch(function(e) { contentEl.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>'; });
-}
-
-function _mlEnvRenderPager() {
-  var pager    = document.getElementById('mlEnvPager');
-  var pagerInfo = document.getElementById('mlEnvPagerInfo');
-  var prevBtn  = document.getElementById('mlEnvPrev');
-  var nextBtn  = document.getElementById('mlEnvNext');
-  var from = _mlEnviosState.offset + 1;
-  var to   = Math.min(_mlEnviosState.offset + ML_ENV_PAGE, _mlEnviosState.total);
-  if (pager)     pager.style.display = _mlEnviosState.total > ML_ENV_PAGE ? 'flex' : 'none';
-  if (pagerInfo) pagerInfo.textContent = from + '–' + to + ' de ' + _mlEnviosState.total;
-  if (prevBtn)   prevBtn.disabled = _mlEnviosState.offset === 0;
-  if (nextBtn)   nextBtn.disabled = to >= _mlEnviosState.total;
+  contentEl.innerHTML = sumHtml +
+    '<div style="overflow-x:auto"><table class="ml-top-t"><thead><tr>' +
+      '<th style="text-align:left;min-width:200px">Producto</th>' +
+      '<th>Tipo</th>' +
+      '<th style="text-align:right"># Envíos</th>' +
+      '<th style="text-align:right">Bruto</th>' +
+      '<th style="text-align:right">Bonif.</th>' +
+      '<th style="text-align:right">Neto</th>' +
+      '<th style="text-align:right">Prom/envío</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
 
 /* ── ACTUALIZAR MES ACTUAL EN VIVO ─────────────────────────────────── */
