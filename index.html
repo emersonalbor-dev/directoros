@@ -8355,6 +8355,7 @@ function renderMLFull(mes) {
       '<button class="ml-tab-btn" data-tab="preguntas" onclick="setMLTab(\'preguntas\',this)"><i class="ti ti-message-circle"></i> Preguntas</button>' +
       '<button class="ml-tab-btn" data-tab="publicidad" onclick="setMLTab(\'publicidad\',this)"><i class="ti ti-speakerphone"></i> Publicidad</button>' +
       '<button class="ml-tab-btn" data-tab="envios" onclick="setMLTab(\'envios\',this)"><i class="ti ti-truck"></i> Envíos</button>' +
+      '<button class="ml-tab-btn" data-tab="full" onclick="setMLTab(\'full\',this)"><i class="ti ti-building-warehouse"></i> FULL</button>' +
       '<button class="ml-tab-btn" data-tab="estado" onclick="setMLTab(\'estado\',this)"><i class="ti ti-report-money"></i> Estado de Cuenta</button>' +
       '<button class="ml-tab-token" id="mlTokenStatus" onclick="toggleMLTokenPanel()"></button>' +
     '</div>' +
@@ -8406,7 +8407,7 @@ function setMLTab(tab, btn) {
   _mlActiveTab = tab;
   document.querySelectorAll('.ml-tab-btn').forEach(function(b) { b.classList.remove('active'); });
   if (btn) btn.classList.add('active');
-  var fns = { resumen: renderMLTab_resumen, publicaciones: renderMLTab_publicaciones, preguntas: renderMLTab_preguntas, publicidad: renderMLTab_publicidad, envios: renderMLTab_envios, estado: renderMLTab_estado };
+  var fns = { resumen: renderMLTab_resumen, publicaciones: renderMLTab_publicaciones, preguntas: renderMLTab_preguntas, publicidad: renderMLTab_publicidad, envios: renderMLTab_envios, full: renderMLTab_full, estado: renderMLTab_estado };
   if (fns[tab]) fns[tab]();
 }
 
@@ -8603,6 +8604,143 @@ function mlUpdateStock(id) {
   mlApiFetch('https://api.mercadolibre.com/items/' + id, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({available_quantity: qty}) })
     .then(function() { btn.textContent = '✓'; setTimeout(function(){ btn.textContent='OK'; btn.disabled=false; }, 2000); })
     .catch(function(e) { btn.textContent = '✗'; btn.style.background = '#ef4444'; btn.disabled = false; alert('Error stock: ' + e.message); setTimeout(function(){ btn.textContent='OK'; btn.style.background=''; }, 2000); });
+}
+
+/* ── FULL TAB ───────────────────────────────────────────────────────── */
+var _mlFullItems = [];
+var _mlFullSort  = 'stock';
+
+function renderMLTab_full() {
+  var el = document.getElementById('mlTabContent');
+  if (!el) return;
+  _mlFullItems = [];
+  el.innerHTML =
+    '<div class="ml-card">' +
+      '<div class="ml-card-h"><i class="ti ti-building-warehouse"></i> Inventario FULL · Mercado Libre Full</div>' +
+      '<div id="mlFullKpis" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px"></div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">' +
+        '<span style="font-size:11px;color:var(--muted)">Ordenar:</span>' +
+        '<button class="ml-pub-filter active" id="mlFullSortStock" onclick="mlFullSort(\'stock\',this)">Bajo stock</button>' +
+        '<button class="ml-pub-filter" id="mlFullSortSales" onclick="mlFullSort(\'ventas\',this)">Más vendidos</button>' +
+        '<button class="ml-pub-filter" id="mlFullSortPrice" onclick="mlFullSort(\'precio\',this)">Mayor precio</button>' +
+        '<span style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)">' +
+          'Alerta stock &lt; <input type="number" id="mlFullThresh" value="10" min="1" max="999" ' +
+          'style="width:45px;font-size:11px;padding:2px 5px;border:1px solid var(--line);border-radius:5px;text-align:center;background:var(--bg);color:var(--ink)" ' +
+          'onchange="mlFullRenderTable()"> uds.' +
+        '</span>' +
+      '</div>' +
+      '<div id="mlFullList"><div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Consultando Mercado Libre...</div></div>' +
+    '</div>';
+  if (!ML_TOKEN) {
+    document.getElementById('mlFullList').innerHTML = '<div class="ml-no-token"><i class="ti ti-key"></i> Ingresa el token de ML</div>';
+    return;
+  }
+  loadMLFull();
+}
+
+function loadMLFull() {
+  var el = document.getElementById('mlFullList');
+  function fetchPage(offset) {
+    return mlApiFetch('https://api.mercadolibre.com/users/' + ML_SELLER_ID + '/items/search?logistic_type=fulfillment&limit=100&offset=' + offset)
+      .then(function(data) {
+        var ids = data.results || [];
+        var total = (data.paging || {}).total || 0;
+        if (!ids.length) return;
+        return mlItemsMultiGet(ids, 'id,title,price,available_quantity,sold_quantity,status,thumbnail')
+          .then(function(items) {
+            (items || []).forEach(function(w) {
+              var it = w.body || w;
+              if (it && it.id) _mlFullItems.push(it);
+            });
+            if (_mlFullItems.length < total) return fetchPage(offset + 100);
+          });
+      });
+  }
+  fetchPage(0)
+    .then(function() { mlFullRenderKpis(); mlFullRenderTable(); })
+    .catch(function(e) { if (el) el.innerHTML = '<div class="ml-error-msg"><i class="ti ti-alert-circle"></i> ' + e.message + '</div>'; });
+}
+
+function mlFullSort(field, btn) {
+  document.querySelectorAll('#mlTabContent .ml-pub-filter').forEach(function(b){ b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  _mlFullSort = field;
+  mlFullRenderTable();
+}
+
+function mlFullRenderKpis() {
+  var kpiEl = document.getElementById('mlFullKpis');
+  if (!kpiEl) return;
+  var thresh = parseInt((document.getElementById('mlFullThresh') || {}).value, 10) || 10;
+  var totalStock = _mlFullItems.reduce(function(s, it){ return s + (it.available_quantity || 0); }, 0);
+  var lowStock   = _mlFullItems.filter(function(it){ return (it.available_quantity || 0) < thresh && (it.available_quantity || 0) > 0; }).length;
+  var sinStock   = _mlFullItems.filter(function(it){ return (it.available_quantity || 0) === 0; }).length;
+  var kpis = [
+    { label: 'SKUs con FULL',          val: _mlFullItems.length, color: '#1d4ed8', bg: '#dbeafe', icon: 'ti-package' },
+    { label: 'Stock total en ML',       val: totalStock.toLocaleString('es-MX'), color: '#047857', bg: '#d1fae5', icon: 'ti-building-warehouse' },
+    { label: 'Bajo stock (<' + thresh + ')', val: lowStock, color: lowStock > 0 ? '#d97706' : '#047857', bg: lowStock > 0 ? '#fef3c7' : '#d1fae5', icon: 'ti-alert-triangle' },
+    { label: 'Sin stock',              val: sinStock, color: sinStock > 0 ? '#dc2626' : '#047857', bg: sinStock > 0 ? '#fee2e2' : '#d1fae5', icon: 'ti-alert-circle' },
+  ];
+  kpiEl.innerHTML = kpis.map(function(k) {
+    return '<div style="flex:1;min-width:110px;background:' + k.bg + ';border-radius:8px;padding:10px 14px">' +
+      '<div style="font-size:10px;color:' + k.color + ';font-weight:700;text-transform:uppercase;letter-spacing:.05em"><i class="ti ' + k.icon + '"></i> ' + k.label + '</div>' +
+      '<div style="font-size:22px;font-weight:800;color:' + k.color + '">' + k.val + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function mlFullRenderTable() {
+  var el = document.getElementById('mlFullList');
+  if (!el || !_mlFullItems.length) return;
+  var thresh = parseInt((document.getElementById('mlFullThresh') || {}).value, 10) || 10;
+  mlFullRenderKpis();
+  var items = _mlFullItems.slice().sort(function(a, b) {
+    if (_mlFullSort === 'ventas') return (b.sold_quantity || 0) - (a.sold_quantity || 0);
+    if (_mlFullSort === 'precio') return (b.price || 0) - (a.price || 0);
+    return (a.available_quantity || 0) - (b.available_quantity || 0); // stock asc (bajo primero)
+  });
+  var rows = items.map(function(it) {
+    var stock   = it.available_quantity || 0;
+    var isOut   = stock === 0;
+    var isLow   = stock > 0 && stock < thresh;
+    var sColor  = isOut ? '#dc2626' : isLow ? '#d97706' : '#059669';
+    var sIcon   = isOut ? 'ti-alert-circle' : isLow ? 'ti-alert-triangle' : 'ti-circle-check';
+    var rowBg   = isOut ? 'background:#fff5f5' : isLow ? 'background:#fffbeb' : '';
+    var img     = it.thumbnail
+      ? '<img src="' + it.thumbnail.replace('http://','https://') + '" style="width:38px;height:38px;object-fit:cover;border-radius:6px" onerror="this.style.visibility=\'hidden\'">'
+      : '<div style="width:38px;height:38px;background:var(--bg);border-radius:6px;border:1px solid var(--border)"></div>';
+    var title   = (it.title || '').slice(0, 52) + ((it.title || '').length > 52 ? '…' : '');
+    return '<tr style="' + rowBg + ';border-bottom:1px solid var(--border)">' +
+      '<td style="width:44px;padding:7px 4px">' + img + '</td>' +
+      '<td style="padding:7px 8px;text-align:left"><div style="font-weight:600;font-size:12px;color:var(--ink)">' + title + '</div>' +
+        '<div style="font-size:10px;color:var(--muted)">' + it.id + '</div></td>' +
+      '<td style="padding:7px 10px;text-align:right;font-weight:600;font-size:12px">$' + (it.price||0).toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:2}) + '</td>' +
+      '<td style="padding:7px 10px;text-align:center">' +
+        '<div style="display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:13px;color:' + sColor + '">' +
+          '<i class="ti ' + sIcon + '" style="font-size:13px"></i>' + stock +
+        '</div></td>' +
+      '<td style="padding:7px 10px;text-align:right;font-size:12px;color:var(--muted)">' + (it.sold_quantity||0).toLocaleString('es-MX') + '</td>' +
+    '</tr>';
+  }).join('');
+  var totalStock = items.reduce(function(s,it){return s+(it.available_quantity||0);},0);
+  var totalSold  = items.reduce(function(s,it){return s+(it.sold_quantity||0);},0);
+  el.innerHTML =
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">' +
+      '<thead><tr style="border-bottom:2px solid var(--line)">' +
+        '<th style="padding:7px 4px"></th>' +
+        '<th style="padding:7px 8px;text-align:left;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Producto</th>' +
+        '<th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Precio</th>' +
+        '<th style="padding:7px 10px;text-align:center;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Stock en ML</th>' +
+        '<th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Vendidos</th>' +
+      '</tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+      '<tfoot><tr style="border-top:2px solid var(--line);background:var(--bg)">' +
+        '<td colspan="2" style="padding:8px 10px;font-size:11px;color:var(--muted)">' + items.length + ' productos FULL</td>' +
+        '<td></td>' +
+        '<td style="padding:8px 10px;text-align:center;font-weight:700;color:var(--ink)">' + totalStock.toLocaleString('es-MX') + '</td>' +
+        '<td style="padding:8px 10px;text-align:right;font-weight:700;color:var(--ink)">' + totalSold.toLocaleString('es-MX') + '</td>' +
+      '</tr></tfoot>' +
+    '</table></div>';
 }
 
 /* ── PREGUNTAS TAB ──────────────────────────────────────────────────── */
