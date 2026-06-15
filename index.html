@@ -8117,11 +8117,15 @@ function _mlBillingRender(byItem, totals) {
         '<div style="font-size:20px;font-weight:800;color:#059669">-$' + bonus.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div>' +
         '<div style="font-size:10px;color:#059669;opacity:.7">BFF + BXD</div>' +
       '</div>' +
-      '<div style="flex:1;min-width:100px;background:#fef9c3;border-radius:8px;padding:10px 14px">' +
-        '<div style="font-size:10px;color:#92400e;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Costo Neto</div>' +
-        '<div style="font-size:20px;font-weight:800;color:#b45309">$' + neto.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div>' +
-        '<div style="font-size:10px;color:#b45309;opacity:.7">' + nEnvios + ' envíos</div>' +
-      '</div>' +
+      (function(){
+        var mesVentas = (ML_2026_DATA.meses[_mlBillingMes] || {}).ventas || 0;
+        var pctVenta  = mesVentas > 0 ? (neto / mesVentas * 100).toFixed(1) + '% de ventas' : '';
+        return '<div style="flex:1;min-width:100px;background:#fef9c3;border-radius:8px;padding:10px 14px">' +
+          '<div style="font-size:10px;color:#92400e;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Costo Neto</div>' +
+          '<div style="font-size:20px;font-weight:800;color:#b45309">$' + neto.toLocaleString('es-MX',{maximumFractionDigits:0}) + '</div>' +
+          '<div style="font-size:10px;color:#b45309;opacity:.7">' + nEnvios + ' envíos' + (pctVenta ? ' · <b>' + pctVenta + '</b>' : '') + '</div>' +
+        '</div>';
+      })() +
     '</div>';
 
   var sorted = Object.keys(byItem).map(function(id) {
