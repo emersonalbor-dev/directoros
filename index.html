@@ -2203,11 +2203,8 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             <span class="calc-semaforo-pct" id="rcSemaforoPct">0%</span>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-top:4px">
-            <button class="btn btn-sm" id="rcBtnExcel" onclick="descargarRentExcel()" style="gap:6px;width:154px;justify-content:center">
-              <i class="ti ti-file-spreadsheet" style="color:#1d6f42;font-size:14px"></i> Descargar Excel
-            </button>
-            <button class="btn btn-sm" id="rcBtnPdf" onclick="descargarRentPdf()" style="gap:6px;width:154px;justify-content:center">
-              <i class="ti ti-file-type-pdf" style="color:#e53e3e;font-size:14px"></i> Descargar PDF
+            <button class="btn btn-sm" id="rcBtnPreciosMin" onclick="descargarPreciosMin()" style="gap:6px;width:190px;justify-content:center">
+              <i class="ti ti-file-spreadsheet" style="color:#1d6f42;font-size:14px"></i> Precios Mínimos (Excel)
             </button>
           </div>
           </div><!-- /wrapper derecho -->
@@ -6651,6 +6648,49 @@ function _generarRentPdf() {
   var dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
   doc.save('Rentabilidad_' + slug + '_' + dateStr + '.pdf');
   showToast('PDF descargado','success');
+}
+
+/* ── Descargar lista de precios mínimos (todos los SKUs) ─────────────── */
+function descargarPreciosMin() {
+  var btn = document.getElementById('rcBtnPreciosMin');
+  if (typeof window.XLSX === 'undefined') {
+    if (btn) { btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin .7s linear infinite"></i> Cargando…'; btn.disabled = true; }
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload  = function() { _generarPreciosMinExcel(); if (btn) { btn.innerHTML = '<i class="ti ti-file-spreadsheet" style="color:#1d6f42;font-size:14px"></i> Precios Mínimos (Excel)'; btn.disabled = false; } };
+    s.onerror = function() { showToast('Error al cargar librería Excel','error'); if (btn) { btn.innerHTML = '<i class="ti ti-file-spreadsheet" style="color:#1d6f42;font-size:14px"></i> Precios Mínimos (Excel)'; btn.disabled = false; } };
+    document.head.appendChild(s);
+    return;
+  }
+  _generarPreciosMinExcel();
+}
+
+function _generarPreciosMinExcel() {
+  var XLSX = window.XLSX;
+  var rows = [['SKU', 'Descripción', 'Precio Mínimo c/IVA (MXN)', 'Precio Mínimo s/IVA (MXN)']];
+  var iva = 1.16;
+  for (var i = 0; i < PRICE_LIST.length; i++) {
+    var r = PRICE_LIST[i];
+    var conIva  = typeof r[2] === 'number' ? r[2] : parseFloat(r[2]) || 0;
+    var sinIva  = Math.round((conIva / iva) * 100) / 100;
+    rows.push([r[0], r[1], conIva, sinIva]);
+  }
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  // Ancho de columnas
+  ws['!cols'] = [{wch:20},{wch:55},{wch:28},{wch:28}];
+  // Formato de número para las columnas de precio
+  var range = XLSX.utils.decode_range(ws['!ref']);
+  for (var R = 1; R <= range.e.r; R++) {
+    ['C','D'].forEach(function(col) {
+      var cell = ws[col + (R+1)];
+      if (cell) cell.z = '"$"#,##0.00';
+    });
+  }
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Precios Mínimos');
+  var dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  XLSX.writeFile(wb, 'PreciosMinimos_' + dateStr + '.xlsx');
+  showToast('Excel descargado','success');
 }
 
 function calcularRent() {
