@@ -7345,40 +7345,69 @@ async function pubGenerar() {
     '{' + schemaparts.join(',') + '}';
 
   try {
-    var msgContent = [];
-    if (_pubFileData) {
-      if (_pubFileData.isDoc) {
-        msgContent.push({ type: 'document', source: { type: 'base64', media_type: _pubFileData.mediaType, data: _pubFileData.base64 } });
-      } else {
-        msgContent.push({ type: 'image', source: { type: 'base64', media_type: _pubFileData.mediaType, data: _pubFileData.base64 } });
-      }
-    }
-    msgContent.push({ type: 'text', text: prompt });
-
-    var hdrs = {
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    };
-    // claude-sonnet-4-6 soporta PDFs de forma nativa; NO se necesita beta header
-
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: hdrs,
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 8000, messages: [{ role: 'user', content: msgContent }] })
-    });
-    if (!res.ok) { var errJ = await res.json(); throw new Error((errJ.error && errJ.error.message) ? errJ.error.message : ('HTTP ' + res.status)); }
-    var data = await res.json();
-    var raw  = data.content[0].text.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
-    var parsed = JSON.parse(raw);
+    var parsed = await _pubCallAPI(key, prompt, _pubFileData);
     pubRenderResults(parsed, plats);
   } catch(e) {
+    console.error('[pubGenerar]', e);
     showToast('Error al generar: ' + e.message, 'error');
   } finally {
     btn.innerHTML = orig;
     btn.disabled = false;
   }
+}
+
+async function _pubCallAPI(key, prompt, fileData) {
+  var hdrs = {
+    'x-api-key': key.trim(),
+    'anthropic-version': '2023-06-01',
+    'content-type': 'application/json',
+    'anthropic-dangerous-direct-browser-access': 'true'
+  };
+
+  var makeBody = function(includeFile) {
+    var content = [];
+    if (includeFile && fileData) {
+      if (fileData.isDoc) {
+        content.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: fileData.base64 } });
+      } else {
+        content.push({ type: 'image', source: { type: 'base64', media_type: fileData.mediaType, data: fileData.base64 } });
+      }
+    }
+    content.push({ type: 'text', text: prompt });
+    return JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 4096, messages: [{ role: 'user', content: content }] });
+  };
+
+  // Intento 1: con archivo (si hay)
+  try {
+    var hdrs1 = Object.assign({}, hdrs);
+    if (fileData && fileData.isDoc) hdrs1['anthropic-beta'] = 'pdfs-2024-09-25';
+    var res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: hdrs1, body: makeBody(true) });
+    if (res.ok) {
+      var data = await res.json();
+      var raw = data.content[0].text.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+      return JSON.parse(raw);
+    }
+    var errJ = await res.json();
+    var msg = (errJ.error && errJ.error.message) ? errJ.error.message : ('HTTP ' + res.status);
+    // Si el error es por el archivo/modelo, reintentamos sin archivo
+    if (!fileData) throw new Error(msg);
+    console.warn('[pubGenerar] Primer intento falló (' + msg + '), reintentando sin archivo…');
+    showToast('Regenerando sin archivo adjunto…', 'warn');
+  } catch(e1) {
+    if (!fileData) throw e1;
+    console.warn('[pubGenerar] fetch con archivo falló:', e1.message, '— reintentando sin archivo');
+    showToast('Regenerando sin archivo adjunto…', 'warn');
+  }
+
+  // Intento 2: solo texto (sin archivo)
+  var res2 = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: hdrs, body: makeBody(false) });
+  if (!res2.ok) {
+    var errJ2 = await res2.json();
+    throw new Error((errJ2.error && errJ2.error.message) ? errJ2.error.message : ('HTTP ' + res2.status));
+  }
+  var data2 = await res2.json();
+  var raw2 = data2.content[0].text.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  return JSON.parse(raw2);
 }
 
 function pubRenderResults(data, plats) {
