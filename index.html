@@ -3418,21 +3418,26 @@ async function _migrateFromLocalStorage() {
   console.info('[DirectorOS] Migrated localStorage → IndexedDB');
 }
 
+// Session-critical keys get a localStorage backup so they survive IDB failures
+const _LS_BACKUP = new Set([STORAGE_KEYS.CURRENT_USER, STORAGE_KEYS.RECENT_LOGINS]);
+
 async function storageGet(key) {
   try {
-    if (useStorage) {
-      const r = await window.storage.get(key);
-      return r ? JSON.parse(r.value) : null;
-    }
     const v = await _idbGet(key);
-    return v !== null ? JSON.parse(v) : null;
+    if (v !== null) return JSON.parse(v);
+    // IDB miss → try localStorage backup for session-critical keys
+    if (_LS_BACKUP.has(key)) {
+      const lv = localStorage.getItem(key + ':bk');
+      if (lv !== null) return JSON.parse(lv);
+    }
+    return null;
   } catch (e) { return null; }
 }
 async function storageSet(key, val) {
   try {
     const str = JSON.stringify(val);
-    if (useStorage) { await window.storage.set(key, str); }
-    else { await _idbSet(key, str); }
+    await _idbSet(key, str);
+    if (_LS_BACKUP.has(key)) localStorage.setItem(key + ':bk', str);
   } catch (e) {
     console.error('storage error', e);
     showToast('Error al guardar datos. Intenta de nuevo.', 'error');
@@ -3440,8 +3445,8 @@ async function storageSet(key, val) {
 }
 async function storageDelete(key) {
   try {
-    if (useStorage) { await window.storage.delete(key); }
-    else { await _idbDelete(key); }
+    await _idbDelete(key);
+    if (_LS_BACKUP.has(key)) localStorage.removeItem(key + ':bk');
   } catch (e) {}
 }
 
