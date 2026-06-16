@@ -6668,12 +6668,19 @@ function descargarPreciosMin() {
 
 function _generarPreciosMinExcel() {
   var XLSX = window.XLSX;
-  var rows = [['SKU', 'Descripción', 'Precio Mínimo c/IVA (MXN)', 'Precio Ecommerce c/IVA (MXN)']];
+  var rows = [['SKU', 'Descripción', 'Precio Mínimo c/IVA (40% margen)', 'Precio Ecommerce c/IVA (MXN)']];
   for (var i = 0; i < PRICE_LIST.length; i++) {
     var r = PRICE_LIST[i];
-    var precioMin   = typeof r[2] === 'number' ? r[2] : parseFloat(r[2]) || 0;
-    var precioEcomm = (ECOMM_PRICES && ECOMM_PRICES[r[0]]) ? ECOMM_PRICES[r[0]] : 0;
-    rows.push([r[0], r[1], precioMin, precioEcomm]);
+    var sku = r[0];
+    // Precio mínimo = costo promedio / (1 - 0.40) * 1.16  →  margen bruto mínimo del 40%
+    var precioMin = '';
+    if (INVENTORY && INVENTORY[sku]) {
+      var vals = Object.keys(INVENTORY[sku]).map(function(k) { return INVENTORY[sku][k]; });
+      var avgCosto = vals.reduce(function(a, b) { return a + b; }, 0) / vals.length;
+      precioMin = Math.round(avgCosto / 0.60 * 1.16 * 100) / 100;
+    }
+    var precioEcomm = (ECOMM_PRICES && ECOMM_PRICES[sku]) ? ECOMM_PRICES[sku] : 0;
+    rows.push([sku, r[1], precioMin, precioEcomm]);
   }
   var ws = XLSX.utils.aoa_to_sheet(rows);
   ws['!cols'] = [{wch:20},{wch:55},{wch:28},{wch:28}];
