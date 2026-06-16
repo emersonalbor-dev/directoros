@@ -3943,7 +3943,11 @@ async function init() {
   const savedUsers    = await storageGet(STORAGE_KEYS.USERS);
   const savedWs       = await storageGet(STORAGE_KEYS.WORKSPACES);
   const savedMT       = await storageGet(STORAGE_KEYS.MEETING_TYPES);
-  const isFirstLoad   = !savedUsers; // primera vez en este dispositivo
+  // isMigrated = flag en localStorage que sobrevive recargas y limpiezas de IDB.
+  // Si está activo pero savedUsers es null, IndexedDB fue limpiado por el navegador
+  // (no es primera carga real) → no borrar sesión ni sobreescribir con seed.
+  const isMigrated    = !!localStorage.getItem('directoros:idb-migrated-v1');
+  const isFirstLoad   = !savedUsers && !isMigrated; // primera carga REAL en este dispositivo
 
   state.users        = savedUsers  || getSeedUsers();
   state.workspaces   = savedWs     || getSeedWorkspaces();
@@ -3951,7 +3955,7 @@ async function init() {
   state.activity     = await storageGet(STORAGE_KEYS.ACTIVITY)   || getSeedActivity();
   state.requests     = await storageGet(STORAGE_KEYS.REQUESTS)   || getSeedRequests();
 
-  // ── Datos del usuario (siempre desde localStorage) ──
+  // ── Datos del usuario (siempre desde IndexedDB, seed solo si no hay nada) ──
   state.tasks       = await storageGet(STORAGE_KEYS.TASKS)        || getSeedTasks();
   state.events      = await storageGet(STORAGE_KEYS.EVENTS)       || getSeedEvents();
   state.okrs        = await storageGet(STORAGE_KEYS.OKRS)         || getSeedOkrs();
