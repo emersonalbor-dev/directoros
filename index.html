@@ -7290,7 +7290,7 @@ function pubClearFile() {
 
 async function pubGenerar() {
   var key = localStorage.getItem('directoros_ai_key');
-  if (!key) { showToast('Configura tu API Key de Anthropic en Ajustes > IA', 'error'); return; }
+  if (!key) { showToast('Configura tu API Key primero', 'warn'); kitConfigAI(); return; }
 
   var plats = ['amazon','ml','walmart','tiktok','web'].filter(function(p){
     var el = document.getElementById('pubPlat_' + p);
