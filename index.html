@@ -4473,6 +4473,16 @@ var RESUMEN_PLAT_DATA = {
       maraga_mx:    { vendidos:39,  sinVta:710, pctVendidos:0,     mejorados:0,   fulfillment:0,  ventasMKT:0,      inversionT:0,     skusMKT:0,  dobleCero:0,  ventasTotal:230173  },
       tiktok:       { vendidos:9,   sinVta:740, pctVendidos:0,     mejorados:0,   fulfillment:0,  ventasMKT:0,      inversionT:0,     skusMKT:0,  dobleCero:0,  ventasTotal:16778   }
     }
+  },
+  '2026-06': {
+    skusTotales: 749, skusExclusivos: 13,
+    plataformas: {
+      mercadolibre: { vendidos:67,  sinVta:682, pctVendidos:8.95,  mejorados:29, fulfillment:28, ventasMKT:84675, inversionT:13255, skusMKT:29, dobleCero:16, ventasTotal:295503 },
+      amazon:       { vendidos:32,  sinVta:717, pctVendidos:0,     mejorados:22, fulfillment:15, ventasMKT:6671,  inversionT:1700,  skusMKT:22, dobleCero:19, ventasTotal:57494  },
+      walmart:      { vendidos:13,  sinVta:736, pctVendidos:0,     mejorados:0,  fulfillment:9,  ventasMKT:0,     inversionT:0,     skusMKT:0,  dobleCero:0,  ventasTotal:36391  },
+      maraga_mx:    { vendidos:15,  sinVta:734, pctVendidos:0,     mejorados:0,  fulfillment:0,  ventasMKT:0,     inversionT:0,     skusMKT:0,  dobleCero:0,  ventasTotal:60042  },
+      tiktok:       { vendidos:3,   sinVta:746, pctVendidos:0,     mejorados:0,  fulfillment:0,  ventasMKT:0,     inversionT:0,     skusMKT:0,  dobleCero:0,  ventasTotal:1540   }
+    }
   }
 };
 
@@ -8401,6 +8411,8 @@ function renderMLFull(mes) {
 
   _updateMLTokenBtn();
   renderMLTab_resumen();
+  var _nowKey = (new Date()).getFullYear() + '-' + String((new Date()).getMonth()+1).padStart(2,'0');
+  if (_mlMesActivo === _nowKey) setTimeout(mlRefreshCurrentMonth, 150);
 }
 
 function setMLTab(tab, btn) {
