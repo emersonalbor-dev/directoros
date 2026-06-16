@@ -1503,6 +1503,29 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
   .admin-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 4px; }
   .modal-actions { flex-wrap: wrap; }
   .modal-actions .btn { flex: 1; min-width: 0; justify-content: center; }
+
+  /* Dashboard charts: stack on mobile */
+  .charts-row { grid-template-columns: 1fr; }
+
+  /* ML tabs: scroll horizontally */
+  .ml-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 2px; gap: 2px; }
+  .ml-tab-btn { flex-shrink: 0; white-space: nowrap; }
+
+  /* ML sub-tabs (FULL) */
+  .ml-subtabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+
+  /* Mes pills: wrap on smaller screens */
+  .mes-pills { flex-wrap: wrap; gap: 4px; }
+
+  /* ML KPI grid: 2 columns on tablet */
+  .ml-kpis { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Estado de Cuenta pills: scroll */
+  #mlEstadoPills, #mlBillingPills { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 4px; }
+
+  /* Resumen plataformas: ya tiene overflow-x:auto, solo reducir font */
+  .resumen-plat table { font-size: 11px; }
+  .resumen-plat thead th, .resumen-plat td { padding: 6px 8px; }
 }
 @media (max-width: 480px) {
   .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -1553,6 +1576,25 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
   /* Kanban filters: scroll instead of wrap */
   .kanban-filter { overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; display: flex; flex-wrap: nowrap; gap: 6px; }
   .kanban-filter .btn { flex-shrink: 0; }
+
+  /* ML: KPI 2 columnas en móvil pequeño */
+  .ml-kpis { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+  .ml-kpi-val { font-size: 18px !important; }
+  .ml-tab-btn { font-size: 11px; padding: 6px 10px; }
+
+  /* Hero más compacto */
+  .dash-hero { padding: 16px 14px; }
+  .hero-q { font-size: 16px; margin: 6px 0 12px; }
+
+  /* Tabla resumen plataformas: fuente mínima */
+  .resumen-plat table { font-size: 10px; }
+  .resumen-plat thead th, .resumen-plat td { padding: 5px 6px; }
+
+  /* ML card headers más compactos */
+  .ml-card-h { font-size: 13px; }
+
+  /* Estado de cuenta: pills más pequeños */
+  [id^="mlEstPill_"], [id^="mlBillPill_"] { font-size: 11px; padding: 4px 10px; }
 }
 </style>
 </head>
@@ -4568,7 +4610,6 @@ function renderResumenPlat(mes) {
     return '<tr class="'+p.cls+'">'
       +'<td><div class="resumen-plat-plat-name"><span class="resumen-plat-dot" style="background:'+p.dot+'"></span>'+p.label+'</div></td>'
       +'<td>'+d.skusTotales+'</td>'
-      +'<td>'+d.skusExclusivos+'</td>'
       +'<td><strong>'+vendidos+'</strong></td>'
       +'<td>'+sinVta+'</td>'
       +'<td>'+pctV+'</td>'
@@ -4591,7 +4632,7 @@ function renderResumenPlat(mes) {
     +'<div class="resumen-plat-scroll"><table>'
     +'<thead><tr>'
     +'<th style="min-width:130px">Plataforma</th>'
-    +'<th>SKUs<br>Totales</th><th>SKUs<br>Exclusivos</th>'
+    +'<th>SKUs<br>Totales</th>'
     +'<th>SKUs<br>Vendidos</th><th>SKUs<br>sin vta</th>'
     +'<th>%<br>vendidos</th><th>SKU<br>Mejorados</th>'
     +'<th>SKU<br>Fulfillment</th><th>Ventas<br>Totales</th>'
@@ -4602,7 +4643,7 @@ function renderResumenPlat(mes) {
     +'<tbody>'+rows
     +'<tr class="resumen-row-total">'
     +'<td><div class="resumen-plat-plat-name">TOTAL</div></td>'
-    +'<td>'+d.skusTotales+'</td><td>'+d.skusExclusivos+'</td>'
+    +'<td>'+d.skusTotales+'</td>'
     +'<td>'+totVendidos+'</td><td>—</td><td>—</td>'
     +'<td>0</td><td>'+totFulfill+'</td>'
     +'<td>$'+Math.round(totVentas).toLocaleString('es-MX')+'</td>'
