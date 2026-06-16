@@ -1596,6 +1596,41 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
   /* Estado de cuenta: pills más pequeños */
   [id^="mlEstPill_"], [id^="mlBillPill_"] { font-size: 11px; padding: 4px 10px; }
 }
+/* ═══ CREAR PUBLICACIONES MODULE ═══ */
+.pub-layout{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+.pub-form-col{position:sticky;top:76px;display:flex;flex-direction:column;gap:12px}
+.pub-dropzone{border:2px dashed var(--border);border-radius:10px;padding:20px 16px;text-align:center;cursor:pointer;transition:all .15s;background:var(--surface)}
+.pub-dropzone:hover,.pub-drop-active{border-color:var(--maraga);background:color-mix(in srgb,var(--maraga) 8%,transparent)}
+.pub-dropzone-icon{font-size:28px;opacity:.4;display:block;margin-bottom:6px}
+.pub-dropzone-file{font-size:12px;color:var(--maraga);font-weight:600;display:flex;align-items:center;gap:5px;justify-content:center;margin-top:6px}
+.pub-platforms-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+.pub-plat-chk{display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;user-select:none;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--paper);transition:background .1s}
+.pub-plat-chk:hover{background:var(--surface)}
+.pub-plat-chk input{cursor:pointer;accent-color:var(--maraga)}
+.pub-plat-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);overflow-x:auto;flex-wrap:nowrap}
+.pub-plat-tab{padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:all .15s;flex-shrink:0}
+.pub-plat-tab:hover{color:var(--ink)}
+.pub-plat-tab.active{color:var(--ink);border-bottom-color:var(--ink);font-weight:600}
+.pub-plat-content{display:none}
+.pub-plat-content.active{display:block}
+.pub-plat-body{border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;padding:16px}
+.pub-field-group{margin-bottom:14px}
+.pub-field-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
+.pub-copy-btn{background:none;border:1px solid var(--border);border-radius:5px;cursor:pointer;padding:3px 7px;color:var(--muted-2);transition:all .1s;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;display:inline-flex;align-items:center;gap:3px}
+.pub-copy-btn:hover{color:var(--maraga);border-color:var(--maraga)}
+.pub-copy-btn.copied{color:var(--green,#22c55e);border-color:var(--green,#22c55e)}
+.pub-field-val{font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:9px 12px}
+.pub-bullets-list{padding:0;margin:0;list-style:none;display:flex;flex-direction:column;gap:5px}
+.pub-bullets-list li{display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.5}
+.pub-bullet-num{width:18px;height:18px;border-radius:50%;background:var(--maraga);color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.pub-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:10px 0 6px;border-top:1px solid var(--border);margin:14px 0 8px}
+.pub-specs-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.pub-spec-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.pub-spec-card-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:5px}
+.pub-spec-card p{font-size:12px;margin:0;line-height:1.5}
+.pub-empty-state{text-align:center;padding:48px 20px;color:var(--muted);opacity:.6}
+.pub-empty-state i{font-size:38px;display:block;margin-bottom:10px}
+@media(max-width:900px){.pub-layout{grid-template-columns:1fr}.pub-form-col{position:static}.pub-specs-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body data-role="director">
@@ -2056,6 +2091,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
         <div class="merch-tabs">
           <button class="merch-tab active" onclick="switchMerchTab('calc',this)"><i class="ti ti-chart-bar"></i> Calculadora de Rentabilidad</button>
           <button class="merch-tab" onclick="switchMerchTab('sc',this)"><i class="ti ti-cut"></i> Recomendador de Sierra Cinta</button>
+          <button class="merch-tab" onclick="switchMerchTab('pub',this)"><i class="ti ti-writing-sign"></i> Crear Publicaciones</button>
         </div>
         <!-- Sub-panel: Calculadora -->
         <div class="merch-sub-panel active" id="merch-panel-calc">
@@ -2334,6 +2370,67 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             </div>
           </div>
         </div><!-- /merch-panel-sc -->
+
+        <!-- Sub-panel: Crear Publicaciones -->
+        <div class="merch-sub-panel" id="merch-panel-pub">
+          <div class="pub-layout">
+            <!-- LEFT: FORM -->
+            <div class="pub-form-col">
+              <div class="card-section">
+                <div class="label-row"><span class="section-label">Archivo del producto</span></div>
+                <div class="pub-dropzone" id="pubDropzone"
+                     onclick="document.getElementById('pubFileInput').click()"
+                     ondragover="event.preventDefault();this.classList.add('pub-drop-active')"
+                     ondragleave="this.classList.remove('pub-drop-active')"
+                     ondrop="pubHandleDrop(event)">
+                  <i class="ti ti-file-upload pub-dropzone-icon"></i>
+                  <div style="font-size:13px;font-weight:600">Arrastra o da clic para subir</div>
+                  <div style="font-size:11px;color:var(--muted);margin-top:3px">PDF, JPG, PNG, WEBP (máx 20 MB)</div>
+                  <div class="pub-dropzone-file" id="pubFileName" style="display:none">
+                    <i class="ti ti-paperclip"></i><span id="pubFileNameText"></span>
+                    <span onclick="event.stopPropagation();pubClearFile()" style="margin-left:4px;cursor:pointer;opacity:.6;font-size:11px">✕</span>
+                  </div>
+                </div>
+                <input type="file" id="pubFileInput" accept=".pdf,image/*" style="display:none" onchange="pubHandleFile(this.files[0])">
+              </div>
+              <div class="card-section">
+                <div class="label-row"><span class="section-label">Contexto del producto</span></div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <input type="text" id="pubMarca" class="form-input" placeholder="Marca (ej. MIKELS)">
+                  <input type="text" id="pubFamilia" class="form-input" placeholder="Familia / Categoría (ej. Sierras de cinta)">
+                  <input type="text" id="pubSkus" class="form-input" placeholder="SKU(s) (ej. SC-14, SC-18, SC-24)">
+                  <input type="text" id="pubPrecio" class="form-input" placeholder="Precio o rango (ej. $4,299 – $8,999)">
+                  <textarea id="pubNotas" class="form-input" rows="3" placeholder="Notas adicionales: características especiales, audiencia objetivo, competencia, posicionamiento…" style="resize:vertical"></textarea>
+                </div>
+              </div>
+              <div class="card-section">
+                <div class="label-row"><span class="section-label">Plataformas objetivo</span></div>
+                <div class="pub-platforms-grid">
+                  <label class="pub-plat-chk"><input type="checkbox" id="pubPlat_amazon" checked><span>Amazon</span></label>
+                  <label class="pub-plat-chk"><input type="checkbox" id="pubPlat_ml" checked><span>Mercado Libre</span></label>
+                  <label class="pub-plat-chk"><input type="checkbox" id="pubPlat_walmart" checked><span>Walmart</span></label>
+                  <label class="pub-plat-chk"><input type="checkbox" id="pubPlat_tiktok" checked><span>TikTok</span></label>
+                  <label class="pub-plat-chk"><input type="checkbox" id="pubPlat_web" checked><span>Mi Página</span></label>
+                </div>
+              </div>
+              <button class="btn btn-primary" id="pubGenBtn" onclick="pubGenerar()" style="width:100%;justify-content:center">
+                <i class="ti ti-sparkles"></i> Generar estrategia de contenido
+              </button>
+            </div>
+            <!-- RIGHT: RESULTS -->
+            <div id="pubResultsCol">
+              <div class="pub-empty-state" id="pubEmptyState">
+                <i class="ti ti-writing-sign"></i>
+                <div style="font-size:14px;font-weight:600;margin-bottom:6px">Genera tu estrategia de contenido</div>
+                <div style="font-size:12px">Sube un PDF o imagen del producto, completa el contexto, selecciona las plataformas y presiona <strong>Generar</strong>.</div>
+              </div>
+              <div id="pubResultsArea" style="display:none">
+                <div class="pub-plat-tabs" id="pubPlatTabs"></div>
+                <div class="pub-plat-body" id="pubPlatPanels"></div>
+              </div>
+            </div>
+          </div>
+        </div><!-- /merch-panel-pub -->
 
         </div><!-- /recursos-panel-merchandiser -->
 
@@ -7157,6 +7254,264 @@ async function kitGenerarIA() {
     btn.innerHTML = orig;
     btn.disabled = false;
   }
+}
+
+/* ============================================
+   CREAR PUBLICACIONES MODULE
+============================================ */
+var _pubFileData = null;
+
+function pubHandleFile(file) {
+  if (!file) return;
+  if (file.size > 20 * 1024 * 1024) { showToast('Archivo demasiado grande (máx 20 MB)', 'error'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var b64 = e.target.result.split(',')[1];
+    _pubFileData = { base64: b64, mediaType: file.type, isDoc: file.type === 'application/pdf', name: file.name };
+    document.getElementById('pubFileName').style.display = 'flex';
+    document.getElementById('pubFileNameText').textContent = file.name;
+    document.getElementById('pubDropzone').style.borderColor = 'var(--maraga)';
+  };
+  reader.readAsDataURL(file);
+}
+
+function pubHandleDrop(e) {
+  e.preventDefault();
+  document.getElementById('pubDropzone').classList.remove('pub-drop-active');
+  if (e.dataTransfer.files[0]) pubHandleFile(e.dataTransfer.files[0]);
+}
+
+function pubClearFile() {
+  _pubFileData = null;
+  document.getElementById('pubFileInput').value = '';
+  document.getElementById('pubFileName').style.display = 'none';
+  document.getElementById('pubDropzone').style.borderColor = '';
+}
+
+async function pubGenerar() {
+  var key = localStorage.getItem('directoros_ai_key');
+  if (!key) { showToast('Configura tu API Key de Anthropic en Ajustes > IA', 'error'); return; }
+
+  var plats = ['amazon','ml','walmart','tiktok','web'].filter(function(p){
+    var el = document.getElementById('pubPlat_' + p);
+    return el && el.checked;
+  });
+  if (!plats.length) { showToast('Selecciona al menos una plataforma', 'error'); return; }
+
+  var marca   = document.getElementById('pubMarca').value.trim();
+  var familia = document.getElementById('pubFamilia').value.trim();
+  var skus    = document.getElementById('pubSkus').value.trim();
+  var precio  = document.getElementById('pubPrecio').value.trim();
+  var notas   = document.getElementById('pubNotas').value.trim();
+
+  var btn = document.getElementById('pubGenBtn');
+  var orig = btn.innerHTML;
+  btn.innerHTML = '<i class="ti ti-loader-2 spin"></i> Generando…';
+  btn.disabled = true;
+
+  var platLabels = { amazon:'Amazon México', ml:'Mercado Libre México', walmart:'Walmart México', tiktok:'TikTok Shop México', web:'Página Web Propia' };
+  var selNames = plats.map(function(p){ return platLabels[p]; }).join(', ');
+
+  var ctx = '';
+  if (marca)   ctx += '- Marca: ' + marca + '\n';
+  if (familia) ctx += '- Familia/Categoría: ' + familia + '\n';
+  if (skus)    ctx += '- SKUs: ' + skus + '\n';
+  if (precio)  ctx += '- Precio/rango: ' + precio + '\n';
+  if (notas)   ctx += '- Notas: ' + notas + '\n';
+
+  var schemaAmazon = '"amazon":{"title":"Título máx 200 chars con keywords","bullets":["Bullet 1 beneficio clave","Bullet 2","Bullet 3","Bullet 4","Bullet 5"],"description":"Descripción 200-400 palabras","aplus_headline":"Titular A+","aplus_body":"Texto módulos A+ 2-3 párrafos","keywords_backend":"keywords separadas por espacio mínimo 250 bytes","image_specs":{"main":"Fondo blanco #FFF 2000x2000px producto al 85%","lifestyle":"2000x2000 contexto de uso fondo neutro","infographic":"2000x2000 destaca 3-5 beneficios con texto","additional":"Ángulos lateral trasero detalles escala con persona"},"video_specs":{"formato":"MP4 H.264","resolucion":"1920x1080 o 3840x2160","duracion":"30s-2min listado 30s principal","audio":"Locución + música sin derechos","tips":"Primeros 3s producto visible; CTA al final"},"copy_tips":"Consejos de copywriting para Amazon MX"}';
+  var schemaMl = '"ml":{"title":"Título máx 60 chars keyword al inicio","description":"Descripción HTML con ul/li 300-500 palabras","fichas_tecnicas":"Material: X\\nDimensiones: X\\nPeso: X (atributos clave)","keywords":"palabras clave para buscador ML","image_specs":{"main":"Fondo blanco 1200x1200px sin marcas de agua","galeria":"Hasta 10 imágenes ángulos detalles uso empaque"},"copy_tips":"Qué genera confianza en ML MX preguntas frecuentes a anticipar"}';
+  var schemaWmt = '"walmart":{"title":"Título máx 75 chars","short_description":"1-2 oraciones vista rápida","long_description":"200-400 palabras","key_features":["Feature 1","Feature 2","Feature 3","Feature 4","Feature 5"],"image_specs":{"main":"Fondo blanco 2000x2000px","adicionales":"Mínimo 4 ángulos uso detalles","360":"Secuencia 24-36 imágenes para tour 360°"},"copy_tips":"Consejos para Walmart MX Marketplace"}';
+  var schemaTt = '"tiktok":{"hook":"Gancho primeros 3 segundos máx 10 palabras","script":"Guión completo 15-60s con indicaciones [ESCENA: ...]","hashtags":"#tag1 #tag2 ... 10-15 hashtags mix alto y bajo volumen","caption":"Caption con emoji y CTA","image_specs":{"portada":"1:1 o 9:16 texto superpuesto propuesta de valor"},"video_specs":{"formato":"MP4 o MOV","resolucion":"1080x1920 9:16 vertical obligatorio","duracion":"15-60s TikTok Shop hasta 10min orgánico","fps":"30fps mínimo 60fps recomendado","audio":"Música trending o narración activa subtítulos","tips":"Producto en uso en primeros 3s texto superpuesto CTA verbal y visual"},"copy_tips":"Tipo de videos a hacer colaboraciones con creadores frecuencia de publicación"}';
+  var schemaWeb = '"web":{"hero_headline":"Titular hero máx 8 palabras","hero_subheadline":"Subtítulo 1-2 oraciones propuesta de valor","product_description":"Descripción HTML 300-500 palabras beneficios specs FAQs básicas","seo_title":"Title tag máx 60 chars keyword|Marca","meta_description":"Meta description 150-160 chars con CTA","cta_text":"Texto botón CTA máx 5 palabras","alt_texts":"Sugerencias alt text imagen principal lifestyle infografía","image_specs":{"hero":"1920x600px o 1920x1080 producto+contexto+texto","product_card":"800x800 fondo blanco","galeria":"1200x1200 múltiples ángulos","thumbnails":"300x300 para listados","formato":"WebP preferido JPG fallback máx 150KB por imagen"},"copy_tips":"Schema Product velocidad de página estrategia SEO"}';
+
+  var schemaparts = [];
+  if (plats.indexOf('amazon')  >= 0) schemaparts.push(schemaAmazon);
+  if (plats.indexOf('ml')      >= 0) schemaparts.push(schemaMl);
+  if (plats.indexOf('walmart') >= 0) schemaparts.push(schemaWmt);
+  if (plats.indexOf('tiktok')  >= 0) schemaparts.push(schemaTt);
+  if (plats.indexOf('web')     >= 0) schemaparts.push(schemaWeb);
+
+  var prompt = 'Eres experto en e-commerce y marketing digital para el mercado mexicano.\n' +
+    'Con la información del producto' + (_pubFileData ? ' (archivo adjunto incluido)' : '') + ', genera estrategia de contenido para: ' + selNames + '.\n\n' +
+    'INFORMACIÓN DEL PRODUCTO:\n' + (ctx || '(Sin contexto adicional)\n') + '\n' +
+    'Responde ÚNICAMENTE con JSON válido sin markdown ni bloques de código. Estructura exacta:\n' +
+    '{' + schemaparts.join(',') + '}';
+
+  try {
+    var msgContent = [];
+    if (_pubFileData) {
+      if (_pubFileData.isDoc) {
+        msgContent.push({ type: 'document', source: { type: 'base64', media_type: _pubFileData.mediaType, data: _pubFileData.base64 } });
+      } else {
+        msgContent.push({ type: 'image', source: { type: 'base64', media_type: _pubFileData.mediaType, data: _pubFileData.base64 } });
+      }
+    }
+    msgContent.push({ type: 'text', text: prompt });
+
+    var hdrs = {
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    };
+    if (_pubFileData && _pubFileData.isDoc) hdrs['anthropic-beta'] = 'pdfs-2024-09-25';
+
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: hdrs,
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 4096, messages: [{ role: 'user', content: msgContent }] })
+    });
+    if (!res.ok) { var errJ = await res.json(); throw new Error((errJ.error && errJ.error.message) ? errJ.error.message : ('HTTP ' + res.status)); }
+    var data = await res.json();
+    var raw  = data.content[0].text.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+    var parsed = JSON.parse(raw);
+    pubRenderResults(parsed, plats);
+  } catch(e) {
+    showToast('Error al generar: ' + e.message, 'error');
+  } finally {
+    btn.innerHTML = orig;
+    btn.disabled = false;
+  }
+}
+
+function pubRenderResults(data, plats) {
+  var pNames = { amazon:'Amazon', ml:'Mercado Libre', walmart:'Walmart', tiktok:'TikTok', web:'Mi Página' };
+  var pIcons = { amazon:'ti-brand-amazon', ml:'ti-shopping-cart', walmart:'ti-building-store', tiktok:'ti-brand-tiktok', web:'ti-world' };
+  var first = true;
+  var tabsHtml = '', panelsHtml = '';
+
+  plats.forEach(function(p) {
+    var d = data[p];
+    if (!d) return;
+    var isFirst = first; first = false;
+    tabsHtml += '<button class="pub-plat-tab' + (isFirst?' active':'') + '" onclick="pubSwitchPlatTab(\'' + p + '\',this)"><i class="ti ' + pIcons[p] + '"></i> ' + pNames[p] + '</button>';
+    var html = '<div class="pub-plat-content' + (isFirst?' active':'') + '" id="pubPlat_panel_' + p + '">';
+
+    if (p === 'amazon') {
+      html += _pubField('Título (máx 200 caracteres)', d.title, 'pub_amazon_title');
+      html += _pubBullets('Bullets (5 puntos de venta)', d.bullets, 'pub_amazon_bullets');
+      html += _pubField('Descripción', d.description, 'pub_amazon_desc');
+      html += _pubField('A+ Titular', d.aplus_headline, 'pub_amazon_aplus_h');
+      html += _pubField('A+ Cuerpo del módulo', d.aplus_body, 'pub_amazon_aplus_b');
+      html += _pubField('Keywords backend', d.keywords_backend, 'pub_amazon_kw');
+      if (d.image_specs) html += '<div class="pub-section-title">Especificaciones de imágenes</div><div class="pub-specs-grid">' + _pubSpecCards(d.image_specs) + '</div>';
+      if (d.video_specs) html += '<div class="pub-section-title">Especificaciones de video</div><div class="pub-specs-grid">' + _pubSpecCards(d.video_specs) + '</div>';
+      html += _pubField('Consejos de copy', d.copy_tips, 'pub_amazon_tips');
+    } else if (p === 'ml') {
+      html += _pubField('Título (máx 60 caracteres)', d.title, 'pub_ml_title');
+      html += _pubField('Descripción HTML', d.description, 'pub_ml_desc');
+      html += _pubField('Fichas técnicas', d.fichas_tecnicas, 'pub_ml_fichas');
+      html += _pubField('Keywords', d.keywords, 'pub_ml_kw');
+      if (d.image_specs) html += '<div class="pub-section-title">Especificaciones de imágenes</div><div class="pub-specs-grid">' + _pubSpecCards(d.image_specs) + '</div>';
+      html += _pubField('Consejos de copy', d.copy_tips, 'pub_ml_tips');
+    } else if (p === 'walmart') {
+      html += _pubField('Título (máx 75 caracteres)', d.title, 'pub_wmt_title');
+      html += _pubField('Descripción corta', d.short_description, 'pub_wmt_short');
+      html += _pubField('Descripción larga', d.long_description, 'pub_wmt_long');
+      html += _pubBullets('Key Features', d.key_features, 'pub_wmt_features');
+      if (d.image_specs) html += '<div class="pub-section-title">Especificaciones de imágenes</div><div class="pub-specs-grid">' + _pubSpecCards(d.image_specs) + '</div>';
+      html += _pubField('Consejos de copy', d.copy_tips, 'pub_wmt_tips');
+    } else if (p === 'tiktok') {
+      html += _pubField('Hook (primeros 3 segundos)', d.hook, 'pub_tt_hook');
+      html += _pubField('Guión del video', d.script, 'pub_tt_script');
+      html += _pubField('Hashtags', d.hashtags, 'pub_tt_hashtags');
+      html += _pubField('Caption', d.caption, 'pub_tt_caption');
+      if (d.video_specs) html += '<div class="pub-section-title">Especificaciones de video</div><div class="pub-specs-grid">' + _pubSpecCards(d.video_specs) + '</div>';
+      if (d.image_specs) html += '<div class="pub-section-title">Imagen de portada</div><div class="pub-specs-grid">' + _pubSpecCards(d.image_specs) + '</div>';
+      html += _pubField('Estrategia de contenido', d.copy_tips, 'pub_tt_tips');
+    } else if (p === 'web') {
+      html += _pubField('Hero — Titular principal', d.hero_headline, 'pub_web_hero_h');
+      html += _pubField('Hero — Subtítulo', d.hero_subheadline, 'pub_web_hero_s');
+      html += _pubField('Descripción del producto', d.product_description, 'pub_web_desc');
+      html += _pubField('SEO Title tag', d.seo_title, 'pub_web_seo_t');
+      html += _pubField('Meta Description', d.meta_description, 'pub_web_seo_m');
+      html += _pubField('Texto del CTA', d.cta_text, 'pub_web_cta');
+      html += _pubField('Alt texts de imágenes', d.alt_texts, 'pub_web_alts');
+      if (d.image_specs) html += '<div class="pub-section-title">Especificaciones de imágenes</div><div class="pub-specs-grid">' + _pubSpecCards(d.image_specs) + '</div>';
+      html += _pubField('Recomendaciones SEO', d.copy_tips, 'pub_web_tips');
+    }
+
+    html += '</div>';
+    panelsHtml += html;
+  });
+
+  document.getElementById('pubEmptyState').style.display = 'none';
+  document.getElementById('pubResultsArea').style.display = 'block';
+  document.getElementById('pubPlatTabs').innerHTML = tabsHtml;
+  document.getElementById('pubPlatPanels').innerHTML = panelsHtml;
+}
+
+function pubSwitchPlatTab(name, el) {
+  document.querySelectorAll('#pubPlatTabs .pub-plat-tab').forEach(function(t){ t.classList.remove('active'); });
+  document.querySelectorAll('[id^="pubPlat_panel_"]').forEach(function(p){ p.classList.remove('active'); });
+  el.classList.add('active');
+  var panel = document.getElementById('pubPlat_panel_' + name);
+  if (panel) panel.classList.add('active');
+}
+
+function pubCopyText(id, btn) {
+  var el = document.getElementById(id);
+  var text = el ? el.textContent.trim() : '';
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(function() {
+    var orig = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-check"></i> Copiado';
+    btn.classList.add('copied');
+    setTimeout(function(){ btn.innerHTML = orig; btn.classList.remove('copied'); }, 1800);
+  }).catch(function(){ showToast('No se pudo copiar', 'error'); });
+}
+
+function pubCopyBullets(id, btn) {
+  var el = document.getElementById(id);
+  var text = el ? el.getAttribute('data-raw') : '';
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(function() {
+    var orig = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-check"></i> Copiado';
+    btn.classList.add('copied');
+    setTimeout(function(){ btn.innerHTML = orig; btn.classList.remove('copied'); }, 1800);
+  }).catch(function(){ showToast('No se pudo copiar', 'error'); });
+}
+
+function _pubField(label, value, id) {
+  if (!value) return '';
+  return '<div class="pub-field-group">' +
+    '<div class="pub-field-label"><span>' + label + '</span>' +
+    '<button class="pub-copy-btn" onclick="pubCopyText(\'' + id + '\',this)"><i class="ti ti-copy"></i> Copiar</button></div>' +
+    '<div class="pub-field-val" id="' + id + '">' + _pubEscHtml(value) + '</div>' +
+    '</div>';
+}
+
+function _pubBullets(label, arr, id) {
+  if (!arr || !arr.length) return '';
+  var raw = arr.join('\n');
+  var items = arr.map(function(b, i){
+    return '<li><span class="pub-bullet-num">' + (i+1) + '</span><span>' + _pubEscHtml(b) + '</span></li>';
+  }).join('');
+  return '<div class="pub-field-group">' +
+    '<div class="pub-field-label"><span>' + label + '</span>' +
+    '<button class="pub-copy-btn" onclick="pubCopyBullets(\'' + id + '\',this)"><i class="ti ti-copy"></i> Copiar</button></div>' +
+    '<ul class="pub-bullets-list" id="' + id + '" data-raw="' + _pubEscAttr(raw) + '">' + items + '</ul>' +
+    '</div>';
+}
+
+function _pubSpecCards(specs) {
+  if (!specs || typeof specs !== 'object') return '';
+  return Object.keys(specs).map(function(k){
+    return '<div class="pub-spec-card"><div class="pub-spec-card-title">' + _pubEscHtml(k) + '</div>' +
+      '<p>' + _pubEscHtml(specs[k]) + '</p></div>';
+  }).join('');
+}
+
+function _pubEscHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function _pubEscAttr(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 /* ============================================
