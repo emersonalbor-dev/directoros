@@ -3566,11 +3566,34 @@ function getSeedSettings() {
 /* ============================================
    AUTH
 ============================================ */
+// Cookie helpers — sobreviven a borrado de caché (no borran IndexedDB)
+function _setSessionCookie(userId) {
+  var d = new Date(); d.setFullYear(d.getFullYear() + 1);
+  document.cookie = 'dros_uid=' + userId + '; expires=' + d.toUTCString() + '; path=/; SameSite=Strict';
+}
+function _getSessionCookie() {
+  var m = document.cookie.match(/(?:^|;\s*)dros_uid=(-?\d+)/);
+  return m ? parseInt(m[1], 10) : null;
+}
+function _clearSessionCookie() {
+  document.cookie = 'dros_uid=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Strict';
+}
+
 async function checkAuth() {
   const saved = await storageGet(STORAGE_KEYS.CURRENT_USER);
   if (saved) {
     state.currentUser = saved;
     return true;
+  }
+  // IndexedDB fue borrado (ej. limpieza de caché) — restaurar sesión desde cookie
+  const uid = _getSessionCookie();
+  if (uid !== null) {
+    const user = state.users.find(u => u.id === uid);
+    if (user && user.active && user.hasAccess) {
+      state.currentUser = user;
+      await storageSet(STORAGE_KEYS.CURRENT_USER, user);
+      return true;
+    }
   }
   return false;
 }
@@ -3655,6 +3678,7 @@ async function loginAs(userId) {
   if (!user.active) { showToast('Este usuario está inactivo','error'); return; }
   state.currentUser = user;
   await storageSet(STORAGE_KEYS.CURRENT_USER, user);
+  _setSessionCookie(user.id);
   await saveRecentLogin(user.id);
   enterApp();
 }
@@ -3691,6 +3715,7 @@ async function loginByEmail() {
     }
     state.currentUser = su;
     await storageSet(STORAGE_KEYS.CURRENT_USER, su);
+    _setSessionCookie(su.id);
     await saveRecentLogin(su.id);
     enterApp();
     showToast('Acceso de emergencia: bienvenido Super Admin','success');
@@ -3705,6 +3730,7 @@ async function loginByEmail() {
       await storageSet(STORAGE_KEYS.USERS, state.users);
       state.currentUser = dir;
       await storageSet(STORAGE_KEYS.CURRENT_USER, dir);
+      _setSessionCookie(dir.id);
       await saveRecentLogin(dir.id);
       enterApp();
       showToast('Acceso restaurado al Director','success');
@@ -3758,6 +3784,7 @@ async function loginByEmail() {
 
   state.currentUser = user;
   await storageSet(STORAGE_KEYS.CURRENT_USER, user);
+  _setSessionCookie(user.id);
   await saveRecentLogin(user.id);
   enterApp();
 }
@@ -3765,6 +3792,7 @@ async function loginByEmail() {
 async function logout() {
   if (!confirm('¿Cerrar sesión?')) return;
   await storageDelete(STORAGE_KEYS.CURRENT_USER);
+  _clearSessionCookie();
   state.currentUser = null;
   location.reload();
 }
