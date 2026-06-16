@@ -3983,10 +3983,11 @@ async function init() {
   const dir = state.users.find(u => u.role === 'director');
   if (dir && !dir.allWorkspaces) dir.allWorkspaces = true;
 
-  // En primera carga: limpiar sesión y logins recientes para que haga login fresco
+  // En primera carga REAL: limpiar solo logins recientes.
+  // NUNCA borrar CURRENT_USER automáticamente: en first-load real no existe (el delete
+  // sería no-op), y en recargas con IDB limpio la cookie lo restaura via checkAuth().
   if (isFirstLoad) {
     await storageDelete(STORAGE_KEYS.RECENT_LOGINS);
-    await storageDelete(STORAGE_KEYS.CURRENT_USER);
     console.info('[DirectorOS] Primera carga — seed inicial aplicado');
   }
   // Guardar versión de seed (solo informativo)
