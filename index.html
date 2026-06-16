@@ -1749,7 +1749,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             <div class="kpi-sub" id="kpi-sales-sub">Meta: $10.0M MXN</div>
             <div class="kpi-plat-breakdown" id="kpi-plat-breakdown"></div>
             <div class="kpi-progress" style="display:flex;gap:1px">
-              <div class="kpi-progress-bar" id="kpi-sales-bar" style="background:#f59e0b;width:0%;border-radius:4px 0 0 4px;flex-shrink:0"></div>
+              <div class="kpi-progress-bar" id="kpi-sales-bar" style="background:var(--maraga);width:0%;border-radius:4px 0 0 4px;flex-shrink:0"></div>
               <div class="kpi-progress-bar" id="kpi-sales-bar-amz" style="background:#FF9900;width:0%;flex-shrink:0"></div>
               <div class="kpi-progress-bar" id="kpi-sales-bar-wmt" style="background:#0071CE;width:0%;border-radius:0 4px 4px 0;flex-shrink:0"></div>
             </div>
@@ -1767,9 +1767,9 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             </div>
             <div style="display:flex;flex-direction:column;gap:7px">
               <div style="display:flex;align-items:center;gap:8px">
-                <div style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex-shrink:0"></div>
+                <div style="width:7px;height:7px;border-radius:50%;background:var(--maraga);flex-shrink:0"></div>
                 <div style="font-size:11px;color:var(--muted);width:82px;flex-shrink:0">Mercado Libre</div>
-                <div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:63.2%;height:100%;background:#f59e0b;border-radius:3px"></div></div>
+                <div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:63.2%;height:100%;background:var(--maraga);border-radius:3px"></div></div>
                 <div style="font-size:11px;font-weight:700;width:48px;text-align:right;color:var(--ink)">$6.23M</div>
               </div>
               <div style="display:flex;align-items:center;gap:8px">
@@ -4186,7 +4186,7 @@ function setDashMes(mes) {
     if (kpiBarWmtEl) kpiBarWmtEl.style.width = wmtPct.toFixed(1) + '%';
     if (kpiBreakdownEl) {
       var chips = '';
-      if (mlTotal  > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#f59e0b"></div>ML&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mlTotal) + '</span></div>';
+      if (mlTotal  > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:var(--maraga)"></div>ML&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mlTotal) + '</span></div>';
       if (amzTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#FF9900"></div>Amz&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(amzTotal) + '</span></div>';
       if (wmtTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#0071CE"></div>Wmt&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(wmtTotal) + '</span></div>';
       if (mmxTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#c0392b"></div>MMX&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mmxTotal) + '</span></div>';
