@@ -1754,32 +1754,49 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
               <div class="kpi-progress-bar" id="kpi-sales-bar-wmt" style="background:#0071CE;width:0%;border-radius:0 4px 4px 0;flex-shrink:0"></div>
             </div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-card-row">
-              <div class="kpi-label">Horas / 50h</div>
-              <div class="kpi-icon" style="background:var(--texas-bg)"><i class="ti ti-clock" style="color:var(--texas-dark)"></i></div>
+          <div class="kpi-card" style="grid-column:span 3">
+            <div class="kpi-card-row" style="margin-bottom:10px">
+              <div>
+                <div class="kpi-label">Venta Acumulada · Ene–Jun 2026</div>
+                <div style="font-size:22px;font-weight:700;color:var(--ink);margin-top:2px">$9.85M <span style="font-size:12px;font-weight:500;color:var(--muted)">MXN</span></div>
+              </div>
+              <div style="text-align:right">
+                <div class="kpi-icon" style="background:#fff0f0;width:32px;height:32px;margin-left:auto"><i class="ti ti-trending-up" style="color:var(--maraga);font-size:16px"></i></div>
+                <div style="font-size:9px;color:var(--muted);margin-top:4px">Jun parcial</div>
+              </div>
             </div>
-            <div class="kpi-value" id="kpi-hours">0h</div>
-            <div class="kpi-sub" id="kpi-hours-sub">efectividad</div>
-            <div class="kpi-progress"><div class="kpi-progress-bar" id="kpi-hours-bar" style="background:var(--texas);width:0%"></div></div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-card-row">
-              <div class="kpi-label">Tareas delegadas</div>
-              <div class="kpi-icon" style="background:var(--consul-bg)"><i class="ti ti-checklist" style="color:var(--consul-dark)"></i></div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex-shrink:0"></div>
+                <div style="font-size:11px;color:var(--muted);width:82px;flex-shrink:0">Mercado Libre</div>
+                <div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:63.2%;height:100%;background:#f59e0b;border-radius:3px"></div></div>
+                <div style="font-size:11px;font-weight:700;width:48px;text-align:right;color:var(--ink)">$6.23M</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:7px;height:7px;border-radius:50%;background:#c0392b;flex-shrink:0"></div>
+                <div style="font-size:11px;color:var(--muted);width:82px;flex-shrink:0">MARAGA MX</div>
+                <div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:16.0%;height:100%;background:#c0392b;border-radius:3px"></div></div>
+                <div style="font-size:11px;font-weight:700;width:48px;text-align:right;color:var(--ink)">$1.57M</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:7px;height:7px;border-radius:50%;background:#FF9900;flex-shrink:0"></div>
+                <div style="font-size:11px;color:var(--muted);width:82px;flex-shrink:0">Amazon</div>
+                <div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:15.2%;height:100%;background:#FF9900;border-radius:3px"></div></div>
+                <div style="font-size:11px;font-weight:700;width:48px;text-align:right;color:var(--ink)">$1.50M</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:7px;height:7px;border-radius:50%;background:#0071CE;flex-shrink:0"></div>
+                <div style="font-size:11px;color:var(--muted);width:82px;flex-shrink:0">Walmart</div>
+                <div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:5.2%;height:100%;background:#0071CE;border-radius:3px"></div></div>
+                <div style="font-size:11px;font-weight:700;width:48px;text-align:right;color:var(--ink)">$509K</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:7px;height:7px;border-radius:50%;background:#333;flex-shrink:0"></div>
+                <div style="font-size:11px;color:var(--muted);width:82px;flex-shrink:0">TikTok</div>
+                <div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:0.4%;height:100%;background:#333;border-radius:3px"></div></div>
+                <div style="font-size:11px;font-weight:700;width:48px;text-align:right;color:var(--ink)">$41K</div>
+              </div>
             </div>
-            <div class="kpi-value" id="kpi-tasks">0</div>
-            <div class="kpi-sub" id="kpi-tasks-sub">activas</div>
-            <span class="kpi-badge" id="kpi-tasks-badge"></span>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-card-row">
-              <div class="kpi-label">Reuniones semana</div>
-              <div class="kpi-icon" style="background:var(--amber-bg)"><i class="ti ti-calendar-event" style="color:var(--amber-dark)"></i></div>
-            </div>
-            <div class="kpi-value" id="kpi-meetings">0</div>
-            <div class="kpi-sub" id="kpi-meetings-sub">programadas</div>
-            <span class="kpi-badge badge-neutral" id="kpi-meetings-badge">0 hoy</span>
           </div>
         </div>
 
