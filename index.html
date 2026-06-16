@@ -2624,6 +2624,11 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
             <button class="btn" onclick="document.getElementById('importFile').click()"><i class="ti ti-upload"></i> Subir archivo</button>
           </div>
+          <div class="settings-section">
+            <h3>Restaurar datos de ejemplo</h3>
+            <div class="sub">Si borraste todos tus datos o el sistema aparece vacío, este botón vuelve a cargar el equipo, tareas, calendario y reuniones de demostración. <strong>No borra tu sesión ni tu configuración.</strong></div>
+            <button class="btn btn-primary" onclick="restoreDemoData()"><i class="ti ti-refresh"></i> Restaurar datos de demo</button>
+          </div>
           <div class="settings-section" style="border-color:var(--red-bg)">
             <h3 style="color:var(--red-dark)">Zona peligrosa</h3>
             <div class="sub">Estas acciones son irreversibles. Asegúrate de tener un backup antes de continuar.</div>
@@ -10960,6 +10965,30 @@ async function importData(event) {
   } catch (e) {
     showToast('Archivo inválido','error');
   }
+}
+
+async function restoreDemoData() {
+  if (!confirm('¿Restaurar los datos de demostración? Se cargarán el equipo, tareas, calendario y reuniones de ejemplo. Tu sesión y configuración no se modificarán.')) return;
+  state.users        = getSeedUsers();
+  state.workspaces   = getSeedWorkspaces();
+  state.meetingTypes = getSeedMeetingTypes();
+  state.tasks        = getSeedTasks();
+  state.events       = getSeedEvents();
+  state.okrs         = getSeedOkrs();
+  state.requests     = getSeedRequests();
+  state.activity     = getSeedActivity();
+  await Promise.all([
+    storageSet(STORAGE_KEYS.USERS,         state.users),
+    storageSet(STORAGE_KEYS.WORKSPACES,    state.workspaces),
+    storageSet(STORAGE_KEYS.MEETING_TYPES, state.meetingTypes),
+    storageSet(STORAGE_KEYS.TASKS,         state.tasks),
+    storageSet(STORAGE_KEYS.EVENTS,        state.events),
+    storageSet(STORAGE_KEYS.OKRS,          state.okrs),
+    storageSet(STORAGE_KEYS.REQUESTS,      state.requests),
+    storageSet(STORAGE_KEYS.ACTIVITY,      state.activity),
+  ]);
+  renderAll();
+  showToast('Datos de demo restaurados','success');
 }
 
 async function resetAllData() {
