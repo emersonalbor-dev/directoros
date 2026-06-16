@@ -3360,7 +3360,7 @@ let state = {
   miniCalMonth: null
 };
 
-const useStorage = typeof window.storage !== 'undefined';
+const useStorage = false; // Force IndexedDB — window.storage (extension/webview) is ephemeral
 
 /* ── IndexedDB backend (replaces localStorage to avoid 5MB quota) ── */
 const _IDB_NAME    = 'directoros-idb';
