@@ -1749,7 +1749,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             <div class="kpi-sub" id="kpi-sales-sub">Meta: $10.0M MXN</div>
             <div class="kpi-plat-breakdown" id="kpi-plat-breakdown"></div>
             <div class="kpi-progress" style="display:flex;gap:1px">
-              <div class="kpi-progress-bar" id="kpi-sales-bar" style="background:var(--maraga);width:0%;border-radius:4px 0 0 4px;flex-shrink:0"></div>
+              <div class="kpi-progress-bar" id="kpi-sales-bar" style="background:#f59e0b;width:0%;border-radius:4px 0 0 4px;flex-shrink:0"></div>
               <div class="kpi-progress-bar" id="kpi-sales-bar-amz" style="background:#FF9900;width:0%;flex-shrink:0"></div>
               <div class="kpi-progress-bar" id="kpi-sales-bar-wmt" style="background:#0071CE;width:0%;border-radius:0 4px 4px 0;flex-shrink:0"></div>
             </div>
@@ -4189,10 +4189,10 @@ function setDashMes(mes) {
     if (kpiBarWmtEl) kpiBarWmtEl.style.width = wmtPct.toFixed(1) + '%';
     if (kpiBreakdownEl) {
       var chips = '';
-      if (mlTotal  > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:var(--maraga)"></div>ML&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mlTotal) + '</span></div>';
+      if (mlTotal  > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#f59e0b"></div>ML&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mlTotal) + '</span></div>';
       if (amzTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#FF9900"></div>Amz&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(amzTotal) + '</span></div>';
       if (wmtTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#0071CE"></div>Wmt&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(wmtTotal) + '</span></div>';
-      if (mmxTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#e74c3c"></div>MMX&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mmxTotal) + '</span></div>';
+      if (mmxTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#c0392b"></div>MMX&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(mmxTotal) + '</span></div>';
       if (ttkTotal > 0) chips += '<div class="kpi-plat-chip"><div class="kpi-plat-dot" style="background:#333"></div>TikTok&nbsp;<span class="kpi-plat-chip-val">' + fmtPesos(ttkTotal) + '</span></div>';
       kpiBreakdownEl.innerHTML = chips;
     }
