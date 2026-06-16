@@ -4969,7 +4969,9 @@ async function actualizarVentas(esAuto) {
       } catch(e) { /* servidor local no está corriendo, se ignora */ }
     }
 
-    var mes = data.mes || mesSel;
+    // Usar siempre el mes seleccionado por el usuario; ignorar data.mes
+    // (la API puede devolver "2026-6" sin cero, lo que crearía una clave diferente)
+    var mes = mesSel;
     if (!VENTAS_PLAT_DATA[mes]) VENTAS_PLAT_DATA[mes] = {};
 
     // Amazon, MaragaMX y TikTok desde Tableau
