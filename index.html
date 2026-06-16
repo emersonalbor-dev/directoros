@@ -7360,12 +7360,12 @@ async function pubGenerar() {
       'content-type': 'application/json',
       'anthropic-dangerous-direct-browser-access': 'true'
     };
-    if (_pubFileData && _pubFileData.isDoc) hdrs['anthropic-beta'] = 'pdfs-2024-09-25';
+    // claude-sonnet-4-6 soporta PDFs de forma nativa; NO se necesita beta header
 
     var res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: hdrs,
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 4096, messages: [{ role: 'user', content: msgContent }] })
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 8000, messages: [{ role: 'user', content: msgContent }] })
     });
     if (!res.ok) { var errJ = await res.json(); throw new Error((errJ.error && errJ.error.message) ? errJ.error.message : ('HTTP ' + res.status)); }
     var data = await res.json();
