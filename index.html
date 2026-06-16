@@ -4910,7 +4910,7 @@ function _fmtK(n) {
   return '$' + Math.round(n);
 }
 
-async function actualizarVentas() {
+async function actualizarVentas(esAuto) {
   var btn   = document.getElementById('btnActualizarVentas');
   var icon  = document.getElementById('btnActualizarIcon');
   var label = document.getElementById('btnActualizarLabel');
@@ -4982,9 +4982,13 @@ async function actualizarVentas() {
         return Object.assign({}, nuevo, { top: existente.top });
       return nuevo;
     };
-    if (data.amazon)    VENTAS_PLAT_DATA[mes].amazon    = _mergeTop(data.amazon,    VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].amazon);
-    if (data.maraga_mx) VENTAS_PLAT_DATA[mes].maraga_mx = _mergeTop(data.maraga_mx, VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].maraga_mx);
-    if (data.tiktok)    VENTAS_PLAT_DATA[mes].tiktok    = _mergeTop(data.tiktok,    VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].tiktok);
+    // En auto-fetch solo actualiza ML y Walmart; Amazon/MaragaMX/TikTok
+    // solo se actualizan en clic manual para no pisar datos de Tableau ERP
+    if (!esAuto) {
+      if (data.amazon)    VENTAS_PLAT_DATA[mes].amazon    = _mergeTop(data.amazon,    VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].amazon);
+      if (data.maraga_mx) VENTAS_PLAT_DATA[mes].maraga_mx = _mergeTop(data.maraga_mx, VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].maraga_mx);
+      if (data.tiktok)    VENTAS_PLAT_DATA[mes].tiktok    = _mergeTop(data.tiktok,    VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].tiktok);
+    }
     // ML y Walmart: solo actualizar si tienen datos reales (total > 0)
     if (data.mercadolibre && data.mercadolibre.total) VENTAS_PLAT_DATA[mes].mercadolibre = data.mercadolibre;
     if (data.walmart      && data.walmart.total)      VENTAS_PLAT_DATA[mes].walmart      = data.walmart;
@@ -4994,15 +4998,12 @@ async function actualizarVentas() {
 
     // Guardar en localStorage
     try {
-      var existing = JSON.parse(localStorage.getItem('ventas_cache_v2') || '{}');
+      var existing = JSON.parse(localStorage.getItem('ventas_cache_v3') || '{}');
       if (existing.mes !== mes) existing = {};
-      localStorage.setItem('ventas_cache_v2', JSON.stringify({
+      localStorage.setItem('ventas_cache_v3', JSON.stringify({
         mes: mes, ts: Date.now(),
         walmart:      null,
         mercadolibre: data.mercadolibre || existing.mercadolibre || null,
-        amazon:       data.amazon       || existing.amazon       || null,
-        maraga_mx:    data.maraga_mx    || existing.maraga_mx    || null,
-        tiktok:       data.tiktok       || existing.tiktok       || null,
       }));
     } catch(e) { /* storage lleno o modo privado — ignorar */ }
 
@@ -5077,17 +5078,14 @@ async function actualizarVentas() {
 (function initVentasCarga() {
   // — Paso 1: restaurar caché inmediatamente —
   try {
-    var raw = localStorage.getItem('ventas_cache_v2');
+    var raw = localStorage.getItem('ventas_cache_v3');
     if (raw) {
       var c = JSON.parse(raw);
       var edadHoras = (Date.now() - (c.ts || 0)) / 3600000;
       if (edadHoras < 8 && c.mes) {
         if (!VENTAS_PLAT_DATA[c.mes]) VENTAS_PLAT_DATA[c.mes] = {};
         if (c.walmart)      VENTAS_PLAT_DATA[c.mes].walmart      = c.walmart;
-        if (c.amazon)       VENTAS_PLAT_DATA[c.mes].amazon       = c.amazon;
         if (c.mercadolibre) VENTAS_PLAT_DATA[c.mes].mercadolibre = c.mercadolibre;
-        if (c.maraga_mx)    VENTAS_PLAT_DATA[c.mes].maraga_mx    = c.maraga_mx;
-        if (c.tiktok)       VENTAS_PLAT_DATA[c.mes].tiktok       = c.tiktok;
         setDashMes(c.mes);
         // Mostrar banda "datos guardados · HH:MM"
         var atDiv = document.getElementById('ventasActualizadoAt');
@@ -5107,7 +5105,7 @@ async function actualizarVentas() {
     // Llama actualizarVentas sin que el botón esté bloqueado
     var btn = document.getElementById('btnActualizarVentas');
     if (btn) btn.disabled = false;
-    actualizarVentas();
+    actualizarVentas(true);
   }, 1500);
 })();
 
