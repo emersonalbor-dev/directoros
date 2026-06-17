@@ -3406,20 +3406,32 @@ async function _idbDelete(key) {
 async function _migrateFromLocalStorage() {
   const MIGRATE_FLAG = 'directoros:idb-migrated-v1';
   if (localStorage.getItem(MIGRATE_FLAG)) return;
-  const keysToMigrate = Object.values(STORAGE_KEYS);
-  for (const k of keysToMigrate) {
+  for (const k of Object.values(STORAGE_KEYS)) {
     const v = localStorage.getItem(k);
-    if (v !== null) {
-      await _idbSet(k, v);
-      localStorage.removeItem(k);
-    }
+    if (v !== null) { await _idbSet(k, v); localStorage.removeItem(k); }
   }
   localStorage.setItem(MIGRATE_FLAG, '1');
-  console.info('[DirectorOS] Migrated localStorage → IndexedDB');
 }
 
-// Session-critical keys get a localStorage backup so they survive IDB failures
-const _LS_BACKUP = new Set([STORAGE_KEYS.CURRENT_USER, STORAGE_KEYS.RECENT_LOGINS]);
+/* Migrate data from window.storage (ephemeral extension/webview storage) → IDB (runs once) */
+async function _migrateFromWindowStorage() {
+  if (typeof window.storage === 'undefined') return;
+  const FLAG = 'directoros:ws-migrated-v1';
+  if (localStorage.getItem(FLAG)) return;
+  try {
+    for (const k of Object.values(STORAGE_KEYS)) {
+      const r = await window.storage.get(k);
+      if (r && r.value) {
+        const existing = await _idbGet(k);
+        if (!existing) await _idbSet(k, r.value); // don't overwrite newer IDB data
+      }
+    }
+  } catch(e) {}
+  localStorage.setItem(FLAG, '1');
+}
+
+// All keys get a localStorage backup — IDB is primary, localStorage is fallback
+const _LS_BACKUP = new Set(Object.values(STORAGE_KEYS));
 
 async function storageGet(key) {
   try {
@@ -3939,37 +3951,24 @@ function applyRoleToUI() {
    INIT
 ============================================ */
 async function init() {
-  // Migrate any pre-existing localStorage data to IndexedDB (one-time, silent)
-  if (!useStorage) await _migrateFromLocalStorage();
+  // 1. Migrate data from any previous storage backend (one-time, silent)
+  await _migrateFromWindowStorage(); // window.storage → IDB (if window.storage was used before)
+  await _migrateFromLocalStorage();  // localStorage → IDB (original migration)
 
-  // ── Cargar SIEMPRE desde IndexedDB si existe, seed solo si está vacío ──
-  // Los datos del admin NUNCA se sobreescriben automáticamente.
-  // Para forzar un reset usa el botón "Restaurar datos" en Admin > Configuración.
-  const savedUsers    = await storageGet(STORAGE_KEYS.USERS);
-  const savedWs       = await storageGet(STORAGE_KEYS.WORKSPACES);
-  const savedMT       = await storageGet(STORAGE_KEYS.MEETING_TYPES);
-  // hasCookie → la cookie de sesión sobrevive limpiezas de IDB y de localStorage.
-  // Si existe pero savedUsers es null, el IDB se limpió pero el usuario ya había iniciado
-  // sesión antes → NO es primera carga real → no borrar sesión ni sobreescribir con seed.
-  const isMigrated    = !!localStorage.getItem('directoros:idb-migrated-v1');
-  const hasCookie     = _getSessionCookie() !== null;
-  const isFirstLoad   = !savedUsers && !isMigrated && !hasCookie; // primera carga REAL
+  // 2. Load from IDB (falls back to localStorage backup, then seed)
+  state.users        = await storageGet(STORAGE_KEYS.USERS)        || getSeedUsers();
+  state.workspaces   = await storageGet(STORAGE_KEYS.WORKSPACES)   || getSeedWorkspaces();
+  state.meetingTypes = await storageGet(STORAGE_KEYS.MEETING_TYPES)|| getSeedMeetingTypes();
+  state.activity     = await storageGet(STORAGE_KEYS.ACTIVITY)     || getSeedActivity();
+  state.requests     = await storageGet(STORAGE_KEYS.REQUESTS)     || getSeedRequests();
+  state.tasks        = await storageGet(STORAGE_KEYS.TASKS)        || getSeedTasks();
+  state.events       = await storageGet(STORAGE_KEYS.EVENTS)       || getSeedEvents();
+  state.okrs         = await storageGet(STORAGE_KEYS.OKRS)         || getSeedOkrs();
+  state.settings     = await storageGet(STORAGE_KEYS.SETTINGS)     || getSeedSettings();
+  state.permissions  = await storageGet(STORAGE_KEYS.PERMISSIONS)  || JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
+  state.projects     = await storageGet(STORAGE_KEYS.PROJECTS)     || [];
 
-  state.users        = savedUsers  || getSeedUsers();
-  state.workspaces   = savedWs     || getSeedWorkspaces();
-  state.meetingTypes = savedMT     || getSeedMeetingTypes();
-  state.activity     = await storageGet(STORAGE_KEYS.ACTIVITY)   || getSeedActivity();
-  state.requests     = await storageGet(STORAGE_KEYS.REQUESTS)   || getSeedRequests();
-
-  // ── Datos del usuario (siempre desde IndexedDB, seed solo si no hay nada) ──
-  state.tasks       = await storageGet(STORAGE_KEYS.TASKS)        || getSeedTasks();
-  state.events      = await storageGet(STORAGE_KEYS.EVENTS)       || getSeedEvents();
-  state.okrs        = await storageGet(STORAGE_KEYS.OKRS)         || getSeedOkrs();
-  state.settings    = await storageGet(STORAGE_KEYS.SETTINGS)     || getSeedSettings();
-  state.permissions = await storageGet(STORAGE_KEYS.PERMISSIONS)  || JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
-  state.projects    = await storageGet(STORAGE_KEYS.PROJECTS)     || [];
-
-  // === MIGRATION: merge any missing roles or permissions from defaults ===
+  // 3. Schema migrations (additive only — never destructive)
   Object.entries(DEFAULT_PERMISSIONS).forEach(([roleKey, defaultPerms]) => {
     if (!state.permissions[roleKey]) {
       state.permissions[roleKey] = { ...defaultPerms };
@@ -3979,22 +3978,11 @@ async function init() {
       });
     }
   });
-
-  // === MIGRATION: ensure superuser exists ===
   if (!state.users.find(u => u.role === 'superuser')) {
     state.users.unshift({ id: 0, name: 'Super Admin', email: 'root@directoros.local', role: 'superuser', ws: 'all', active: true, hasAccess: true, isOwner: true, isRoot: true, allWorkspaces: true });
   }
-  // Ensure director has allWorkspaces flag
   const dir = state.users.find(u => u.role === 'director');
   if (dir && !dir.allWorkspaces) dir.allWorkspaces = true;
-
-  // En primera carga REAL: limpiar solo logins recientes.
-  // NUNCA borrar CURRENT_USER automáticamente: en first-load real no existe (el delete
-  // sería no-op), y en recargas con IDB limpio la cookie lo restaura via checkAuth().
-  if (isFirstLoad) {
-    await storageDelete(STORAGE_KEYS.RECENT_LOGINS);
-    console.info('[DirectorOS] Primera carga — seed inicial aplicado');
-  }
   // Guardar versión de seed (solo informativo)
   await storageSet(STORAGE_KEYS.SEED_VERSION, SEED_VERSION);
 
