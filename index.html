@@ -7356,6 +7356,7 @@ async function pubGenerar() {
 }
 
 async function _pubCallAPI(key, prompt, fileData) {
+  var BASE = 'https://api.anthropic.com/v1/messages';
   var hdrs = {
     'x-api-key': key.trim(),
     'anthropic-version': '2023-06-01',
@@ -7363,9 +7364,9 @@ async function _pubCallAPI(key, prompt, fileData) {
     'anthropic-dangerous-direct-browser-access': 'true'
   };
 
-  var makeBody = function(includeFile) {
+  function _body(withFile) {
     var content = [];
-    if (includeFile && fileData) {
+    if (withFile && fileData) {
       if (fileData.isDoc) {
         content.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: fileData.base64 } });
       } else {
@@ -7373,40 +7374,33 @@ async function _pubCallAPI(key, prompt, fileData) {
       }
     }
     content.push({ type: 'text', text: prompt });
-    return JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 4096, messages: [{ role: 'user', content: content }] });
-  };
+    return JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 8192, messages: [{ role: 'user', content: content }] });
+  }
 
-  // Intento 1: con archivo (si hay)
-  try {
-    var hdrs1 = Object.assign({}, hdrs);
-    if (fileData && fileData.isDoc) hdrs1['anthropic-beta'] = 'pdfs-2024-09-25';
-    var res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: hdrs1, body: makeBody(true) });
-    if (res.ok) {
-      var data = await res.json();
-      var raw = data.content[0].text.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
-      return JSON.parse(raw);
+  function _parseText(d) {
+    var t = d.content[0].text.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+    return JSON.parse(t);
+  }
+
+  async function _call(withFile) {
+    var h = Object.assign({}, hdrs);
+    var r = await fetch(BASE, { method: 'POST', headers: h, body: _body(withFile) });
+    if (r.ok) return _parseText(await r.json());
+    var j = await r.json().catch(function(){ return {}; });
+    throw new Error((j.error && j.error.message) ? j.error.message : ('HTTP ' + r.status));
+  }
+
+  // Intento 1: con archivo adjunto
+  if (fileData) {
+    try { return await _call(true); }
+    catch(e) {
+      console.warn('[pub] con archivo falló:', e.message, '— reintentando sin archivo');
+      showToast('Reintentando sin archivo adjunto…', 'warn');
     }
-    var errJ = await res.json();
-    var msg = (errJ.error && errJ.error.message) ? errJ.error.message : ('HTTP ' + res.status);
-    // Si el error es por el archivo/modelo, reintentamos sin archivo
-    if (!fileData) throw new Error(msg);
-    console.warn('[pubGenerar] Primer intento falló (' + msg + '), reintentando sin archivo…');
-    showToast('Regenerando sin archivo adjunto…', 'warn');
-  } catch(e1) {
-    if (!fileData) throw e1;
-    console.warn('[pubGenerar] fetch con archivo falló:', e1.message, '— reintentando sin archivo');
-    showToast('Regenerando sin archivo adjunto…', 'warn');
   }
 
-  // Intento 2: solo texto (sin archivo)
-  var res2 = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: hdrs, body: makeBody(false) });
-  if (!res2.ok) {
-    var errJ2 = await res2.json();
-    throw new Error((errJ2.error && errJ2.error.message) ? errJ2.error.message : ('HTTP ' + res2.status));
-  }
-  var data2 = await res2.json();
-  var raw2 = data2.content[0].text.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
-  return JSON.parse(raw2);
+  // Intento 2 (o único si no hay archivo): solo texto
+  return await _call(false);
 }
 
 function pubRenderResults(data, plats) {
