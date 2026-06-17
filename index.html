@@ -7348,7 +7348,13 @@ async function pubGenerar() {
     pubRenderResults(parsed, plats);
   } catch(e) {
     console.error('[pubGenerar]', e);
-    showToast('Error al generar: ' + e.message, 'error');
+    var em = (e.message || '').toLowerCase();
+    if (em.includes('x-api-key') || em.includes('api_key') || em.includes('authentication') || em.includes('invalid') || em.includes('unauthorized') || em.includes('401')) {
+      showToast('API Key inválida o expirada — reconfigúrala', 'error');
+      setTimeout(kitConfigAI, 800);
+    } else {
+      showToast('Error al generar: ' + e.message, 'error');
+    }
   } finally {
     btn.innerHTML = orig;
     btn.disabled = false;
