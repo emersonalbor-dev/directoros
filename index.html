@@ -4586,14 +4586,14 @@ var VENTAS_PLAT_DATA = {
       ]
     },
 walmart: {
-      total: 15732, ordenes: 11, unidades: 13, ticketPromedio: 1430, currency: 'MXN', skus: 8,
-      parcial: true, parcialLabel: 'al 13 de junio',
+      total: 20790, ordenes: 13, unidades: 20, ticketPromedio: 1599, currency: 'MXN', skus: 10,
+      parcial: true, parcialLabel: 'al 17 de junio',
       top: [
         { titulo: 'Soldadora Inversora MARAGA 200 Amperes ARC200 110V/220V', ingresos: 6499, unidades: 1 },
-        { titulo: 'MARAGA Cortadora de Metales 2,400W + Disco de Diamante 14” para Corte de Precisión Industrial (Kit)', ingresos: 2299, unidades: 1 },
-        { titulo: 'Esmeriladora Angular 800W MARAGA 4-1/2" 120V', ingresos: 2199, unidades: 4 },
+        { titulo: 'MARAGA Clavos en Rollo 2” para Pistola Neumática', ingresos: 3890, unidades: 5 },
+        { titulo: 'MARAGA Cortadora de Metales 2,400W + Disco de Diamante 14”', ingresos: 2299, unidades: 1 },
         { titulo: 'Soldadora Inversora 200 amp, 127V / 220V, Maraga, MMA y LIFT TIG', ingresos: 2069, unidades: 1 },
-        { titulo: 'Serrucho Recto 18 Plg 10 Dpp Pvc/Abs Lenox 20980 LENOX 20980', ingresos: 1015, unidades: 2 }
+        { titulo: 'MARAGA Clavo 2-1/4” para Pistola Neumática', ingresos: 1730, unidades: 3 }
       ]
     },
     amazon: {
@@ -5097,15 +5097,16 @@ async function actualizarVentas(esAuto) {
       if (_directo.walmart      && _directo.walmart.total)      data.walmart      = _directo.walmart;
     }
 
-    // Walmart desde servidor local (localhost:3001) — supera la limitación de CORS
+    // Walmart y ML desde servidor local en paralelo (localhost:3001)
     if (_esActual) {
-      try {
-        var _wRes = await fetch('http://localhost:3001/walmart', { signal: AbortSignal.timeout(15000) });
-        if (_wRes.ok) {
-          var _wLocal = await _wRes.json();
-          if (_wLocal.walmart && _wLocal.walmart.total) data.walmart = _wLocal.walmart;
-        }
-      } catch(e) { /* servidor local no está corriendo, se ignora */ }
+      var [_wLocalR, _mlLocalR] = await Promise.allSettled([
+        fetch('http://localhost:3001/walmart', { signal: AbortSignal.timeout(30000) })
+          .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }),
+        fetch('http://localhost:3001/ml',      { signal: AbortSignal.timeout(90000) })
+          .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; })
+      ]);
+      if (_wLocalR.status  === 'fulfilled' && _wLocalR.value  && _wLocalR.value.walmart      && _wLocalR.value.walmart.total)      data.walmart      = _wLocalR.value.walmart;
+      if (_mlLocalR.status === 'fulfilled' && _mlLocalR.value && _mlLocalR.value.mercadolibre && _mlLocalR.value.mercadolibre.total) data.mercadolibre = _mlLocalR.value.mercadolibre;
     }
 
     // Usar siempre el mes seleccionado por el usuario; ignorar data.mes
