@@ -3360,106 +3360,108 @@ let state = {
   miniCalMonth: null
 };
 
-const useStorage = false; // Force IndexedDB — window.storage (extension/webview) is ephemeral
+/* ── Storage: triple-backend (localStorage + IDB + window.storage) ─────────
+   Write order : localStorage first (sync, most reliable), then IDB, then
+                 window.storage (Claude Code / extension API, if present).
+   Read order  : IDB first (data was migrated here), then localStorage,
+                 then window.storage.
+   This guarantees data survives F5/Ctrl+Shift+R in any browser environment.
+   ─────────────────────────────────────────────────────────────────────── */
 
-/* ── IndexedDB backend (replaces localStorage to avoid 5MB quota) ── */
-const _IDB_NAME    = 'directoros-idb';
-const _IDB_VERSION = 1;
-const _IDB_STORE   = 'kv';
-let   _idbInstance = null;
+const _IDB_NAME  = 'directoros-idb';
+const _IDB_VER   = 1;
+const _IDB_STORE = 'kv';
+let   _idbInst   = null;
 
 function _idbOpen() {
-  if (_idbInstance) return Promise.resolve(_idbInstance);
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(_IDB_NAME, _IDB_VERSION);
-    req.onupgradeneeded = e => e.target.result.createObjectStore(_IDB_STORE);
-    req.onsuccess = e => { _idbInstance = e.target.result; resolve(_idbInstance); };
-    req.onerror   = e => reject(e.target.error);
+  if (_idbInst) return Promise.resolve(_idbInst);
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(_IDB_NAME, _IDB_VER);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(_IDB_STORE)) db.createObjectStore(_IDB_STORE);
+    };
+    req.onsuccess = e => { _idbInst = e.target.result; res(_idbInst); };
+    req.onerror   = e => rej(e.target.error);
   });
 }
-async function _idbGet(key) {
-  const db = await _idbOpen();
-  return new Promise((resolve, reject) => {
-    const req = db.transaction(_IDB_STORE, 'readonly').objectStore(_IDB_STORE).get(key);
-    req.onsuccess = () => resolve(req.result ?? null);
-    req.onerror   = e => reject(e.target.error);
-  });
+async function _idbGet(k) {
+  try {
+    const db = await _idbOpen();
+    return new Promise((res, rej) => {
+      const req = db.transaction(_IDB_STORE,'readonly').objectStore(_IDB_STORE).get(k);
+      req.onsuccess = () => res(req.result ?? null);
+      req.onerror   = e => rej(e.target.error);
+    });
+  } catch(e) { return null; }
 }
-async function _idbSet(key, val) {
-  const db = await _idbOpen();
-  return new Promise((resolve, reject) => {
-    const req = db.transaction(_IDB_STORE, 'readwrite').objectStore(_IDB_STORE).put(val, key);
-    req.onsuccess = () => resolve();
-    req.onerror   = e => reject(e.target.error);
-  });
+async function _idbSet(k, v) {
+  try {
+    const db = await _idbOpen();
+    return new Promise((res, rej) => {
+      const req = db.transaction(_IDB_STORE,'readwrite').objectStore(_IDB_STORE).put(v, k);
+      req.onsuccess = () => res();
+      req.onerror   = e => rej(e.target.error);
+    });
+  } catch(e) {}
 }
-async function _idbDelete(key) {
-  const db = await _idbOpen();
-  return new Promise((resolve, reject) => {
-    const req = db.transaction(_IDB_STORE, 'readwrite').objectStore(_IDB_STORE).delete(key);
-    req.onsuccess = () => resolve();
-    req.onerror   = e => reject(e.target.error);
-  });
+async function _idbDel(k) {
+  try {
+    const db = await _idbOpen();
+    return new Promise((res, rej) => {
+      const req = db.transaction(_IDB_STORE,'readwrite').objectStore(_IDB_STORE).delete(k);
+      req.onsuccess = () => res();
+      req.onerror   = e => rej(e.target.error);
+    });
+  } catch(e) {}
 }
 
-/* Migrate any existing localStorage data to IndexedDB (runs once) */
+/* One-time migrations (run at init, idempotent) */
 async function _migrateFromLocalStorage() {
-  const MIGRATE_FLAG = 'directoros:idb-migrated-v1';
-  if (localStorage.getItem(MIGRATE_FLAG)) return;
+  if (localStorage.getItem('dros:ls-migrated')) return;
   for (const k of Object.values(STORAGE_KEYS)) {
-    const v = localStorage.getItem(k);
-    if (v !== null) { await _idbSet(k, v); localStorage.removeItem(k); }
+    const v = localStorage.getItem(k); // old key without prefix
+    if (v !== null) { await _idbSet(k, v); }
   }
-  localStorage.setItem(MIGRATE_FLAG, '1');
+  localStorage.setItem('dros:ls-migrated', '1');
 }
-
-/* Migrate data from window.storage (ephemeral extension/webview storage) → IDB (runs once) */
 async function _migrateFromWindowStorage() {
   if (typeof window.storage === 'undefined') return;
-  const FLAG = 'directoros:ws-migrated-v1';
-  if (localStorage.getItem(FLAG)) return;
+  if (localStorage.getItem('dros:ws-migrated')) return;
   try {
     for (const k of Object.values(STORAGE_KEYS)) {
       const r = await window.storage.get(k);
-      if (r && r.value) {
-        const existing = await _idbGet(k);
-        if (!existing) await _idbSet(k, r.value); // don't overwrite newer IDB data
-      }
+      if (r && r.value && !(await _idbGet(k))) await _idbSet(k, r.value);
     }
   } catch(e) {}
-  localStorage.setItem(FLAG, '1');
+  localStorage.setItem('dros:ws-migrated', '1');
 }
-
-// All keys get a localStorage backup — IDB is primary, localStorage is fallback
-const _LS_BACKUP = new Set(Object.values(STORAGE_KEYS));
 
 async function storageGet(key) {
-  try {
-    const v = await _idbGet(key);
-    if (v !== null) return JSON.parse(v);
-    // IDB miss → try localStorage backup for session-critical keys
-    if (_LS_BACKUP.has(key)) {
-      const lv = localStorage.getItem(key + ':bk');
-      if (lv !== null) return JSON.parse(lv);
-    }
-    return null;
-  } catch (e) { return null; }
+  // 1. IDB (primary — migrations land here)
+  try { const v = await _idbGet(key); if (v !== null) return JSON.parse(v); } catch(e) {}
+  // 2. localStorage (written on every storageSet)
+  try { const v = localStorage.getItem(key); if (v !== null) return JSON.parse(v); } catch(e) {}
+  // 3. window.storage (Claude Code / extension)
+  if (typeof window.storage !== 'undefined') {
+    try { const r = await window.storage.get(key); if (r && r.value) return JSON.parse(r.value); } catch(e) {}
+  }
+  return null;
 }
 async function storageSet(key, val) {
-  try {
-    const str = JSON.stringify(val);
-    await _idbSet(key, str);
-    if (_LS_BACKUP.has(key)) localStorage.setItem(key + ':bk', str);
-  } catch (e) {
-    console.error('storage error', e);
-    showToast('Error al guardar datos. Intenta de nuevo.', 'error');
+  const s = JSON.stringify(val);
+  try { localStorage.setItem(key, s); } catch(e) {}           // 1. sync, most reliable
+  try { await _idbSet(key, s); } catch(e) {}                  // 2. IDB
+  if (typeof window.storage !== 'undefined') {
+    try { await window.storage.set(key, s); } catch(e) {}     // 3. window.storage
   }
 }
 async function storageDelete(key) {
-  try {
-    await _idbDelete(key);
-    if (_LS_BACKUP.has(key)) localStorage.removeItem(key + ':bk');
-  } catch (e) {}
+  try { localStorage.removeItem(key); } catch(e) {}
+  try { await _idbDel(key); } catch(e) {}
+  if (typeof window.storage !== 'undefined') {
+    try { await window.storage.delete(key); } catch(e) {}
+  }
 }
 
 /* ============================================
