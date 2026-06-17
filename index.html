@@ -5129,9 +5129,9 @@ async function actualizarVentas(esAuto) {
       if (data.maraga_mx) VENTAS_PLAT_DATA[mes].maraga_mx = _mergeTop(data.maraga_mx, VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].maraga_mx);
       if (data.tiktok)    VENTAS_PLAT_DATA[mes].tiktok    = _mergeTop(data.tiktok,    VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].tiktok);
     }
-    // ML y Walmart: solo actualizar si tienen datos reales (total > 0)
-    if (data.mercadolibre && data.mercadolibre.total) VENTAS_PLAT_DATA[mes].mercadolibre = data.mercadolibre;
-    if (data.walmart      && data.walmart.total)      VENTAS_PLAT_DATA[mes].walmart      = data.walmart;
+    // Walmart: actualizar desde Railway o local si tiene datos reales
+    // ML: NO actualizar desde Railway (datos inexactos) — solo desde bridge local o hardcoded
+    if (data.walmart && data.walmart.total) VENTAS_PLAT_DATA[mes].walmart = data.walmart;
 
     // Re-renderizar TODO: tarjetas + KPI principal + barras + chips de totales
     setDashMes(mes);
