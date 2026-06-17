@@ -4006,7 +4006,8 @@ async function init() {
 
   const h = new Date().getHours();
   const greet = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
-  document.getElementById('hero-greet').textContent = greet + ' · ' + new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
+  var _hg = document.getElementById('hero-greet');
+  if (_hg) _hg.textContent = greet + ' · ' + new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
 
   const isLoggedIn = await checkAuth();
   if (isLoggedIn) {
@@ -4141,29 +4142,31 @@ function renderDashboard() {
   const todayDay = (new Date().getDay() - 1 + 7) % 7;
   const todayMeetings = todayDay < 5 ? state.events.filter(e => e.day === todayDay && e.ws !== 'locked').length : 0;
 
-  document.getElementById('hero-hours').textContent = totalHours + 'h';
-  document.getElementById('hero-hours-sub').textContent = 'de ' + (state.settings.weeklyHoursGoal || 50) + 'h objetivo';
-  document.getElementById('hero-tasks').textContent = activeTasks;
-  document.getElementById('hero-alerts').textContent = alertCount;
+  var _e;
+  (_e = document.getElementById('hero-hours'))     && (_e.textContent = totalHours + 'h');
+  (_e = document.getElementById('hero-hours-sub')) && (_e.textContent = 'de ' + (state.settings.weeklyHoursGoal || 50) + 'h objetivo');
+  (_e = document.getElementById('hero-tasks'))     && (_e.textContent = activeTasks);
+  (_e = document.getElementById('hero-alerts'))    && (_e.textContent = alertCount);
 
-  document.getElementById('kpi-sales').textContent = '$' + (state.settings.sales / 1000000).toFixed(1) + 'M';
+  (_e = document.getElementById('kpi-sales')) && (_e.textContent = '$' + (state.settings.sales / 1000000).toFixed(1) + 'M');
   const mainWs = state.workspaces[0];
   const salesPct = mainWs ? Math.min(100, (state.settings.sales / mainWs.salesGoal) * 100) : 0;
-  document.getElementById('kpi-sales-bar').style.width = salesPct + '%';
+  (_e = document.getElementById('kpi-sales-bar')) && (_e.style.width = salesPct + '%');
 
   const hGoal = state.settings.weeklyHoursGoal || 50;
-  document.getElementById('kpi-hours').textContent = totalHours + 'h';
-  document.getElementById('kpi-hours-sub').textContent = Math.round(totalHours/hGoal*100) + '% del objetivo';
-  document.getElementById('kpi-hours-bar').style.width = Math.min(100, totalHours/hGoal*100) + '%';
+  (_e = document.getElementById('kpi-hours'))     && (_e.textContent = totalHours + 'h');
+  (_e = document.getElementById('kpi-hours-sub')) && (_e.textContent = Math.round(totalHours/hGoal*100) + '% del objetivo');
+  (_e = document.getElementById('kpi-hours-bar')) && (_e.style.width = Math.min(100, totalHours/hGoal*100) + '%');
 
-  document.getElementById('kpi-tasks').textContent = activeTasks;
-  document.getElementById('kpi-tasks-sub').textContent = state.tasks.filter(t=>t.status==='doing').length + ' en progreso';
-  document.getElementById('kpi-tasks-badge').className = 'kpi-badge ' + (alertCount > 0 ? 'badge-down' : 'badge-up');
-  document.getElementById('kpi-tasks-badge').innerHTML = alertCount > 0 ? '<i class="ti ti-alert-triangle" style="font-size:10px"></i> ' + alertCount + ' con alerta' : '<i class="ti ti-check" style="font-size:10px"></i> al día';
-
-  document.getElementById('kpi-meetings').textContent = meetings;
-  document.getElementById('kpi-meetings-sub').textContent = state.events.filter(e=>e.ws==='locked').length + ' bloqueos estratégicos';
-  document.getElementById('kpi-meetings-badge').textContent = todayMeetings + ' hoy';
+  (_e = document.getElementById('kpi-tasks'))     && (_e.textContent = activeTasks);
+  (_e = document.getElementById('kpi-tasks-sub')) && (_e.textContent = state.tasks.filter(t=>t.status==='doing').length + ' en progreso');
+  if ((_e = document.getElementById('kpi-tasks-badge'))) {
+    _e.className = 'kpi-badge ' + (alertCount > 0 ? 'badge-down' : 'badge-up');
+    _e.innerHTML  = alertCount > 0 ? '<i class="ti ti-alert-triangle" style="font-size:10px"></i> ' + alertCount + ' con alerta' : '<i class="ti ti-check" style="font-size:10px"></i> al día';
+  }
+  (_e = document.getElementById('kpi-meetings'))       && (_e.textContent = meetings);
+  (_e = document.getElementById('kpi-meetings-sub'))   && (_e.textContent = state.events.filter(e=>e.ws==='locked').length + ' bloqueos estratégicos');
+  (_e = document.getElementById('kpi-meetings-badge')) && (_e.textContent = todayMeetings + ' hoy');
 
   // dist chart legend
   document.getElementById('distChartLegend').innerHTML = state.workspaces.map(w => `
