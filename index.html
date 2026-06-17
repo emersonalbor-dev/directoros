@@ -5098,16 +5098,15 @@ async function actualizarVentas(esAuto) {
       if (_directo.walmart      && _directo.walmart.total)      data.walmart      = _directo.walmart;
     }
 
-    // Walmart y ML desde servidor local en paralelo (localhost:3001)
+    // Walmart desde servidor local (localhost:3001) — solo mes actual
     if (_esActual) {
-      var [_wLocalR, _mlLocalR] = await Promise.allSettled([
-        fetch('http://localhost:3001/walmart', { signal: AbortSignal.timeout(30000) })
-          .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }),
-        fetch('http://localhost:3001/ml',      { signal: AbortSignal.timeout(90000) })
-          .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; })
-      ]);
-      if (_wLocalR.status  === 'fulfilled' && _wLocalR.value  && _wLocalR.value.walmart      && _wLocalR.value.walmart.total)      data.walmart      = _wLocalR.value.walmart;
-      if (_mlLocalR.status === 'fulfilled' && _mlLocalR.value && _mlLocalR.value.mercadolibre && _mlLocalR.value.mercadolibre.total) data.mercadolibre = _mlLocalR.value.mercadolibre;
+      try {
+        var _wRes = await fetch('http://localhost:3001/walmart', { signal: AbortSignal.timeout(30000) });
+        if (_wRes.ok) {
+          var _wLocal = await _wRes.json();
+          if (_wLocal.walmart && _wLocal.walmart.total) data.walmart = _wLocal.walmart;
+        }
+      } catch(e) { /* servidor local no está corriendo, se ignora */ }
     }
 
     // Usar siempre el mes seleccionado por el usuario; ignorar data.mes
