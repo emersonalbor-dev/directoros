@@ -2424,8 +2424,12 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 <div style="font-size:14px;font-weight:600;margin-bottom:6px">Genera tu estrategia de contenido</div>
                 <div style="font-size:12px">Sube un PDF o imagen del producto, completa el contexto, selecciona las plataformas y presiona <strong>Generar</strong>.</div>
               </div>
+              <div id="pubErrorArea" style="display:none;background:#fff0f0;border:1px solid #f5c6c6;border-radius:8px;padding:12px 14px;margin-bottom:10px;color:#b00;font-size:13px;line-height:1.5"></div>
               <div id="pubResultsArea" style="display:none">
-                <div class="pub-plat-tabs" id="pubPlatTabs"></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                  <div class="pub-plat-tabs" id="pubPlatTabs" style="margin-bottom:0"></div>
+                  <button class="btn btn-sm" onclick="pubDownloadWord()" style="flex-shrink:0;margin-left:10px;gap:5px;white-space:nowrap"><i class="ti ti-file-word" style="color:#2b579a"></i> Descargar Word</button>
+                </div>
                 <div class="pub-plat-body" id="pubPlatPanels"></div>
               </div>
             </div>
@@ -7264,7 +7268,10 @@ async function kitGenerarIA() {
 /* ============================================
    CREAR PUBLICACIONES MODULE
 ============================================ */
-var _pubFileData = null;
+var _pubFileData   = null;
+var _pubLastData   = null;
+var _pubLastPlats  = null;
+var _pubLastCtx    = {};
 
 function pubHandleFile(file) {
   if (!file) return;
@@ -7317,6 +7324,10 @@ async function pubGenerar() {
   var platLabels = { amazon:'Amazon México', ml:'Mercado Libre México', walmart:'Walmart México', tiktok:'TikTok Shop México', web:'Página Web Propia' };
   var selNames = plats.map(function(p){ return platLabels[p]; }).join(', ');
 
+  _pubLastCtx = { marca: marca, familia: familia };
+  var errArea = document.getElementById('pubErrorArea');
+  if (errArea) errArea.style.display = 'none';
+
   var ctx = '';
   if (marca)   ctx += '- Marca: ' + marca + '\n';
   if (familia) ctx += '- Familia/Categoría: ' + familia + '\n';
@@ -7349,10 +7360,13 @@ async function pubGenerar() {
   } catch(e) {
     console.error('[pubGenerar]', e);
     var em = (e.message || '').toLowerCase();
+    var ea = document.getElementById('pubErrorArea');
     if (em.includes('x-api-key') || em.includes('api_key') || em.includes('authentication') || em.includes('invalid') || em.includes('unauthorized') || em.includes('401')) {
-      showToast('API Key inválida o expirada — reconfigúrala', 'error');
-      setTimeout(kitConfigAI, 800);
+      if (ea) { ea.style.display = 'block'; ea.innerHTML = '<b>API Key inválida o expirada.</b> Ve a Recursos → Kit → ⚙ y actualiza tu clave Anthropic.'; }
+      showToast('API Key inválida — reconfigúrala', 'error');
+      setTimeout(kitConfigAI, 1200);
     } else {
+      if (ea) { ea.style.display = 'block'; ea.innerHTML = '<b>Error al generar:</b> ' + (e.message || 'Error desconocido'); }
       showToast('Error al generar: ' + e.message, 'error');
     }
   } finally {
@@ -7410,6 +7424,8 @@ async function _pubCallAPI(key, prompt, fileData) {
 }
 
 function pubRenderResults(data, plats) {
+  _pubLastData  = data;
+  _pubLastPlats = plats;
   var pNames = { amazon:'Amazon', ml:'Mercado Libre', walmart:'Walmart', tiktok:'TikTok', web:'Mi Página' };
   var pIcons = { amazon:'ti-brand-amazon', ml:'ti-shopping-cart', walmart:'ti-building-store', tiktok:'ti-brand-tiktok', web:'ti-world' };
   var first = true;
@@ -7474,6 +7490,94 @@ function pubRenderResults(data, plats) {
   document.getElementById('pubResultsArea').style.display = 'block';
   document.getElementById('pubPlatTabs').innerHTML = tabsHtml;
   document.getElementById('pubPlatPanels').innerHTML = panelsHtml;
+}
+
+function pubDownloadWord() {
+  if (!_pubLastData || !_pubLastPlats) { showToast('Genera el contenido primero', 'warn'); return; }
+  var pNames = { amazon:'Amazon México', ml:'Mercado Libre México', walmart:'Walmart México', tiktok:'TikTok Shop México', web:'Mi Página Web' };
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function field(label, val) {
+    if (!val) return '';
+    return '<h3 style="color:#555;margin:14px 0 4px;font-size:11pt">' + label + '</h3><p style="margin:0 0 8px;line-height:1.6">' + esc(val).replace(/\n/g,'<br>') + '</p>';
+  }
+  function bullets(label, arr) {
+    if (!arr || !arr.length) return '';
+    return '<h3 style="color:#555;margin:14px 0 4px;font-size:11pt">' + label + '</h3><ul style="margin:0 0 8px;padding-left:20px">' + arr.map(function(b){ return '<li style="margin:3px 0;line-height:1.5">'+esc(b)+'</li>'; }).join('') + '</ul>';
+  }
+
+  var fecha = new Date().toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'});
+  var marca = _pubLastCtx.marca || '';
+  var familia = _pubLastCtx.familia || '';
+
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' +
+    'body{font-family:Calibri,Arial,sans-serif;font-size:11pt;margin:2.5cm;color:#222}' +
+    'h1{font-size:20pt;color:#8B0000;border-bottom:3px solid #8B0000;padding-bottom:8px;margin-top:28px}' +
+    'h2{font-size:13pt;color:#fff;background:#8B0000;padding:6px 12px;margin:18px 0 8px}' +
+    '.cover{text-align:center;margin-bottom:40px;border-bottom:2px solid #ccc;padding-bottom:30px}' +
+    '.cover h1{border:none;font-size:24pt}' +
+    '.meta{color:#666;font-size:10pt;margin-top:8px}' +
+    '</style></head><body>' +
+    '<div class="cover">' +
+    '<div style="font-size:10pt;color:#888;margin-bottom:8px">DirectorOS — Estrategia de Contenido</div>' +
+    '<h1 style="border:none;font-size:24pt">Estrategia de Publicaciones</h1>' +
+    (marca ? '<div style="font-size:14pt;font-weight:bold;margin-top:6px">' + esc(marca) + (familia ? ' · ' + esc(familia) : '') + '</div>' : '') +
+    '<div class="meta">Generado el ' + fecha + '</div>' +
+    '</div>';
+
+  _pubLastPlats.forEach(function(p) {
+    var d = _pubLastData[p];
+    if (!d) return;
+    html += '<h1>' + pNames[p] + '</h1>';
+    if (p === 'amazon') {
+      html += field('Título (máx 200 caracteres)', d.title);
+      html += bullets('Bullets (5 puntos de venta)', d.bullets);
+      html += field('Descripción', d.description);
+      html += field('A+ Titular', d.aplus_headline);
+      html += field('A+ Cuerpo del módulo', d.aplus_body);
+      html += field('Keywords backend', d.keywords_backend);
+      html += field('Consejos de copy', d.copy_tips);
+    } else if (p === 'ml') {
+      html += field('Título (máx 60 caracteres)', d.title);
+      html += field('Descripción', d.description);
+      html += field('Fichas técnicas', d.fichas_tecnicas);
+      html += field('Keywords', d.keywords);
+      html += field('Consejos de copy', d.copy_tips);
+    } else if (p === 'walmart') {
+      html += field('Título (máx 75 caracteres)', d.title);
+      html += field('Descripción corta', d.short_description);
+      html += field('Descripción larga', d.long_description);
+      html += bullets('Key Features', d.key_features);
+      html += field('Consejos de copy', d.copy_tips);
+    } else if (p === 'tiktok') {
+      html += field('Hook (primeros 3 segundos)', d.hook);
+      html += field('Guión del video', d.script);
+      html += field('Hashtags', d.hashtags);
+      html += field('Caption', d.caption);
+      html += field('Estrategia de contenido', d.copy_tips);
+    } else if (p === 'web') {
+      html += field('Hero — Titular principal', d.hero_headline);
+      html += field('Hero — Subtítulo', d.hero_subheadline);
+      html += field('Descripción del producto', d.product_description);
+      html += field('SEO Title tag', d.seo_title);
+      html += field('Meta Description', d.meta_description);
+      html += field('Texto del CTA', d.cta_text);
+      html += field('Alt texts de imágenes', d.alt_texts);
+      html += field('Recomendaciones SEO', d.copy_tips);
+    }
+  });
+
+  html += '</body></html>';
+  var blob = new Blob(['﻿' + html], { type: 'application/msword' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href   = url;
+  var fname = (marca || 'estrategia') + (familia ? '_' + familia : '') + '_contenido.doc';
+  a.download = fname.replace(/\s+/g,'_');
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Descargando archivo Word…', 'success');
 }
 
 function pubSwitchPlatTab(name, el) {
