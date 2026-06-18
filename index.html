@@ -8765,28 +8765,17 @@ function toggleMLTokenPanel() {
 var _mlRefreshing = null;
 
 function mlTryRefreshToken() {
-  var ls = typeof localStorage !== 'undefined' ? localStorage : null;
-  var secret  = (ls && ls.getItem('ml_client_secret'))  || 'dXOYxPIKcbuH2iXu61b53SuLVbwvq6rk';
-  var refresh = (ls && ls.getItem('ml_refresh_token'))   || 'TG-6a3009dc9f369f000113d1de-244438069';
-  var cid     = (ls && ls.getItem('ml_client_id'))       || '3229341112864987';
-  if (!secret || !refresh) return Promise.reject(new Error('no_creds'));
   if (_mlRefreshing) return _mlRefreshing;
-  _mlRefreshing = fetch('https://api.mercadolibre.com/oauth/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
-    body: 'grant_type=refresh_token' +
-      '&client_id='     + encodeURIComponent(cid) +
-      '&client_secret=' + encodeURIComponent(secret) +
-      '&refresh_token=' + encodeURIComponent(refresh)
-  }).then(function(r) { return r.json(); })
+  // Railway mantiene el token de ML siempre vigente — pedirlo allí evita
+  // guardar client_secret en el navegador y resuelve errores CORS con ML OAuth.
+  _mlRefreshing = fetch(VENTAS_API_BASE + '/api/ml/token', { signal: AbortSignal.timeout(15000) })
+  .then(function(r) { return r.json(); })
   .then(function(data) {
     _mlRefreshing = null;
-    if (!data.access_token) throw new Error(data.message || 'Sin access_token en respuesta');
+    if (!data.access_token) throw new Error(data.detail || 'Sin token de Railway');
     ML_TOKEN = data.access_token;
-    if (ls) {
-      ls.setItem('ml_token', data.access_token);
-      if (data.refresh_token) ls.setItem('ml_refresh_token', data.refresh_token);
-    }
+    var ls = typeof localStorage !== 'undefined' ? localStorage : null;
+    if (ls) ls.setItem('ml_token', data.access_token);
     _updateMLTokenBtn();
     _mlAutoRenewUpdateBadge();
     return data.access_token;
