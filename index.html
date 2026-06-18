@@ -9955,16 +9955,52 @@ function loadMLBilling(mes) {
   }
 
   contentEl.innerHTML = '<div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando registros...</div>';
-  if (statusEl) statusEl.textContent = 'descargando…';
+  var periodKey = mes + '-01';
+  var byItem = {}, totals = { cff:0, cxd:0, bff:0, bxd:0, count_cff:0, count_cxd:0 };
+  var pageCount = 0;
 
-  // Railway hace el fetch — sin 429 en el browser
-  mlGetBillingRecords(mes).then(function(raw) {
+  function fetchPage(fromId) {
+    if (gen !== _mlBillingGen) return Promise.resolve();
+    var url = 'https://api.mercadolibre.com/billing/integration/periods/key/' + periodKey +
+      '/group/ML/details?document_type=BILL&limit=1000&from_id=' + fromId + '&sort_by=ID&order_by=ASC';
+    return mlApiFetch(url).then(function(data) {
+      if (gen !== _mlBillingGen) return;
+      var results = data.results || [];
+      pageCount++;
+      if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + ' · ' + Object.keys(byItem).length + ' productos…';
+      for (var i = 0; i < results.length; i++) {
+        var rec = results[i];
+        var t = (rec.charge_info || {}).detail_sub_type;
+        if (t !== 'CFF' && t !== 'CXD' && t !== 'BFF' && t !== 'BXD') continue;
+        var item = (rec.items_info || [])[0];
+        if (!item || !item.item_id) continue;
+        var id = item.item_id;
+        var amt = Math.abs((rec.charge_info || {}).detail_amount || 0);
+        if (!byItem[id]) byItem[id] = { title: item.item_title, price: item.item_price, cff:0, cxd:0, bff:0, bxd:0, count_cff:0, count_cxd:0 };
+        if (t === 'CFF') { byItem[id].cff += amt; byItem[id].count_cff++; totals.cff += amt; totals.count_cff++; }
+        if (t === 'CXD') { byItem[id].cxd += amt; byItem[id].count_cxd++; totals.cxd += amt; totals.count_cxd++; }
+        if (t === 'BFF') { byItem[id].bff += amt; totals.bff += amt; }
+        if (t === 'BXD') { byItem[id].bxd += amt; totals.bxd += amt; }
+      }
+      if (data.last_id) {
+        var nextId = data.last_id;
+        var waitSecs = 0;
+        function tick() {
+          if (gen !== _mlBillingGen) return Promise.resolve();
+          if (waitSecs >= 13) return fetchPage(nextId);
+          if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + ' — esperando ' + (13-waitSecs) + 's…';
+          waitSecs++;
+          return new Promise(function(r) { setTimeout(r, 1000); }).then(tick);
+        }
+        return tick();
+      }
+    });
+  }
+
+  fetchPage(0).then(function() {
     if (gen !== _mlBillingGen) return;
-    var envios = raw.envios || {};
-    var byItem = envios.by_item || {};
-    var totals = Object.assign({ cff:0, cxd:0, bff:0, bxd:0, count_cff:0, count_cxd:0 }, envios.totals || {});
     var n = Object.keys(byItem).length;
-    var nEnvios = (totals.count_cff || 0) + (totals.count_cxd || 0);
+    var nEnvios = totals.count_cff + totals.count_cxd;
     var result = { byItem: byItem, totals: totals };
     if (!isCurrent) _mlBillingMonthCache[mes] = result;
     _mlBillingUpdatePills();
