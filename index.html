@@ -5063,15 +5063,15 @@ async function actualizarVentas(esAuto) {
   var label = document.getElementById('btnActualizarLabel');
   var atDiv = document.getElementById('ventasActualizadoAt');
 
+  try {
   var mesSel = dashMes; // Mes actualmente seleccionado con las pills
 
   // Modo manual: mostrar estado de carga en el botón
   if (!esAuto && btn) {
     btn.disabled = true;
     btn.style.opacity = '0.8';
-    icon.className = 'ti ti-loader-2';
-    icon.style.animation = 'spin 1s linear infinite';
-    label.textContent = 'Consultando…';
+    if (icon) { icon.className = 'ti ti-loader-2'; icon.style.animation = 'spin 1s linear infinite'; }
+    if (label) label.textContent = 'Consultando…';
   }
 
   // Detectar si es el mes actual para también actualizar ML y Walmart directamente
@@ -5085,8 +5085,6 @@ async function actualizarVentas(esAuto) {
       '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite;margin-right:4px;color:var(--maraga)"></i>' +
       '<span style="color:var(--maraga)">Consultando · ' + (MESES_LABEL[mesSel]||mesSel) + ' — Amazon · MaragaMX · TikTok' + (_esActual ? ' · ML · Walmart' : '') + '…</span>';
   }
-
-  try {
     // Llamadas paralelas: Tableau (Amazon/MaragaMX/TikTok) + Railway directo (ML/Walmart, solo mes actual)
     var _promesas = [
       fetch(VENTAS_API_BASE + '/api/ventas/plataforma-mes?mes=' + mesSel, { signal: AbortSignal.timeout(30000) })
@@ -5187,11 +5185,9 @@ async function actualizarVentas(esAuto) {
       btn.style.opacity = '1';
       setTimeout(function() {
         _actualizandoVentas = false;
-        btn.disabled = false;
-        btn.style.background = 'transparent';
-        btn.style.color = 'var(--maraga)';
-        icon.className = 'ti ti-refresh';
-        label.textContent = 'Actualizar';
+        if (btn)  { btn.disabled = false; btn.style.background = 'transparent'; btn.style.color = 'var(--maraga)'; }
+        if (icon)  icon.className = 'ti ti-refresh';
+        if (label) label.textContent = 'Actualizar';
       }, 6000);
     } // esAuto: flag managed only by manual fetch
 
