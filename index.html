@@ -9414,40 +9414,25 @@ function mlFullRenderMeses() {
 var _mlFullLoadingSet = {};
 
 function _mlFullLoadMes(mes) {
-  if (_mlFullLoadingSet[mes]) return;
+  if (_mlFullLoadingSet[mes]) return Promise.resolve();
+  if (_mlEstadoCacheGet(mes)) { if (_mlFullSubTab === 'meses') mlFullRenderMeses(); return Promise.resolve(); }
   _mlFullLoadingSet[mes] = true;
   if (_mlFullSubTab === 'meses') mlFullRenderMeses();
-  var parts = mes.split('-'), periodKey = parts[0] + '-' + parts[1];
-  var acc = {}, pages = 0;
-  function add(k, v) { acc[k] = (acc[k]||0) + v; }
-  function procML(rec) {
-    var t = (rec.charge_info||{}).detail_sub_type||'', amt = Math.abs((rec.charge_info||{}).detail_amount||0), grp = (rec.charge_info||{}).detail_type||'';
-    if (t==='CV') add('cv',amt); else if (t==='CFF') add('envios_full',amt); else if (t==='CXD'||t==='CDSD') add('envios_xd',amt);
-    else if (t==='PADS'||t==='CBADS') add('publicidad',amt); else if (t==='CFWA'||t==='CFCB'||t==='CFRS'||t==='CFPB'||t==='CFBA') add('cfwa',amt);
-    else if (t==='CESM') add('cesm',amt); else if (t==='BV') add('bv',amt); else if (t==='BFF'||t==='BXD') add('benvios',amt);
-    else if (grp==='BONUS') add('bv',amt); else if (grp==='CHARGE') add('otros',amt);
-  }
-  function procMP(rec) {
-    var t = (rec.charge_info||{}).detail_sub_type||'', amt = Math.abs((rec.charge_info||{}).detail_amount||0), grp = (rec.charge_info||{}).detail_type||'';
-    if (t==='CRIA') add('adelanto',amt); else if (t==='CPOPC') add('servicios_mp',amt); else if (grp==='CHARGE') add('otros',amt);
-  }
-  function fetchML(fromId) {
-    var url = 'https://api.mercadolibre.com/billing/integration/periods/key/'+periodKey+'/group/ML/details?document_type=BILL&limit=1000&from_id='+fromId+'&sort_by=ID&order_by=ASC';
-    return mlApiFetch(url).then(function(data) {
-      pages++; (data.results||[]).forEach(procML);
-      if (data.last_id && (data.results||[]).length > 0)
-        return new Promise(function(r){setTimeout(r,13000);}).then(function(){return fetchML(data.last_id);});
+  // Usa el caché compartido — no hace fetch propio al billing API
+  return mlGetBillingRecords(mes).then(function(raw) {
+    var acc = {}, pages = Math.ceil((raw.ml||[]).length / 1000) || 1;
+    function add(k, v) { acc[k] = (acc[k]||0) + v; }
+    (raw.ml || []).forEach(function(rec) {
+      var t = (rec.charge_info||{}).detail_sub_type||'', amt = Math.abs((rec.charge_info||{}).detail_amount||0), grp = (rec.charge_info||{}).detail_type||'';
+      if (t==='CV') add('cv',amt); else if (t==='CFF') add('envios_full',amt); else if (t==='CXD'||t==='CDSD') add('envios_xd',amt);
+      else if (t==='PADS'||t==='CBADS') add('publicidad',amt); else if (t==='CFWA'||t==='CFCB'||t==='CFRS'||t==='CFPB'||t==='CFBA') add('cfwa',amt);
+      else if (t==='CESM') add('cesm',amt); else if (t==='BV') add('bv',amt); else if (t==='BFF'||t==='BXD') add('benvios',amt);
+      else if (grp==='BONUS') add('bv',amt); else if (grp==='CHARGE') add('otros',amt);
     });
-  }
-  function fetchMP(fromId) {
-    var url = 'https://api.mercadolibre.com/billing/integration/periods/key/'+periodKey+'/group/MP/details?document_type=BILL&limit=1000&from_id='+fromId+'&sort_by=ID&order_by=ASC';
-    return mlApiFetch(url).then(function(data) {
-      (data.results||[]).forEach(procMP);
-      if (data.last_id && (data.results||[]).length > 0)
-        return new Promise(function(r){setTimeout(r,13000);}).then(function(){return fetchMP(data.last_id);});
+    (raw.mp || []).forEach(function(rec) {
+      var t = (rec.charge_info||{}).detail_sub_type||'', amt = Math.abs((rec.charge_info||{}).detail_amount||0), grp = (rec.charge_info||{}).detail_type||'';
+      if (t==='CRIA') add('adelanto',amt); else if (t==='CPOPC') add('servicios_mp',amt); else if (grp==='CHARGE') add('otros',amt);
     });
-  }
-  fetchML(0).then(function(){return fetchMP(0);}).then(function() {
     _mlEstadoCachePut(mes, acc, pages);
     delete _mlFullLoadingSet[mes];
     if (_mlFullSubTab === 'meses') mlFullRenderMeses();
@@ -9458,26 +9443,11 @@ function _mlFullLoadAllMeses() {
   var MES_KEYS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06'];
   var faltantes = MES_KEYS.filter(function(m){ return !_mlEstadoCacheGet(m) && !_mlFullLoadingSet[m]; });
   if (!faltantes.length) return;
-  // Cargar en serie: cada mes espera al anterior para no saturar el rate limit
-  faltantes.reduce(function(chain, mes) {
+  // Serie con 30s entre meses para no saturar el rate limit del billing API
+  faltantes.reduce(function(chain, mes, idx) {
     return chain.then(function() {
-      return new Promise(function(resolve) {
-        if (_mlFullLoadingSet[mes]) { resolve(); return; }
-        _mlFullLoadingSet[mes] = true;
-        if (_mlFullSubTab === 'meses') mlFullRenderMeses();
-        var parts = mes.split('-'), periodKey = parts[0] + '-' + parts[1];
-        var acc = {}, pages = 0;
-        function add(k,v){acc[k]=(acc[k]||0)+v;}
-        function procML(rec){var t=(rec.charge_info||{}).detail_sub_type||'',amt=Math.abs((rec.charge_info||{}).detail_amount||0),grp=(rec.charge_info||{}).detail_type||'';if(t==='CV')add('cv',amt);else if(t==='CFF')add('envios_full',amt);else if(t==='CXD'||t==='CDSD')add('envios_xd',amt);else if(t==='PADS'||t==='CBADS')add('publicidad',amt);else if(t==='CFWA'||t==='CFCB'||t==='CFRS'||t==='CFPB'||t==='CFBA')add('cfwa',amt);else if(t==='CESM')add('cesm',amt);else if(t==='BV')add('bv',amt);else if(t==='BFF'||t==='BXD')add('benvios',amt);else if(grp==='BONUS')add('bv',amt);else if(grp==='CHARGE')add('otros',amt);}
-        function procMP(rec){var t=(rec.charge_info||{}).detail_sub_type||'',amt=Math.abs((rec.charge_info||{}).detail_amount||0),grp=(rec.charge_info||{}).detail_type||'';if(t==='CRIA')add('adelanto',amt);else if(t==='CPOPC')add('servicios_mp',amt);else if(grp==='CHARGE')add('otros',amt);}
-        function fetchML(fromId){var url='https://api.mercadolibre.com/billing/integration/periods/key/'+periodKey+'/group/ML/details?document_type=BILL&limit=1000&from_id='+fromId+'&sort_by=ID&order_by=ASC';return mlApiFetch(url).then(function(data){pages++;(data.results||[]).forEach(procML);if(data.last_id&&(data.results||[]).length>0)return new Promise(function(r){setTimeout(r,13000);}).then(function(){return fetchML(data.last_id);});});}
-        function fetchMP(fromId){var url='https://api.mercadolibre.com/billing/integration/periods/key/'+periodKey+'/group/MP/details?document_type=BILL&limit=1000&from_id='+fromId+'&sort_by=ID&order_by=ASC';return mlApiFetch(url).then(function(data){(data.results||[]).forEach(procMP);if(data.last_id&&(data.results||[]).length>0)return new Promise(function(r){setTimeout(r,13000);}).then(function(){return fetchMP(data.last_id);});});}
-        fetchML(0).then(function(){return fetchMP(0);}).then(function(){
-          _mlEstadoCachePut(mes, acc, pages); delete _mlFullLoadingSet[mes];
-          if (_mlFullSubTab === 'meses') mlFullRenderMeses();
-          resolve();
-        }).catch(function(){ delete _mlFullLoadingSet[mes]; resolve(); });
-      });
+      var delay = idx === 0 ? 0 : 30000;
+      return new Promise(function(r){ setTimeout(r, delay); }).then(function() { return _mlFullLoadMes(mes); });
     });
   }, Promise.resolve());
 }
