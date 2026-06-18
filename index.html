@@ -5051,8 +5051,8 @@ function _fmtK(n) {
 
 var _actualizandoVentas = false;
 async function actualizarVentas(esAuto) {
-  if (_actualizandoVentas) return;
-  _actualizandoVentas = true;
+  if (!esAuto && _actualizandoVentas) return;
+  if (!esAuto) _actualizandoVentas = true;
 
   var btn   = document.getElementById('btnActualizarVentas');
   var icon  = document.getElementById('btnActualizarIcon');
@@ -5097,11 +5097,12 @@ async function actualizarVentas(esAuto) {
     if (!_platRes.value.ok) throw new Error('HTTP ' + _platRes.value.status);
     var data = await _platRes.value.json();
 
-    // ML y Walmart desde Railway directo (solo mes actual)
+    // ML, Walmart y Amazon desde Railway directo (solo mes actual)
     if (_esActual && _resultados[1] && _resultados[1].status === 'fulfilled' && _resultados[1].value.ok) {
       var _directo = await _resultados[1].value.json();
       if (_directo.mercadolibre && _directo.mercadolibre.total) data.mercadolibre = _directo.mercadolibre;
       if (_directo.walmart      && _directo.walmart.total)      data.walmart      = _directo.walmart;
+      if (_directo.amazon       && _directo.amazon.total)       data.amazon       = _directo.amazon;
     }
 
     // Usar siempre el mes seleccionado por el usuario; ignorar data.mes
@@ -5188,12 +5189,10 @@ async function actualizarVentas(esAuto) {
         icon.className = 'ti ti-refresh';
         label.textContent = 'Actualizar';
       }, 6000);
-    } else {
-      _actualizandoVentas = false;
-    }
+    } // esAuto: flag managed only by manual fetch
 
   } catch (err) {
-    _actualizandoVentas = false;
+    if (!esAuto) _actualizandoVentas = false;
     if (!esAuto) {
       console.error('Error actualizando ventas:', err);
       if (icon) { icon.className = 'ti ti-alert-triangle'; icon.style.animation = ''; }
