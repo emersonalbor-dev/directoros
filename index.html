@@ -2565,7 +2565,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px">
             <div style="flex:1;min-width:200px">
               <div style="font-weight:700;font-size:15px">Plan de Ventas 4M &mdash; Top 100 SKUs</div>
-              <div style="font-size:11px;color:var(--muted);margin-top:2px">Objetivo mensual distribuido por precio unitario &bull; actualiza con ventas reales del semestre</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">Basado en ventas reales por plataforma &bull; ML + Amazon + Walmart + Maraga &bull; semestre 2026</div>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
               <div style="display:flex;align-items:center;gap:5px;font-size:12px;background:var(--surface);border-radius:8px;padding:7px 10px;border:1px solid var(--line)">
@@ -7219,8 +7219,9 @@ function kitPublicarKit() {
 }
 
 /* ── PLAN VENTAS 4M — TOP 100 SKUS ──────────────────────────────────────
-   Distribuye objetivo de $4M mensual y $80K publicidad entre los top 100
-   SKUs por precio unitario. Filtros: línea, familia, merchandiser, plataforma.
+   Fuente: ventas reales por plataforma (ML_2026_DATA.items + VENTAS_PLAT_DATA).
+   Solo incluye productos con historial de venta. Distribución de $4M y
+   presupuesto de publicidad proporcional a ventas del semestre.
    ─────────────────────────────────────────────────────────────────────── */
 var _skuPlanInited    = false;
 var _skuPlanData      = [];
@@ -7229,20 +7230,35 @@ var _skuPlanSortCol   = 'rank';
 var _skuPlanSortDir   = 1;
 var _skuPlanActivePlats = [];
 
+// Mapeo directo de códigos de modelo → SKU en PRICE_LIST
+var _SKU_CODE_MAP = {
+  'ARC160':'MW-ARC160','ARC200':'MW-ARC200','ARC300DV':'MW-ARC300DV',
+  'ARC300':'MW-ARC300DV','ARC350':'MW-ARC350','ARC220':'MW-ARC220',
+  'ARC400':'MW-ARC400','FREE450':'FREE450','FOCUS550':'FOCUS550',
+  'WEGA350':'WEGA350','STORM650':'STORM650','FORCE200':'MW-FORCE-200G',
+  'MIG250':'MIG250GS','MIG300':'MIG300GS','MIG630':'MIG630',
+  'EA800':'MPEA800','MPEA800':'MPEA800','SA21180':'SA21180',
+  'MGS200':'MG-S-200','MG-S-200':'MG-S-200',
+};
+
 var _SKU_LINEA_RULES = [
-  [/SOLDAD|MIG\s|TIG\s|PLASMA|INVERTER.*SOLD|INOX.*SOLD|ALAMBRE.*SOLD/, 'Soldadura'],
+  [/CARETA|MASCARA.*SOLD/, 'Caretas'],
+  [/SOLDAD|MIG\s|TIG\s|PLASMA|INVERTER.*SOLD|INOX.*SOLD|ALAMBRE.*SOLD|MICROALAMBRE|FLUXCORE/, 'Soldadura'],
   [/ESMERIL|AMOLAD|PULID|DESBAST/, 'Desgaste'],
   [/CALADORA|SIERRA\s|CIRCULAR\s/, 'Corte'],
-  [/CLAVAD|GRAPADORA|NAILER|NEUMÁTIC/, 'Fijación'],
-  [/TALADRO|PERFORAD|BIMETALIC.*PERF/, 'Taladros'],
+  [/CLAVAD|GRAPADORA|NAILER|NEUMÁTIC|COIL[0-9]/, 'Fijación'],
+  [/CLAVO|PUNTILLA|CLAV\./, 'Clavos'],
+  [/TALADRO|PERFORAD|BIMETALIC.*PERF|BROCA\s/, 'Corte'],
   [/COMPRESOR/, 'Compresores'],
   [/INSERTO|SNMX|CNMG|TNMG|VCMT/, 'Insertos'],
   [/BALERO|BEARING|RODAM/, 'Baleros'],
   [/REFACC|EMPAQUE|O-RING|BUMPER|CARBON\s/, 'Refacciones'],
   [/INTERRUP|SWITCH\s|BREAKER|CONTACTOR/, 'Eléctricos'],
-  [/FLEX\s.*[0-9]+M|CLASSIC.*PRO|SCALLOP|QXP\s|RX\s.*[0-9]+M|BANDA.*BIMETAL/, 'Sierras Cinta'],
+  [/FLEX\s.*[0-9]+M|CLASSIC.*PRO|SCALLOP|QXP\s|RX\s.*[0-9]+M|BANDA.*BIMETAL|SIERRA.*CINTA|SIERRA.*BIMETAL/, 'Sierras Cinta'],
   [/DISCO\s|ABRAS|LIJA/, 'Abrasivos'],
   [/ELECTRODO|6013|7018|308L|309L/, 'Soldadura'],
+  [/CORTAD.*METAL|CORTADORA.*14/, 'Corte'],
+  [/SOLUBLE|REFRIGERAN|ACEITE.*MAQUINA/, 'Lubricantes'],
 ];
 
 function _skuGetLinea(sku, desc) {
@@ -7259,13 +7275,33 @@ function _skuGetFamilia(linea, sku, desc) {
     if (/MIG/.test(d)) return 'MIG';
     if (/TIG/.test(d)) return 'TIG';
     if (/PLASMA/.test(d)) return 'Plasma';
-    if (/ELECTRODO|6013|7018/.test(d)) return 'Electrodo';
+    if (/ELECTRODO|6013|7018/.test(d)||/ELECTRODO|SOLDAD.*6013/.test(d)) return 'Electrodo';
+    if (/MICROALAMBRE|FLUXCORE|SPOOL/.test(d)) return 'Alambre';
     if (/INOX|309L|308L/.test(d)) return 'Inox';
     return 'Soldadora';
   }
+  if (linea === 'Caretas') {
+    if (/FREE/.test(d+s)) return 'Free450';
+    if (/FOCUS/.test(d+s)) return 'Focus550';
+    if (/WEGA/.test(d+s)) return 'Wega350';
+    if (/STORM/.test(d+s)) return 'Storm650';
+    return 'General';
+  }
+  if (linea === 'Clavos') {
+    if (/ROLLO|COIL/.test(d)) return 'En Rollo';
+    if (/PISTOLA|NEUMATI|\.092|\.099/.test(d)) return 'Para Pistola';
+    return 'General';
+  }
+  if (linea === 'Fijación') {
+    if (/COIL[0-9]|COIL\s/.test(d)) return 'Clavadora Coil';
+    if (/CAL\s*18|CAL18/.test(d)) return 'Clavadora Cal18';
+    return 'General';
+  }
   if (linea === 'Corte') {
     if (/CALADORA/.test(d)) return 'Caladora';
-    if (/CIRCULAR/.test(d)) return 'Circular';
+    if (/CIRCULAR/.test(d)) return 'Sierra Circular';
+    if (/CORTAD.*METAL|CORTADORA.*14/.test(d)) return 'Cortadora Metal';
+    if (/BROCA/.test(d)) return 'Broca Sierra';
     return 'Sierra';
   }
   if (linea === 'Insertos') {
@@ -7276,8 +7312,8 @@ function _skuGetFamilia(linea, sku, desc) {
   if (linea === 'Sierras Cinta') {
     if (/CLP|CLASSIC/.test(s)||/CLASSIC.*PRO/.test(d)) return 'Classic Pro';
     if (/SCA|SCALLOP/.test(s)) return 'Scallop';
-    if (/^FB-|FLEX\s/.test(s)||/FLEX\s/.test(d)) return 'Flex Back';
-    if (/^RX-|^RX\s/.test(s)) return 'RX Plus';
+    if (/^FB-|FLEX/.test(s)) return 'Flex Back';
+    if (/^RX-/.test(s)) return 'RX Plus';
     if (/QXP/.test(s)) return 'QXP';
     return 'Otros';
   }
@@ -7286,12 +7322,15 @@ function _skuGetFamilia(linea, sku, desc) {
 
 var _SKU_MERCH_MAP = {
   'Soldadura':'Carlos M.','Corte':'Ana R.','Desgaste':'Ana R.',
-  'Insertos':'Luis V.','Baleros':'Luis V.','Fijación':'Carlos M.',
-  'Taladros':'Ana R.','Compresores':'Carlos M.','Refacciones':'Luis V.',
-  'Eléctricos':'Luis V.','Abrasivos':'Ana R.','Sierras Cinta':'Ana R.','General':'Por asignar'
+  'Caretas':'Carlos M.','Clavos':'Carlos M.','Fijación':'Carlos M.',
+  'Insertos':'Luis V.','Baleros':'Luis V.','Taladros':'Ana R.',
+  'Compresores':'Carlos M.','Refacciones':'Luis V.','Eléctricos':'Luis V.',
+  'Abrasivos':'Ana R.','Sierras Cinta':'Ana R.','Lubricantes':'Luis V.','General':'Por asignar'
 };
 var _SKU_PLAT_MAP = {
   'Soldadura':    ['ML','AMZ','WMT','MRG'],
+  'Caretas':      ['ML','AMZ','WMT','MRG'],
+  'Clavos':       ['ML','AMZ','WMT','MRG'],
   'Corte':        ['ML','AMZ','WMT','MRG'],
   'Desgaste':     ['ML','AMZ','WMT'],
   'Insertos':     ['ML','AMZ','MRG'],
@@ -7303,35 +7342,146 @@ var _SKU_PLAT_MAP = {
   'Eléctricos':   ['ML','MRG'],
   'Abrasivos':    ['ML','AMZ','WMT'],
   'Sierras Cinta':['ML','AMZ'],
+  'Lubricantes':  ['MRG','ML'],
   'General':      ['ML']
 };
 var _PLAT_CLR = {ML:'#FFE01B',AMZ:'#FF9900',WMT:'#0071CE',MRG:'#E2001A',TKT:'#010101'};
 var _PLAT_TXT = {ML:'#333333',AMZ:'#ffffff',WMT:'#ffffff',MRG:'#ffffff',TKT:'#ffffff'};
 
+/* Normalizar string: quitar acentos + uppercase */
+function _skuNorm(s) {
+  try { return (s||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+  catch(e) { return (s||'').toUpperCase(); }
+}
+
+/* Intentar mapear un título de marketplace a un SKU de PRICE_LIST */
+function _matchTitleToSku(title) {
+  var tN = _skuNorm(title);
+  // 1. Priority: direct code map
+  var codes = Object.keys(_SKU_CODE_MAP);
+  for (var i=0; i<codes.length; i++) {
+    if (tN.indexOf(codes[i]) >= 0) {
+      var sku = _SKU_CODE_MAP[codes[i]];
+      if ((typeof PRICE_LIST !== 'undefined') && PRICE_LIST.some(function(it){return it[0]===sku;}))
+        return sku;
+    }
+  }
+  // 2. Fallback: extract alphanumeric model codes and scan PRICE_LIST
+  var modelCodes = (tN.match(/\b[A-Z]{1,5}[0-9]+[A-Z0-9]*\b/g)||[]).filter(function(c){return c.length>=3;});
+  if (!modelCodes.length) return null;
+  var bestSku=null, bestScore=0;
+  (typeof PRICE_LIST!=='undefined'?PRICE_LIST:[]).forEach(function(it){
+    var combined = _skuNorm(it[0])+' '+_skuNorm(it[1]);
+    var score = modelCodes.filter(function(c){return combined.indexOf(c)>=0;}).length;
+    if (score>bestScore){bestScore=score;bestSku=it[0];}
+  });
+  return bestScore>=1 ? bestSku : null;
+}
+
+/* Derivar una clave pseudo-SKU para títulos sin match en PRICE_LIST */
+function _deriveKey(title) {
+  var t = _skuNorm(title).replace(/\bMARAGA\b/g,'').replace(/[^A-Z0-9\s]/g,'').trim();
+  var words = t.split(/\s+/).filter(function(w){return w.length>2;});
+  var model = words.filter(function(w){return /[0-9]/.test(w);});
+  return (model.length?model:words).slice(0,3).join('-').substring(0,22);
+}
+
 function _skuPlanBuild() {
   var meta  = parseFloat((document.getElementById('skuPlanMeta')||{}).value) || 4000000;
   var publi = parseFloat((document.getElementById('skuPlanPub')||{}).value)  || 80000;
-  var eligible = (typeof PRICE_LIST !== 'undefined' ? PRICE_LIST : []).filter(function(it){
-    return it[2] >= 500;
+
+  /* ── 1. Acumular ventas reales de todas las fuentes ─────────────────── */
+  var salesMap = {}; // normalizedTitle → { title, ingresos, unidades, plats }
+
+  function addSale(title, ingresos, unidades, platCode) {
+    if (!title || !(ingresos>0)) return;
+    // clave: normalizada sin "MARAGA"
+    var key = _skuNorm(title).replace(/\bMARAGA\b/g,'').replace(/\s+/g,' ').trim();
+    if (!salesMap[key]) salesMap[key]={title:title,ingresos:0,unidades:0,plats:[]};
+    salesMap[key].ingresos  += parseFloat(ingresos)||0;
+    salesMap[key].unidades  += parseInt(unidades,10)||0;
+    if (salesMap[key].plats.indexOf(platCode)<0) salesMap[key].plats.push(platCode);
+  }
+
+  // ML: usar .items (datos completos por publicacion) de ML_2026_DATA
+  if (typeof ML_2026_DATA !== 'undefined' && ML_2026_DATA.meses) {
+    Object.keys(ML_2026_DATA.meses).forEach(function(mes){
+      var md = ML_2026_DATA.meses[mes];
+      if (md.items) {
+        Object.keys(md.items).forEach(function(mlmId){
+          var it = md.items[mlmId];
+          addSale(it.titulo, it.ingresos, it.unidades, 'ML');
+        });
+      } else if (md.top) {
+        md.top.forEach(function(t){ addSale(t.titulo, t.ingresos, t.unidades, 'ML'); });
+      }
+    });
+  }
+
+  // Otras plataformas: usar .top de VENTAS_PLAT_DATA
+  var platCodeMap={amazon:'AMZ',walmart:'WMT',maraga_mx:'MRG',tiktok:'TKT'};
+  if (typeof VENTAS_PLAT_DATA !== 'undefined') {
+    Object.keys(VENTAS_PLAT_DATA).forEach(function(mes){
+      var md=VENTAS_PLAT_DATA[mes];
+      Object.keys(platCodeMap).forEach(function(plat){
+        if (md[plat]&&md[plat].top) {
+          md[plat].top.forEach(function(t){ addSale(t.titulo,t.ingresos,t.unidades,platCodeMap[plat]); });
+        }
+      });
+    });
+  }
+
+  /* ── 2. Mapear títulos a SKUs de PRICE_LIST ─────────────────────────── */
+  var PLIST_IDX={};
+  (typeof PRICE_LIST!=='undefined'?PRICE_LIST:[]).forEach(function(it){PLIST_IDX[it[0]]=it;});
+
+  var skuSales={}; // skuKey → { ingresos, unidades, plats, title, matched }
+  Object.keys(salesMap).forEach(function(key){
+    var sale    = salesMap[key];
+    var matched = _matchTitleToSku(sale.title);
+    var skuKey  = matched || _deriveKey(sale.title);
+    if (!skuKey) return;
+    if (!skuSales[skuKey]) skuSales[skuKey]={ingresos:0,unidades:0,plats:[],title:sale.title,matched:!!matched};
+    skuSales[skuKey].ingresos += sale.ingresos;
+    skuSales[skuKey].unidades += sale.unidades;
+    sale.plats.forEach(function(p){if(skuSales[skuKey].plats.indexOf(p)<0)skuSales[skuKey].plats.push(p);});
   });
-  eligible.sort(function(a,b){ return b[2]-a[2]; });
-  var top100     = eligible.slice(0, 100);
-  var totalScore = top100.reduce(function(s,it){ return s+it[2]; }, 0) || 1;
-  return top100.map(function(it, idx) {
-    var sku=it[0], desc=it[1], precioIva=it[2];
-    var precioSiva = precioIva / 1.16;
-    var linea   = _skuGetLinea(sku, desc);
-    var familia = _skuGetFamilia(linea, sku, desc);
-    var merch   = _SKU_MERCH_MAP[linea] || 'Por asignar';
-    var plats   = _SKU_PLAT_MAP[linea]  || ['ML'];
-    var pct     = precioIva / totalScore;
-    var metaMxn = meta  * pct;
-    var unidades= Math.ceil(metaMxn / precioSiva);
-    var inversion= publi * pct;
-    var roas    = inversion > 0 ? metaMxn / inversion : 0;
-    return {rank:idx+1, sku:sku, desc:desc, precioIva:precioIva, precioSiva:precioSiva,
-      linea:linea, familia:familia, merch:merch, plats:plats,
-      pct:pct, metaMxn:metaMxn, unidades:unidades, inversion:inversion, roas:roas};
+
+  /* ── 3. Construir lista candidata, ordenar por ventas históricas ────── */
+  var candidates=Object.keys(skuSales).map(function(skuKey){
+    var s=skuSales[skuKey];
+    var plItem=PLIST_IDX[skuKey];
+    var precioIva = plItem ? plItem[2] : (s.unidades>0 ? Math.round(s.ingresos/s.unidades) : 0);
+    return {
+      sku:        plItem?plItem[0]:skuKey,
+      desc:       plItem?plItem[1]:s.title,
+      precioIva:  precioIva,
+      histIngresos:s.ingresos,
+      histUnidades:s.unidades,
+      plats:      s.plats,
+      matched:    s.matched,
+    };
+  }).filter(function(c){return c.histIngresos>0&&c.sku;});
+
+  candidates.sort(function(a,b){return b.histIngresos-a.histIngresos;});
+  var top=candidates.slice(0,100);
+  var totalIngresos=top.reduce(function(s,c){return s+c.histIngresos;},0)||1;
+
+  return top.map(function(c,idx){
+    var precioSiva=c.precioIva>0?c.precioIva/1.16:0;
+    var linea    =_skuGetLinea(c.sku,c.desc);
+    var familia  =_skuGetFamilia(linea,c.sku,c.desc);
+    var merch    =_SKU_MERCH_MAP[linea]||'Por asignar';
+    var plats    =c.plats.length>0?c.plats:(_SKU_PLAT_MAP[linea]||['ML']);
+    var pct      =c.histIngresos/totalIngresos;
+    var metaMxn  =meta*pct;
+    var unidades =precioSiva>0?Math.ceil(metaMxn/precioSiva):0;
+    var inversion=publi*pct;
+    var roas     =inversion>0?metaMxn/inversion:0;
+    return {rank:idx+1,sku:c.sku,desc:c.desc,precioIva:c.precioIva,precioSiva:precioSiva,
+      linea:linea,familia:familia,merch:merch,plats:plats,matched:c.matched,
+      histIngresos:c.histIngresos,histUnidades:c.histUnidades,
+      pct:pct,metaMxn:metaMxn,unidades:unidades,inversion:inversion,roas:roas};
   });
 }
 
@@ -7448,15 +7598,16 @@ function _skuPlanRender() {
   var totMeta=_skuPlanFiltered.reduce(function(s,d){return s+d.metaMxn;},0);
   var totInv =_skuPlanFiltered.reduce(function(s,d){return s+d.inversion;},0);
   var totUnid=_skuPlanFiltered.reduce(function(s,d){return s+d.unidades;},0);
+  var totHist=_skuPlanFiltered.reduce(function(s,d){return s+(d.histIngresos||0);},0);
   var avgRoas=totInv>0?totMeta/totInv:0;
   var statsEl=document.getElementById('skuPlanStats');
   if (statsEl) {
     var cards=[
-      {label:'SKUs',       val:''+_skuPlanFiltered.length,  clr:'#6366f1'},
-      {label:'Meta total', val:fmtM(totMeta),               clr:'#10b981'},
-      {label:'Pub. total', val:fmtM(totInv),                clr:'#f59e0b'},
-      {label:'Unidades',   val:totUnid.toLocaleString(),    clr:'#3b82f6'},
-      {label:'ROAS prom.', val:avgRoas.toFixed(1)+'x',      clr:'#8b5cf6'},
+      {label:'SKUs con venta',val:''+_skuPlanFiltered.length,  clr:'#6366f1'},
+      {label:'Vtas. hist.',   val:fmtM(totHist),               clr:'#64748b'},
+      {label:'Meta total',    val:fmtM(totMeta),               clr:'#10b981'},
+      {label:'Pub. total',    val:fmtM(totInv),                clr:'#f59e0b'},
+      {label:'ROAS objetivo', val:avgRoas.toFixed(1)+'x',      clr:'#8b5cf6'},
     ];
     statsEl.innerHTML=cards.map(function(c){
       return '<div style="background:var(--surface);border:1px solid var(--line);border-left:3px solid '+c.clr+';border-radius:8px;padding:8px 14px;min-width:110px">'+
@@ -7466,19 +7617,19 @@ function _skuPlanRender() {
   }
 
   var cols=[
-    {key:'rank',     label:'#',           align:'center', w:'36px'},
-    {key:'sku',      label:'SKU',         align:'left',   w:'130px'},
-    {key:'desc',     label:'Descripción', align:'left',   w:''},
-    {key:'linea',    label:'Línea',       align:'left',   w:'105px'},
-    {key:'familia',  label:'Familia',     align:'left',   w:'95px'},
-    {key:'merch',    label:'Merch.',      align:'left',   w:'90px'},
-    {key:'plats',    label:'Plataformas', align:'center', w:'130px'},
-    {key:'precioIva',label:'Precio c/IVA',align:'right',  w:'105px'},
-    {key:'unidades', label:'Unid.',       align:'right',  w:'60px'},
-    {key:'metaMxn',  label:'Meta MXN',   align:'right',  w:'115px'},
-    {key:'pct',      label:'%',          align:'right',  w:'55px'},
-    {key:'inversion',label:'Pub.',        align:'right',  w:'90px'},
-    {key:'roas',     label:'ROAS',        align:'right',  w:'58px'},
+    {key:'rank',        label:'#',           align:'center', w:'36px'},
+    {key:'sku',         label:'SKU',         align:'left',   w:'120px'},
+    {key:'desc',        label:'Descripción', align:'left',   w:''},
+    {key:'linea',       label:'Línea',       align:'left',   w:'95px'},
+    {key:'familia',     label:'Familia',     align:'left',   w:'90px'},
+    {key:'merch',       label:'Merch.',      align:'left',   w:'85px'},
+    {key:'plats',       label:'Plataformas', align:'center', w:'120px'},
+    {key:'histIngresos',label:'Vtas. Hist.', align:'right',  w:'100px'},
+    {key:'unidades',    label:'Unid.',       align:'right',  w:'58px'},
+    {key:'metaMxn',     label:'Meta MXN',   align:'right',  w:'110px'},
+    {key:'pct',         label:'%',          align:'right',  w:'50px'},
+    {key:'inversion',   label:'Pub.',        align:'right',  w:'85px'},
+    {key:'roas',        label:'ROAS',        align:'right',  w:'55px'},
   ];
 
   var ico=function(k){
@@ -7534,7 +7685,7 @@ function _skuPlanRender() {
       '<td style="padding:7px 10px;font-size:11px;color:var(--muted)">'+d.familia+'</td>'+
       '<td style="padding:7px 10px;font-size:11px">'+d.merch+'</td>'+
       '<td style="padding:7px 10px;text-align:center">'+platHtml(d.plats)+'</td>'+
-      '<td style="padding:7px 10px;text-align:right;font-weight:700">'+fmtP(d.precioIva)+'</td>'+
+      '<td style="padding:7px 10px;text-align:right;font-weight:700;color:#64748b" title="Precio: '+fmtP(d.precioIva)+'">'+fmtM(d.histIngresos)+'</td>'+
       '<td style="padding:7px 10px;text-align:right;font-weight:700;color:#1d4ed8">'+d.unidades+'</td>'+
       '<td style="padding:7px 10px;text-align:right">'+
         '<div style="font-weight:700">'+fmtM(d.metaMxn)+'</div>'+
@@ -7553,11 +7704,12 @@ function _skuPlanRender() {
 function skuPlanDownload() {
   if (!_skuPlanFiltered.length) { if(typeof showToast==='function') showToast('Sin datos para descargar','warn'); return; }
   var headers=['#','SKU','Descripción','Línea','Familia','Merchandiser','Plataformas',
-    'Precio c/IVA','Precio s/IVA','Unid. Objetivo','Meta MXN','% del Total','Inversión Pub.','ROAS Est.'];
+    'Vtas. Hist. MXN','Unid. Hist.','Precio c/IVA','Unid. Objetivo','Meta MXN','% del Total','Inversión Pub.','ROAS Est.'];
   var rows=[headers];
   _skuPlanFiltered.forEach(function(d){
     rows.push([d.rank,d.sku,d.desc,d.linea,d.familia,d.merch,d.plats.join(', '),
-      d.precioIva, parseFloat(d.precioSiva.toFixed(2)), d.unidades,
+      parseFloat((d.histIngresos||0).toFixed(2)), d.histUnidades||0,
+      d.precioIva, d.unidades,
       parseFloat(d.metaMxn.toFixed(2)), parseFloat((d.pct*100).toFixed(4)),
       parseFloat(d.inversion.toFixed(2)), parseFloat(d.roas.toFixed(2))]);
   });
@@ -7570,7 +7722,7 @@ function skuPlanDownload() {
 
   function doDownload(XLSX){
     var ws=XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols']=[{wch:4},{wch:22},{wch:52},{wch:14},{wch:14},{wch:16},{wch:22},{wch:14},{wch:14},{wch:10},{wch:14},{wch:10},{wch:14},{wch:8}];
+    ws['!cols']=[{wch:4},{wch:22},{wch:52},{wch:14},{wch:14},{wch:16},{wch:22},{wch:14},{wch:10},{wch:14},{wch:10},{wch:14},{wch:10},{wch:14},{wch:8}];
     var wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'Plan 4M Top100');
     XLSX.writeFile(wb,'Plan_Ventas_4M_Top100_SKUs.xlsx');
