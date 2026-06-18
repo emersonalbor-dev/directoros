@@ -2558,6 +2558,77 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             </div>
           </div>
         </div>
+
+        <!-- ─── PLAN VENTAS 4M — TOP 100 SKUS ──────────────────────── -->
+        <div class="recursos-section-divider" style="margin-top:24px"><span><i class="ti ti-target" style="margin-right:6px"></i>Plan de Ventas — Top 100 SKUs</span></div>
+        <div class="calc-card" style="padding:18px 20px" id="skuPlanCard">
+          <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+            <div style="flex:1;min-width:200px">
+              <div style="font-weight:700;font-size:15px">Plan de Ventas 4M &mdash; Top 100 SKUs</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">Objetivo mensual distribuido por precio unitario &bull; actualiza con ventas reales del semestre</div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+              <div style="display:flex;align-items:center;gap:5px;font-size:12px;background:var(--surface);border-radius:8px;padding:7px 10px;border:1px solid var(--line)">
+                <i class="ti ti-target" style="color:var(--maraga)"></i>
+                <span style="color:var(--muted)">Meta&nbsp;MXN:&nbsp;$</span>
+                <input type="number" id="skuPlanMeta" value="4000000" min="100000" step="100000"
+                  style="width:90px;border:none;background:transparent;font-size:12px;font-weight:700;color:var(--ink);outline:none"
+                  oninput="skuPlanRefresh()">
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;font-size:12px;background:var(--surface);border-radius:8px;padding:7px 10px;border:1px solid var(--line)">
+                <i class="ti ti-speakerphone" style="color:#f59e0b"></i>
+                <span style="color:var(--muted)">Publicidad:&nbsp;$</span>
+                <input type="number" id="skuPlanPub" value="80000" min="1000" step="1000"
+                  style="width:72px;border:none;background:transparent;font-size:12px;font-weight:700;color:var(--ink);outline:none"
+                  oninput="skuPlanRefresh()">
+              </div>
+              <button class="btn btn-sm" onclick="skuPlanDownload()" style="background:var(--maraga);color:#fff;border-color:var(--maraga)">
+                <i class="ti ti-file-spreadsheet"></i> Descargar Excel
+              </button>
+            </div>
+          </div>
+
+          <div id="skuPlanStats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
+
+          <div style="background:var(--surface);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;border:1px solid var(--line)">
+            <input type="text" id="skuPlanQ" placeholder="Buscar SKU / descripcion..." autocomplete="off"
+              style="flex:1;min-width:160px;border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-size:12px;background:var(--bg);color:var(--ink)"
+              oninput="skuPlanFilter()">
+            <select id="skuPlanLineaF" onchange="skuPlanFilterLinea()"
+              style="border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:12px;background:var(--bg);color:var(--ink)">
+              <option value="">Línea (todas)</option>
+            </select>
+            <select id="skuPlanFamiliaF" onchange="skuPlanFilter()"
+              style="border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:12px;background:var(--bg);color:var(--ink)">
+              <option value="">Familia (todas)</option>
+            </select>
+            <select id="skuPlanMerchF" onchange="skuPlanFilter()"
+              style="border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:12px;background:var(--bg);color:var(--ink)">
+              <option value="">Merchandiser (todos)</option>
+            </select>
+            <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+              <span style="font-size:11px;color:var(--muted);white-space:nowrap">Plataforma:</span>
+              <button id="skuPlat_ML"  onclick="skuPlanTogglePlat('ML')"  style="border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;background:var(--bg);color:var(--text);cursor:pointer">ML</button>
+              <button id="skuPlat_AMZ" onclick="skuPlanTogglePlat('AMZ')" style="border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;background:var(--bg);color:var(--text);cursor:pointer">Amazon</button>
+              <button id="skuPlat_WMT" onclick="skuPlanTogglePlat('WMT')" style="border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;background:var(--bg);color:var(--text);cursor:pointer">Walmart</button>
+              <button id="skuPlat_MRG" onclick="skuPlanTogglePlat('MRG')" style="border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;background:var(--bg);color:var(--text);cursor:pointer">Maraga</button>
+              <button id="skuPlat_TKT" onclick="skuPlanTogglePlat('TKT')" style="border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;background:var(--bg);color:var(--text);cursor:pointer">TikTok</button>
+            </div>
+            <button onclick="skuPlanClearFilters()"
+              style="font-size:11px;color:var(--muted);background:none;border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer">
+              <i class="ti ti-x"></i> Limpiar
+            </button>
+          </div>
+
+          <div style="overflow-x:auto;border:1px solid var(--line);border-radius:10px;max-height:540px;overflow-y:auto">
+            <table id="skuPlanTable" style="width:100%;border-collapse:collapse;font-size:12px">
+              <thead id="skuPlanThead" style="position:sticky;top:0;z-index:2;background:var(--surface)"></thead>
+              <tbody id="skuPlanTbody"></tbody>
+            </table>
+          </div>
+          <div id="skuPlanFooter" style="font-size:11px;color:var(--muted);margin-top:8px;text-align:right"></div>
+        </div>
+
         </div><!-- /recursos-panel-marketing -->
 
 
@@ -7147,6 +7218,371 @@ function kitPublicarKit() {
   showToast('Kit "'+nombre+'" listo — integracion API v1.0 disponible','success');
 }
 
+/* ── PLAN VENTAS 4M — TOP 100 SKUS ──────────────────────────────────────
+   Distribuye objetivo de $4M mensual y $80K publicidad entre los top 100
+   SKUs por precio unitario. Filtros: línea, familia, merchandiser, plataforma.
+   ─────────────────────────────────────────────────────────────────────── */
+var _skuPlanInited    = false;
+var _skuPlanData      = [];
+var _skuPlanFiltered  = [];
+var _skuPlanSortCol   = 'rank';
+var _skuPlanSortDir   = 1;
+var _skuPlanActivePlats = [];
+
+var _SKU_LINEA_RULES = [
+  [/SOLDAD|MIG\s|TIG\s|PLASMA|INVERTER.*SOLD|INOX.*SOLD|ALAMBRE.*SOLD/, 'Soldadura'],
+  [/ESMERIL|AMOLAD|PULID|DESBAST/, 'Desgaste'],
+  [/CALADORA|SIERRA\s|CIRCULAR\s/, 'Corte'],
+  [/CLAVAD|GRAPADORA|NAILER|NEUMÁTIC/, 'Fijación'],
+  [/TALADRO|PERFORAD|BIMETALIC.*PERF/, 'Taladros'],
+  [/COMPRESOR/, 'Compresores'],
+  [/INSERTO|SNMX|CNMG|TNMG|VCMT/, 'Insertos'],
+  [/BALERO|BEARING|RODAM/, 'Baleros'],
+  [/REFACC|EMPAQUE|O-RING|BUMPER|CARBON\s/, 'Refacciones'],
+  [/INTERRUP|SWITCH\s|BREAKER|CONTACTOR/, 'Eléctricos'],
+  [/FLEX\s.*[0-9]+M|CLASSIC.*PRO|SCALLOP|QXP\s|RX\s.*[0-9]+M|BANDA.*BIMETAL/, 'Sierras Cinta'],
+  [/DISCO\s|ABRAS|LIJA/, 'Abrasivos'],
+  [/ELECTRODO|6013|7018|308L|309L/, 'Soldadura'],
+];
+
+function _skuGetLinea(sku, desc) {
+  var d = (desc||'').toUpperCase();
+  for (var i=0; i<_SKU_LINEA_RULES.length; i++) {
+    if (_SKU_LINEA_RULES[i][0].test(d)) return _SKU_LINEA_RULES[i][1];
+  }
+  return 'General';
+}
+
+function _skuGetFamilia(linea, sku, desc) {
+  var d = (desc||'').toUpperCase(), s = (sku||'').toUpperCase();
+  if (linea === 'Soldadura') {
+    if (/MIG/.test(d)) return 'MIG';
+    if (/TIG/.test(d)) return 'TIG';
+    if (/PLASMA/.test(d)) return 'Plasma';
+    if (/ELECTRODO|6013|7018/.test(d)) return 'Electrodo';
+    if (/INOX|309L|308L/.test(d)) return 'Inox';
+    return 'Soldadora';
+  }
+  if (linea === 'Corte') {
+    if (/CALADORA/.test(d)) return 'Caladora';
+    if (/CIRCULAR/.test(d)) return 'Circular';
+    return 'Sierra';
+  }
+  if (linea === 'Insertos') {
+    if (/SNMX|CNMG|TNMG|VCMT/.test(d)) return 'Torneado';
+    if (/FRES/.test(d)) return 'Fresado';
+    return 'General';
+  }
+  if (linea === 'Sierras Cinta') {
+    if (/CLP|CLASSIC/.test(s)||/CLASSIC.*PRO/.test(d)) return 'Classic Pro';
+    if (/SCA|SCALLOP/.test(s)) return 'Scallop';
+    if (/^FB-|FLEX\s/.test(s)||/FLEX\s/.test(d)) return 'Flex Back';
+    if (/^RX-|^RX\s/.test(s)) return 'RX Plus';
+    if (/QXP/.test(s)) return 'QXP';
+    return 'Otros';
+  }
+  return linea;
+}
+
+var _SKU_MERCH_MAP = {
+  'Soldadura':'Carlos M.','Corte':'Ana R.','Desgaste':'Ana R.',
+  'Insertos':'Luis V.','Baleros':'Luis V.','Fijación':'Carlos M.',
+  'Taladros':'Ana R.','Compresores':'Carlos M.','Refacciones':'Luis V.',
+  'Eléctricos':'Luis V.','Abrasivos':'Ana R.','Sierras Cinta':'Ana R.','General':'Por asignar'
+};
+var _SKU_PLAT_MAP = {
+  'Soldadura':    ['ML','AMZ','WMT','MRG'],
+  'Corte':        ['ML','AMZ','WMT','MRG'],
+  'Desgaste':     ['ML','AMZ','WMT'],
+  'Insertos':     ['ML','AMZ','MRG'],
+  'Baleros':      ['ML','MRG'],
+  'Fijación':     ['ML','AMZ','WMT'],
+  'Taladros':     ['ML','AMZ','WMT','MRG'],
+  'Compresores':  ['ML','AMZ','WMT','MRG'],
+  'Refacciones':  ['ML','MRG'],
+  'Eléctricos':   ['ML','MRG'],
+  'Abrasivos':    ['ML','AMZ','WMT'],
+  'Sierras Cinta':['ML','AMZ'],
+  'General':      ['ML']
+};
+var _PLAT_CLR = {ML:'#FFE01B',AMZ:'#FF9900',WMT:'#0071CE',MRG:'#E2001A',TKT:'#010101'};
+var _PLAT_TXT = {ML:'#333333',AMZ:'#ffffff',WMT:'#ffffff',MRG:'#ffffff',TKT:'#ffffff'};
+
+function _skuPlanBuild() {
+  var meta  = parseFloat((document.getElementById('skuPlanMeta')||{}).value) || 4000000;
+  var publi = parseFloat((document.getElementById('skuPlanPub')||{}).value)  || 80000;
+  var eligible = (typeof PRICE_LIST !== 'undefined' ? PRICE_LIST : []).filter(function(it){
+    return it[2] >= 500;
+  });
+  eligible.sort(function(a,b){ return b[2]-a[2]; });
+  var top100     = eligible.slice(0, 100);
+  var totalScore = top100.reduce(function(s,it){ return s+it[2]; }, 0) || 1;
+  return top100.map(function(it, idx) {
+    var sku=it[0], desc=it[1], precioIva=it[2];
+    var precioSiva = precioIva / 1.16;
+    var linea   = _skuGetLinea(sku, desc);
+    var familia = _skuGetFamilia(linea, sku, desc);
+    var merch   = _SKU_MERCH_MAP[linea] || 'Por asignar';
+    var plats   = _SKU_PLAT_MAP[linea]  || ['ML'];
+    var pct     = precioIva / totalScore;
+    var metaMxn = meta  * pct;
+    var unidades= Math.ceil(metaMxn / precioSiva);
+    var inversion= publi * pct;
+    var roas    = inversion > 0 ? metaMxn / inversion : 0;
+    return {rank:idx+1, sku:sku, desc:desc, precioIva:precioIva, precioSiva:precioSiva,
+      linea:linea, familia:familia, merch:merch, plats:plats,
+      pct:pct, metaMxn:metaMxn, unidades:unidades, inversion:inversion, roas:roas};
+  });
+}
+
+function skuPlanInit() {
+  if (_skuPlanInited) return;
+  _skuPlanInited = true;
+  _skuPlanData   = _skuPlanBuild();
+  _skuPlanPopulateFilters();
+  skuPlanFilter();
+}
+
+function _skuPlanPopulateFilters() {
+  var lineas=[], merches=[];
+  _skuPlanData.forEach(function(d){
+    if (lineas.indexOf(d.linea)<0)   lineas.push(d.linea);
+    if (merches.indexOf(d.merch)<0)  merches.push(d.merch);
+  });
+  lineas.sort(); merches.sort();
+  var lEl=document.getElementById('skuPlanLineaF');
+  var mEl=document.getElementById('skuPlanMerchF');
+  if (lEl) lEl.innerHTML='<option value="">Línea (todas)</option>'+lineas.map(function(l){return '<option>'+l+'</option>';}).join('');
+  if (mEl) mEl.innerHTML='<option value="">Merchandiser (todos)</option>'+merches.map(function(m){return '<option>'+m+'</option>';}).join('');
+}
+
+function skuPlanFilterLinea() {
+  var linea = (document.getElementById('skuPlanLineaF')||{}).value||'';
+  var fEl   = document.getElementById('skuPlanFamiliaF');
+  if (!fEl) { skuPlanFilter(); return; }
+  var familias = [];
+  _skuPlanData.forEach(function(d){
+    if ((!linea || d.linea===linea) && familias.indexOf(d.familia)<0) familias.push(d.familia);
+  });
+  familias.sort();
+  fEl.innerHTML = '<option value="">Familia (todas)</option>'+familias.map(function(f){return '<option>'+f+'</option>';}).join('');
+  skuPlanFilter();
+}
+
+function skuPlanTogglePlat(p) {
+  var i = _skuPlanActivePlats.indexOf(p);
+  if (i>=0) _skuPlanActivePlats.splice(i,1); else _skuPlanActivePlats.push(p);
+  ['ML','AMZ','WMT','MRG','TKT'].forEach(function(pl){
+    var btn = document.getElementById('skuPlat_'+pl);
+    if (!btn) return;
+    if (_skuPlanActivePlats.indexOf(pl) >= 0) {
+      btn.style.background  = _PLAT_CLR[pl]||'#888';
+      btn.style.color       = _PLAT_TXT[pl]||'#fff';
+      btn.style.borderColor = _PLAT_CLR[pl]||'#888';
+    } else {
+      btn.style.background  = 'var(--bg)';
+      btn.style.color       = 'var(--text)';
+      btn.style.borderColor = 'var(--line)';
+    }
+  });
+  skuPlanFilter();
+}
+
+function skuPlanFilter() {
+  if (!_skuPlanInited) return;
+  var q     = ((document.getElementById('skuPlanQ')||{}).value||'').toLowerCase().trim();
+  var linea = (document.getElementById('skuPlanLineaF')||{}).value||'';
+  var fam   = (document.getElementById('skuPlanFamiliaF')||{}).value||'';
+  var merch = (document.getElementById('skuPlanMerchF')||{}).value||'';
+  _skuPlanFiltered = _skuPlanData.filter(function(d){
+    if (q && d.sku.toLowerCase().indexOf(q)<0 && d.desc.toLowerCase().indexOf(q)<0) return false;
+    if (linea && d.linea   !== linea) return false;
+    if (fam   && d.familia !== fam)   return false;
+    if (merch && d.merch   !== merch) return false;
+    if (_skuPlanActivePlats.length>0 && !_skuPlanActivePlats.some(function(p){ return d.plats.indexOf(p)>=0; })) return false;
+    return true;
+  });
+  _skuPlanApplySort();
+  _skuPlanRender();
+}
+
+function skuPlanRefresh() {
+  _skuPlanData = _skuPlanBuild();
+  _skuPlanPopulateFilters();
+  skuPlanFilter();
+}
+
+function skuPlanClearFilters() {
+  var q=document.getElementById('skuPlanQ'), l=document.getElementById('skuPlanLineaF'),
+      f=document.getElementById('skuPlanFamiliaF'), m=document.getElementById('skuPlanMerchF');
+  if(q) q.value=''; if(l) l.value=''; if(m) m.value='';
+  if(f) f.innerHTML='<option value="">Familia (todas)</option>';
+  _skuPlanActivePlats=[];
+  ['ML','AMZ','WMT','MRG','TKT'].forEach(function(p){
+    var btn=document.getElementById('skuPlat_'+p);
+    if(btn){btn.style.background='var(--bg)';btn.style.color='var(--text)';btn.style.borderColor='var(--line)';}
+  });
+  skuPlanFilter();
+}
+
+function skuPlanSortBy(col) {
+  if (_skuPlanSortCol===col) _skuPlanSortDir*=-1;
+  else { _skuPlanSortCol=col; _skuPlanSortDir=(col==='rank'?1:-1); }
+  _skuPlanApplySort();
+  _skuPlanRender();
+}
+
+function _skuPlanApplySort() {
+  var col=_skuPlanSortCol, dir=_skuPlanSortDir;
+  _skuPlanFiltered.sort(function(a,b){
+    var av=a[col]||0, bv=b[col]||0;
+    if (typeof av==='string') return dir*(av<bv?-1:av>bv?1:0);
+    return dir*(av-bv);
+  });
+}
+
+function _skuPlanRender() {
+  var fmtM = function(n){ return '$'+Math.round(n).toLocaleString('es-MX'); };
+  var fmtP = function(n){ return '$'+n.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+
+  var totMeta=_skuPlanFiltered.reduce(function(s,d){return s+d.metaMxn;},0);
+  var totInv =_skuPlanFiltered.reduce(function(s,d){return s+d.inversion;},0);
+  var totUnid=_skuPlanFiltered.reduce(function(s,d){return s+d.unidades;},0);
+  var avgRoas=totInv>0?totMeta/totInv:0;
+  var statsEl=document.getElementById('skuPlanStats');
+  if (statsEl) {
+    var cards=[
+      {label:'SKUs',       val:''+_skuPlanFiltered.length,  clr:'#6366f1'},
+      {label:'Meta total', val:fmtM(totMeta),               clr:'#10b981'},
+      {label:'Pub. total', val:fmtM(totInv),                clr:'#f59e0b'},
+      {label:'Unidades',   val:totUnid.toLocaleString(),    clr:'#3b82f6'},
+      {label:'ROAS prom.', val:avgRoas.toFixed(1)+'x',      clr:'#8b5cf6'},
+    ];
+    statsEl.innerHTML=cards.map(function(c){
+      return '<div style="background:var(--surface);border:1px solid var(--line);border-left:3px solid '+c.clr+';border-radius:8px;padding:8px 14px;min-width:110px">'+
+        '<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em">'+c.label+'</div>'+
+        '<div style="font-size:17px;font-weight:800;color:'+c.clr+'">'+c.val+'</div></div>';
+    }).join('');
+  }
+
+  var cols=[
+    {key:'rank',     label:'#',           align:'center', w:'36px'},
+    {key:'sku',      label:'SKU',         align:'left',   w:'130px'},
+    {key:'desc',     label:'Descripción', align:'left',   w:''},
+    {key:'linea',    label:'Línea',       align:'left',   w:'105px'},
+    {key:'familia',  label:'Familia',     align:'left',   w:'95px'},
+    {key:'merch',    label:'Merch.',      align:'left',   w:'90px'},
+    {key:'plats',    label:'Plataformas', align:'center', w:'130px'},
+    {key:'precioIva',label:'Precio c/IVA',align:'right',  w:'105px'},
+    {key:'unidades', label:'Unid.',       align:'right',  w:'60px'},
+    {key:'metaMxn',  label:'Meta MXN',   align:'right',  w:'115px'},
+    {key:'pct',      label:'%',          align:'right',  w:'55px'},
+    {key:'inversion',label:'Pub.',        align:'right',  w:'90px'},
+    {key:'roas',     label:'ROAS',        align:'right',  w:'58px'},
+  ];
+
+  var ico=function(k){
+    if(_skuPlanSortCol!==k) return '<i class="ti ti-selector" style="font-size:9px;opacity:.3;margin-left:2px"></i>';
+    return _skuPlanSortDir>0
+      ?'<i class="ti ti-chevron-up"   style="font-size:9px;color:var(--maraga);margin-left:2px"></i>'
+      :'<i class="ti ti-chevron-down" style="font-size:9px;color:var(--maraga);margin-left:2px"></i>';
+  };
+
+  var thead=document.getElementById('skuPlanThead');
+  if (thead) {
+    thead.innerHTML='<tr style="border-bottom:2px solid var(--line)">'+cols.map(function(c){
+      return '<th onclick="skuPlanSortBy(\''+c.key+'\')" style="padding:9px 10px;text-align:'+c.align+
+        (c.w?';width:'+c.w:'')+';font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;'+
+        'letter-spacing:.04em;cursor:pointer;white-space:nowrap;user-select:none">'+c.label+ico(c.key)+'</th>';
+    }).join('')+'</tr>';
+  }
+
+  var tbody=document.getElementById('skuPlanTbody');
+  if (!tbody) return;
+  if (!_skuPlanFiltered.length) {
+    tbody.innerHTML='<tr><td colspan="'+cols.length+'" style="text-align:center;padding:32px;color:var(--muted)">Sin resultados con los filtros actuales</td></tr>';
+    var fe=document.getElementById('skuPlanFooter'); if(fe) fe.textContent='';
+    return;
+  }
+
+  var platHtml=function(plats){
+    return plats.map(function(p){
+      return '<span style="background:'+(_PLAT_CLR[p]||'#888')+';color:'+(_PLAT_TXT[p]||'#fff')+
+        ';border-radius:4px;padding:2px 5px;font-size:10px;font-weight:700;margin:1px;display:inline-block">'+p+'</span>';
+    }).join('');
+  };
+
+  var lineaBadge=function(l){
+    var bg='#e0e7ff',tc='#3730a3';
+    if(l==='Soldadura')     {bg='#fef3c7';tc='#92400e';}
+    else if(l==='Corte')    {bg='#fee2e2';tc='#7f1d1d';}
+    else if(l==='Desgaste') {bg='#fce7f3';tc='#831843';}
+    else if(l==='Insertos') {bg='#e0f2fe';tc='#0c4a6e';}
+    else if(l==='Baleros')  {bg='#dcfce7';tc='#14532d';}
+    else if(l==='Fijación') {bg='#f3e8ff';tc='#581c87';}
+    else if(l==='Sierras Cinta'){bg='#ecfdf5';tc='#065f46';}
+    return '<span style="background:'+bg+';color:'+tc+';border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap">'+l+'</span>';
+  };
+
+  tbody.innerHTML=_skuPlanFiltered.map(function(d){
+    var barW=Math.min(d.pct*100*8,100).toFixed(1);
+    return '<tr style="border-bottom:1px solid var(--line)" onmouseover="this.style.background=\'var(--surface)\'" onmouseout="this.style.background=\'\'">'+
+      '<td style="padding:7px 10px;text-align:center;color:var(--muted);font-size:11px;font-weight:700">'+d.rank+'</td>'+
+      '<td style="padding:7px 10px;font-family:monospace;font-size:11px;font-weight:700;color:var(--maraga)">'+d.sku+'</td>'+
+      '<td style="padding:7px 10px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+d.desc+'">'+d.desc+'</td>'+
+      '<td style="padding:7px 10px">'+lineaBadge(d.linea)+'</td>'+
+      '<td style="padding:7px 10px;font-size:11px;color:var(--muted)">'+d.familia+'</td>'+
+      '<td style="padding:7px 10px;font-size:11px">'+d.merch+'</td>'+
+      '<td style="padding:7px 10px;text-align:center">'+platHtml(d.plats)+'</td>'+
+      '<td style="padding:7px 10px;text-align:right;font-weight:700">'+fmtP(d.precioIva)+'</td>'+
+      '<td style="padding:7px 10px;text-align:right;font-weight:700;color:#1d4ed8">'+d.unidades+'</td>'+
+      '<td style="padding:7px 10px;text-align:right">'+
+        '<div style="font-weight:700">'+fmtM(d.metaMxn)+'</div>'+
+        '<div style="width:'+barW+'%;height:3px;background:var(--maraga);border-radius:2px;margin-top:2px;min-width:2px"></div>'+
+      '</td>'+
+      '<td style="padding:7px 10px;text-align:right;color:var(--muted);font-size:11px">'+((d.pct*100).toFixed(2))+'%</td>'+
+      '<td style="padding:7px 10px;text-align:right;color:#d97706;font-weight:600">'+fmtM(d.inversion)+'</td>'+
+      '<td style="padding:7px 10px;text-align:right;font-weight:700;color:#059669">'+d.roas.toFixed(1)+'x</td>'+
+    '</tr>';
+  }).join('');
+
+  var fe=document.getElementById('skuPlanFooter');
+  if(fe) fe.textContent='Mostrando '+_skuPlanFiltered.length+' de '+_skuPlanData.length+' SKUs';
+}
+
+function skuPlanDownload() {
+  if (!_skuPlanFiltered.length) { if(typeof showToast==='function') showToast('Sin datos para descargar','warn'); return; }
+  var headers=['#','SKU','Descripción','Línea','Familia','Merchandiser','Plataformas',
+    'Precio c/IVA','Precio s/IVA','Unid. Objetivo','Meta MXN','% del Total','Inversión Pub.','ROAS Est.'];
+  var rows=[headers];
+  _skuPlanFiltered.forEach(function(d){
+    rows.push([d.rank,d.sku,d.desc,d.linea,d.familia,d.merch,d.plats.join(', '),
+      d.precioIva, parseFloat(d.precioSiva.toFixed(2)), d.unidades,
+      parseFloat(d.metaMxn.toFixed(2)), parseFloat((d.pct*100).toFixed(4)),
+      parseFloat(d.inversion.toFixed(2)), parseFloat(d.roas.toFixed(2))]);
+  });
+  var meta=parseFloat((document.getElementById('skuPlanMeta')||{}).value)||4000000;
+  var pub =parseFloat((document.getElementById('skuPlanPub')||{}).value)||80000;
+  rows.push([]); rows.push([]);
+  rows.push(['Meta mensual total','$'+meta.toLocaleString('es-MX')]);
+  rows.push(['Presupuesto publicidad','$'+pub.toLocaleString('es-MX')]);
+  rows.push(['ROAS global objetivo',(meta/pub).toFixed(1)+'x']);
+
+  function doDownload(XLSX){
+    var ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=[{wch:4},{wch:22},{wch:52},{wch:14},{wch:14},{wch:16},{wch:22},{wch:14},{wch:14},{wch:10},{wch:14},{wch:10},{wch:14},{wch:8}];
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Plan 4M Top100');
+    XLSX.writeFile(wb,'Plan_Ventas_4M_Top100_SKUs.xlsx');
+    if(typeof showToast==='function') showToast('Excel descargado correctamente','success');
+  }
+  if (typeof XLSX!=='undefined') { doDownload(XLSX); return; }
+  var s=document.createElement('script');
+  s.src='https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js';
+  s.onload=function(){ doDownload(window.XLSX); };
+  document.head.appendChild(s);
+}
+
 /* ── Kit IA — Generador de descripción con Claude API ──────────────── */
 function kitConfigAI() {
   var existing = localStorage.getItem('directoros_ai_key') || '';
@@ -7910,6 +8346,7 @@ function switchRecursosTab(name, el) {
   el.classList.add('active');
   document.getElementById('recursos-panel-' + name).classList.add('active');
   if (name === 'ml') renderMLFull(_mlMesActivo || '2026-06');
+  if (name === 'marketing') skuPlanInit();
 }
 
 /* ═══════════════════════════════════════════════════════
