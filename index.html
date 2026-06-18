@@ -2604,7 +2604,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             </select>
             <select id="skuPlanMerchF" onchange="skuPlanFilter()"
               style="border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:12px;background:var(--bg);color:var(--ink)">
-              <option value="">Merchandiser (todos)</option>
+              <option value="">Responsable (todos)</option>
             </select>
             <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
               <span style="font-size:11px;color:var(--muted);white-space:nowrap">Plataforma:</span>
@@ -7241,6 +7241,89 @@ var _SKU_CODE_MAP = {
   'MGS200':'MG-S-200','MG-S-200':'MG-S-200',
 };
 
+/* ── Catálogo estratégico Maraga — Línea/Familia/Responsable (Tableau) ─── */
+var _CATALOG = {
+  '20116T2':        {l:'HANDTOOLS',  f:'Segueta',       r:''},
+  '20117T2':        {l:'HANDTOOLS',  f:'Segueta',       r:''},
+  'A20160':         {l:'HANDTOOLS',  f:'Segueta',       r:''},
+  'A20161':         {l:'HANDTOOLS',  f:'Segueta',       r:''},
+  'MF340':          {l:'MFOAM',      f:'Espuma',        r:''},
+  'FOAM340':        {l:'MFOAM',      f:'Espuma',        r:''},
+  'A-7704-55':      {l:'MFLUIDS',    f:'Refrigerantes', r:''},
+  'PT-A7704-CUB':   {l:'MFLUIDS',    f:'Refrigerantes', r:''},
+  'PT-A7704-GAL':   {l:'MFLUIDS',    f:'Refrigerantes', r:''},
+  'M25777-16OZ':    {l:'MFLUIDS',    f:'Anti Spatter',  r:''},
+  'M1759000092MX':  {l:'MPALLET',    f:'Clavo',         r:''},
+  'M1759000092':    {l:'MPALLET',    f:'Clavo',         r:''},
+  'M2009000092MX':  {l:'MPALLET',    f:'Clavo',         r:''},
+  'M2009000092':    {l:'MPALLET',    f:'Clavo',         r:''},
+  'M2009000MX':     {l:'MPALLET',    f:'Clavo',         r:''},
+  'M2009000':       {l:'MPALLET',    f:'Clavo',         r:''},
+  'M2259000MX':     {l:'MPALLET',    f:'Clavo',         r:''},
+  'M2259000':       {l:'MPALLET',    f:'Clavo',         r:''},
+  'M2389000MX':     {l:'MPALLET',    f:'Clavo',         r:''},
+  'M2389000':       {l:'MPALLET',    f:'Clavo',         r:''},
+  'M2509000MX':     {l:'MPALLET',    f:'Clavo',         r:''},
+  'M2509000':       {l:'MPALLET',    f:'Clavo',         r:''},
+  'M3005400113MX':  {l:'MPALLET',    f:'Clavo',         r:''},
+  'M3005400113':    {l:'MPALLET',    f:'Clavo',         r:''},
+  'RS10':           {l:'MPALLET',    f:'Sierra Sable',  r:''},
+  'RS8':            {l:'MPALLET',    f:'Sierra Sable',  r:''},
+  'RS10M':          {l:'MPALLET',    f:'Sierra Sable',  r:''},
+  'BN200RP':        {l:'MPALLET',    f:'Herramienta',   r:''},
+  'CN70RP':         {l:'MPALLET',    f:'Herramienta',   r:''},
+  'SS1300':         {l:'MPALLET',    f:'Herramienta',   r:''},
+  'MW-ARC160':      {l:'MWELDING',   f:'Soldadoras',    r:''},
+  'MW-ARC200':      {l:'MWELDING',   f:'Soldadoras',    r:''},
+  'MW-ARC300DV':    {l:'MWELDING',   f:'Soldadoras',    r:''},
+  'MW-ARC350':      {l:'MWELDING',   f:'Soldadoras',    r:''},
+  'MW-KE500':       {l:'MWELDING',   f:'Soldadoras',    r:'Critico A'},
+  'MIG200':         {l:'MWELDING',   f:'Soldadoras',    r:'Critico A'},
+  'MIG-350A':       {l:'MWELDING',   f:'Soldadoras',    r:'Critico A'},
+  'FORCE200':       {l:'MWELDING',   f:'Soldadoras',    r:'Critico A'},
+  'MW-FORCE-200G':  {l:'MWELDING',   f:'Soldadoras',    r:'Critico A'},
+  'FREE450':        {l:'MWELDING',   f:'Caretas',       r:''},
+  'FOCUS550':       {l:'MWELDING',   f:'Caretas',       r:''},
+  'WEGA350':        {l:'MWELDING',   f:'Caretas',       r:''},
+  'MW-ER70S-6-35':  {l:'MWELDING',   f:'Microalambre',  r:''},
+  'MW-ER70S-6-35D': {l:'MWELDING',   f:'Microalambre',  r:''},
+  'MW-ER70S-6-45':  {l:'MWELDING',   f:'Microalambre',  r:'Critico A'},
+  'MW-ER70S-6-45D': {l:'MWELDING',   f:'Microalambre',  r:'Critico A'},
+  'MW-E71T-1-16':   {l:'MWELDING',   f:'Microalambre',  r:''},
+  'MW-E71T-1-45':   {l:'MWELDING',   f:'Microalambre',  r:'Critico A'},
+  'MW-E6013-18':    {l:'MWELDING',   f:'Electrodo',     r:''},
+  'MW-E6013-18-1':  {l:'MWELDING',   f:'Electrodo',     r:'Critico A'},
+  'MW-E6013-332':   {l:'MWELDING',   f:'Electrodo',     r:''},
+  'MW-E6013-332-1': {l:'MWELDING',   f:'Electrodo',     r:'Critico A'},
+  'MW-E7018-18':    {l:'MWELDING',   f:'Electrodo',     r:''},
+  'MW-E7018-18-1':  {l:'MWELDING',   f:'Electrodo',     r:'Critico A'},
+  'MW-E6011-18':    {l:'MWELDING',   f:'Electrodo',     r:'Critico A'},
+  'MW-E6011-18-1':  {l:'MWELDING',   f:'Electrodo',     r:'Critico A'},
+  'MW-E6011-332':   {l:'MWELDING',   f:'Electrodo',     r:'Critico A'},
+  'MW-E6011-332-1': {l:'MWELDING',   f:'Electrodo',     r:'Critico A'},
+  'MW-E71TGS-35':   {l:'MWELDING',   f:'Fluxcore',      r:''},
+  'MW-E71TGS-30':   {l:'MWELDING',   f:'Fluxcore',      r:''},
+  'DA451078FL1X':   {l:'MWELDING',   f:'Abrasivos',     r:''},
+  'DAF457860-Z':    {l:'MWELDING',   f:'Abrasivos',     r:''},
+  'DAF457880-Z':    {l:'MWELDING',   f:'Abrasivos',     r:''},
+  'DAF457840-Z':    {l:'MWELDING',   f:'Abrasivos',     r:''},
+  'DD14220130X':    {l:'MWELDING',   f:'Disco Diamante', r:''},
+  'DD45127830X':    {l:'MWELDING',   f:'Disco Diamante', r:'Critico B'},
+  'DC45':           {l:'MWELDING',   f:'Disco Diamante', r:'Critico B'},
+  'CM2400':         {l:'MWELDING',   f:'Herramienta',   r:''},
+  'EA800':          {l:'MWELDING',   f:'Herramienta',   r:''},
+  'MPEA800':        {l:'MWELDING',   f:'Herramienta',   r:''},
+  'RM800':          {l:'MWELDING',   f:'Herramienta',   r:''},
+  'MP850A':         {l:'MWELDING',   f:'Herramienta',   r:''},
+  'BS-712N':        {l:'MPOWER',     f:'Maquina',       r:''},
+  'BS-1018B':       {l:'MPOWER',     f:'Maquina',       r:''},
+  'MW-JD9000':      {l:'MPOWER',     f:'Generador',     r:''},
+  'MW-JD7500':      {l:'MPOWER',     f:'Generador',     r:'Critico A'},
+  'N70CB-1':        {l:'STANLEYBD',  f:'Herramienta',   r:'Critico A'},
+  'N80CB-1ML':      {l:'STANLEYBD',  f:'Herramienta',   r:'Critico A'},
+  'DWE304':         {l:'STANLEYBD',  f:'Herramienta',   r:'Critico A'},
+};
+
 var _SKU_LINEA_RULES = [
   [/CARETA|MASCARA.*SOLD/, 'Caretas'],
   [/SOLDAD|MIG\s|TIG\s|PLASMA|INVERTER.*SOLD|INOX.*SOLD|ALAMBRE.*SOLD|MICROALAMBRE|FLUXCORE/, 'Soldadura'],
@@ -7469,9 +7552,10 @@ function _skuPlanBuild() {
 
   return top.map(function(c,idx){
     var precioSiva=c.precioIva>0?c.precioIva/1.16:0;
-    var linea    =_skuGetLinea(c.sku,c.desc);
-    var familia  =_skuGetFamilia(linea,c.sku,c.desc);
-    var merch    =_SKU_MERCH_MAP[linea]||'Por asignar';
+    var _cat     =_CATALOG[c.sku]||null;
+    var linea    =_cat?_cat.l:_skuGetLinea(c.sku,c.desc);
+    var familia  =_cat?_cat.f:_skuGetFamilia(linea,c.sku,c.desc);
+    var merch    =_cat?(_cat.r||'Sin clasificar'):'Sin clasificar';
     var plats    =c.plats.length>0?c.plats:(_SKU_PLAT_MAP[linea]||['ML']);
     var pct      =c.histIngresos/totalIngresos;
     var metaMxn  =meta*pct;
@@ -7503,7 +7587,7 @@ function _skuPlanPopulateFilters() {
   var lEl=document.getElementById('skuPlanLineaF');
   var mEl=document.getElementById('skuPlanMerchF');
   if (lEl) lEl.innerHTML='<option value="">Línea (todas)</option>'+lineas.map(function(l){return '<option>'+l+'</option>';}).join('');
-  if (mEl) mEl.innerHTML='<option value="">Merchandiser (todos)</option>'+merches.map(function(m){return '<option>'+m+'</option>';}).join('');
+  if (mEl) mEl.innerHTML='<option value="">Responsable (todos)</option>'+merches.map(function(m){return '<option>'+m+'</option>';}).join('');
 }
 
 function skuPlanFilterLinea() {
@@ -7622,7 +7706,7 @@ function _skuPlanRender() {
     {key:'desc',        label:'Descripción', align:'left',   w:''},
     {key:'linea',       label:'Línea',       align:'left',   w:'95px'},
     {key:'familia',     label:'Familia',     align:'left',   w:'90px'},
-    {key:'merch',       label:'Merch.',      align:'left',   w:'85px'},
+    {key:'merch',       label:'Resp.',        align:'left',   w:'85px'},
     {key:'plats',       label:'Plataformas', align:'center', w:'120px'},
     {key:'histIngresos',label:'Vtas. Hist.', align:'right',  w:'100px'},
     {key:'unidades',    label:'Unid.',       align:'right',  w:'58px'},
@@ -7703,7 +7787,7 @@ function _skuPlanRender() {
 
 function skuPlanDownload() {
   if (!_skuPlanFiltered.length) { if(typeof showToast==='function') showToast('Sin datos para descargar','warn'); return; }
-  var headers=['#','SKU','Descripción','Línea','Familia','Merchandiser','Plataformas',
+  var headers=['#','SKU','Descripción','Línea','Familia','Responsable','Plataformas',
     'Vtas. Hist. MXN','Unid. Hist.','Precio c/IVA','Unid. Objetivo','Meta MXN','% del Total','Inversión Pub.','ROAS Est.'];
   var rows=[headers];
   _skuPlanFiltered.forEach(function(d){
