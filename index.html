@@ -5078,12 +5078,12 @@ async function actualizarVentas(esAuto) {
   }
 
   try {
-    // Llamadas paralelas: Tableau para Amazon/MaragaMX/TikTok + directo para ML y Walmart (solo mes actual)
+    // Llamadas paralelas: Tableau (Amazon/MaragaMX/TikTok) + Railway directo (ML/Walmart, solo mes actual)
     var _promesas = [
       fetch(VENTAS_API_BASE + '/api/ventas/plataforma-mes?mes=' + mesSel, { signal: AbortSignal.timeout(30000) })
     ];
     if (_esActual) {
-      _promesas.push(fetch(VENTAS_API_BASE + '/api/ventas/mes-actual', { signal: AbortSignal.timeout(30000) }));
+      _promesas.push(fetch(VENTAS_API_BASE + '/api/ventas/mes-actual', { signal: AbortSignal.timeout(60000) }));
     }
     var _resultados = await Promise.allSettled(_promesas);
 
@@ -5092,23 +5092,11 @@ async function actualizarVentas(esAuto) {
     if (!_platRes.value.ok) throw new Error('HTTP ' + _platRes.value.status);
     var data = await _platRes.value.json();
 
-    // ML y Walmart desde API directa (solo mes actual)
+    // ML y Walmart desde Railway directo (solo mes actual)
     if (_esActual && _resultados[1] && _resultados[1].status === 'fulfilled' && _resultados[1].value.ok) {
       var _directo = await _resultados[1].value.json();
       if (_directo.mercadolibre && _directo.mercadolibre.total) data.mercadolibre = _directo.mercadolibre;
       if (_directo.walmart      && _directo.walmart.total)      data.walmart      = _directo.walmart;
-    }
-
-    // Walmart y ML desde servidor local en paralelo (localhost:3001) — solo mes actual
-    if (_esActual) {
-      var [_wLocalR, _mlLocalR] = await Promise.allSettled([
-        fetch('http://localhost:3001/walmart', { signal: AbortSignal.timeout(30000) })
-          .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }),
-        fetch('http://localhost:3001/ml', { signal: AbortSignal.timeout(90000) })
-          .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; })
-      ]);
-      if (_wLocalR.value  && _wLocalR.value.walmart      && _wLocalR.value.walmart.total)      data.walmart      = _wLocalR.value.walmart;
-      if (_mlLocalR.value && _mlLocalR.value.mercadolibre && _mlLocalR.value.mercadolibre.total) data.mercadolibre = _mlLocalR.value.mercadolibre;
     }
 
     // Usar siempre el mes seleccionado por el usuario; ignorar data.mes
@@ -5131,9 +5119,9 @@ async function actualizarVentas(esAuto) {
       if (data.maraga_mx) VENTAS_PLAT_DATA[mes].maraga_mx = _mergeTop(data.maraga_mx, VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].maraga_mx);
       if (data.tiktok)    VENTAS_PLAT_DATA[mes].tiktok    = _mergeTop(data.tiktok,    VENTAS_PLAT_DATA[mes] && VENTAS_PLAT_DATA[mes].tiktok);
     }
-    // Walmart: actualizar desde Railway o local si tiene datos reales
-    // ML: NO actualizar desde Railway (datos inexactos) — solo desde bridge local o hardcoded
-    if (data.walmart && data.walmart.total) VENTAS_PLAT_DATA[mes].walmart = data.walmart;
+    // ML y Walmart desde Railway directo
+    if (data.mercadolibre && data.mercadolibre.total) VENTAS_PLAT_DATA[mes].mercadolibre = data.mercadolibre;
+    if (data.walmart      && data.walmart.total)      VENTAS_PLAT_DATA[mes].walmart      = data.walmart;
 
     // Re-renderizar TODO: tarjetas + KPI principal + barras + chips de totales
     setDashMes(mes);
