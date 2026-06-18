@@ -5049,28 +5049,33 @@ function _fmtK(n) {
   return '$' + Math.round(n);
 }
 
+var _actualizandoVentas = false;
 async function actualizarVentas(esAuto) {
+  if (_actualizandoVentas) return;
+  _actualizandoVentas = true;
+
   var btn   = document.getElementById('btnActualizarVentas');
   var icon  = document.getElementById('btnActualizarIcon');
   var label = document.getElementById('btnActualizarLabel');
   var atDiv = document.getElementById('ventasActualizadoAt');
-  if (!btn || btn.disabled) return;
 
   var mesSel = dashMes; // Mes actualmente seleccionado con las pills
 
-  // Estado: cargando
-  btn.disabled = true;
-  btn.style.opacity = '0.8';
-  icon.className = 'ti ti-loader-2';
-  icon.style.animation = 'spin 1s linear infinite';
-  label.textContent = 'Consultando Tableau…';
+  // Modo manual: mostrar estado de carga en el botón
+  if (!esAuto && btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.8';
+    icon.className = 'ti ti-loader-2';
+    icon.style.animation = 'spin 1s linear infinite';
+    label.textContent = 'Consultando…';
+  }
 
   // Detectar si es el mes actual para también actualizar ML y Walmart directamente
   var _hoy = new Date();
   var _mesActual = _hoy.getFullYear() + '-' + String(_hoy.getMonth()+1).padStart(2,'0');
   var _esActual = (mesSel === _mesActual);
 
-  if (atDiv) {
+  if (!esAuto && atDiv) {
     atDiv.style.display = 'flex';
     atDiv.innerHTML =
       '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite;margin-right:4px;color:var(--maraga)"></i>' +
@@ -5167,38 +5172,44 @@ async function actualizarVentas(esAuto) {
         '&nbsp;&nbsp;' + chips.join('&nbsp;');
     }
 
-    // Estado: éxito
-    icon.className = 'ti ti-check';
-    icon.style.animation = '';
-    label.textContent = '¡Actualizado!';
-    btn.style.background = 'var(--maraga)';
-    btn.style.color = '#fff';
-    btn.style.opacity = '1';
-    setTimeout(function() {
-      btn.disabled = false;
-      btn.style.background = 'transparent';
-      btn.style.color = 'var(--maraga)';
-      icon.className = 'ti ti-refresh';
-      label.textContent = 'Actualizar';
-    }, 6000);
+    // Estado: éxito (solo en modo manual)
+    if (!esAuto && btn) {
+      icon.className = 'ti ti-check';
+      icon.style.animation = '';
+      label.textContent = '¡Actualizado!';
+      btn.style.background = 'var(--maraga)';
+      btn.style.color = '#fff';
+      btn.style.opacity = '1';
+      setTimeout(function() {
+        _actualizandoVentas = false;
+        btn.disabled = false;
+        btn.style.background = 'transparent';
+        btn.style.color = 'var(--maraga)';
+        icon.className = 'ti ti-refresh';
+        label.textContent = 'Actualizar';
+      }, 6000);
+    } else {
+      _actualizandoVentas = false;
+    }
 
   } catch (err) {
-    console.error('Error actualizando ventas:', err);
-    icon.className = 'ti ti-alert-triangle';
-    icon.style.animation = '';
-    label.textContent = 'Error — reintentar';
-    btn.style.opacity = '1';
-    btn.disabled = false;
-    if (atDiv) {
-      atDiv.style.display = 'flex';
-      atDiv.innerHTML =
-        '<i class="ti ti-alert-triangle" style="color:#e65100;margin-right:4px"></i>' +
-        '<span style="color:#e65100">Error al conectar con la API: ' + err.message + '</span>';
+    _actualizandoVentas = false;
+    if (!esAuto) {
+      console.error('Error actualizando ventas:', err);
+      if (icon) { icon.className = 'ti ti-alert-triangle'; icon.style.animation = ''; }
+      if (label) label.textContent = 'Error — reintentar';
+      if (btn) { btn.style.opacity = '1'; btn.disabled = false; }
+      if (atDiv) {
+        atDiv.style.display = 'flex';
+        atDiv.innerHTML =
+          '<i class="ti ti-alert-triangle" style="color:#e65100;margin-right:4px"></i>' +
+          '<span style="color:#e65100">Error: ' + err.message + '</span>';
+      }
+      setTimeout(function() {
+        if (icon) icon.className = 'ti ti-refresh';
+        if (label) label.textContent = 'Actualizar';
+      }, 5000);
     }
-    setTimeout(function() {
-      icon.className = 'ti ti-refresh';
-      label.textContent = 'Actualizar';
-    }, 5000);
   }
 }
 
@@ -5230,58 +5241,8 @@ async function actualizarVentas(esAuto) {
     }
   } catch(e) {}
 
-  // — Paso 2: auto-fetch silencioso — no toca el botón para que el usuario siempre pueda hacer clic
-  setTimeout(async function() {
-    var atDiv = document.getElementById('ventasActualizadoAt');
-    try {
-      var _hoy2 = new Date();
-      var _mesActual2 = _hoy2.getFullYear() + '-' + String(_hoy2.getMonth()+1).padStart(2,'0');
-      var _promesas2 = [
-        fetch(VENTAS_API_BASE + '/api/ventas/plataforma-mes?mes=' + _mesActual2, { signal: AbortSignal.timeout(30000) })
-      ];
-      _promesas2.push(fetch(VENTAS_API_BASE + '/api/ventas/mes-actual', { signal: AbortSignal.timeout(60000) }));
-      var _res2 = await Promise.allSettled(_promesas2);
-
-      var _platOk = _res2[0].status === 'fulfilled' && _res2[0].value.ok;
-      var _dirOk  = _res2[1].status === 'fulfilled' && _res2[1].value.ok;
-      var _data2  = _platOk ? await _res2[0].value.json() : {};
-      var _dir2   = _dirOk  ? await _res2[1].value.json() : {};
-
-      if (!VENTAS_PLAT_DATA[_mesActual2]) VENTAS_PLAT_DATA[_mesActual2] = {};
-      if (_dir2.mercadolibre && _dir2.mercadolibre.total)
-        VENTAS_PLAT_DATA[_mesActual2].mercadolibre = _dir2.mercadolibre;
-      if (_dir2.walmart && _dir2.walmart.total)
-        VENTAS_PLAT_DATA[_mesActual2].walmart = _dir2.walmart;
-      if (_data2.amazon)    VENTAS_PLAT_DATA[_mesActual2].amazon    = _data2.amazon;
-      if (_data2.maraga_mx) VENTAS_PLAT_DATA[_mesActual2].maraga_mx = _data2.maraga_mx;
-      if (_data2.tiktok)    VENTAS_PLAT_DATA[_mesActual2].tiktok    = _data2.tiktok;
-
-      setDashMes(_mesActual2);
-
-      // Guardar en localStorage
-      try {
-        localStorage.setItem('ventas_cache_v3', JSON.stringify({
-          mes: _mesActual2, ts: Date.now(),
-          walmart:      _dir2.walmart      || null,
-          mercadolibre: _dir2.mercadolibre || null,
-        }));
-      } catch(e) {}
-
-      if (atDiv) {
-        var _h2 = new Date().toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
-        atDiv.style.display = 'flex';
-        atDiv.innerHTML =
-          '<i class="ti ti-chart-dots-3" style="color:var(--maraga);margin-right:4px"></i>' +
-          '<span style="color:var(--muted)">Actualizado · ' + _h2 + '</span>';
-      }
-    } catch(e) {
-      if (atDiv) {
-        atDiv.style.display = 'flex';
-        atDiv.innerHTML = '<i class="ti ti-cloud-off" style="color:var(--muted);margin-right:4px"></i>' +
-          '<span style="color:var(--muted)">Sin conexión · datos guardados</span>';
-      }
-    }
-  }, 1500);
+  // — Paso 2: auto-fetch silencioso (no toca el botón; esAuto=true lo salta)
+  setTimeout(function() { actualizarVentas(true); }, 1500);
 })();
 
 /* ===== CALENDAR ===== */
