@@ -9651,23 +9651,15 @@ function _mlAdsLoadBilling(mes) {
   var card = document.getElementById('mlAdsBillingCard');
   if (!card) return;
   card.innerHTML = '';
-  var periodKey = mes + '-01';
-  var total = 0;
-  function fetchPage(fromId) {
-    return mlApiFetch('https://api.mercadolibre.com/billing/integration/periods/key/' + periodKey +
-      '/group/ML/details?document_type=BILL&limit=1000&from_id=' + fromId + '&sort_by=ID&order_by=ASC')
-    .then(function(data) {
-      (data.results || []).forEach(function(r) {
-        var t = (r.charge_info || {}).detail_sub_type;
-        if (t === 'PADS' || t === 'CBADS') total += Math.abs((r.charge_info || {}).detail_amount || 0);
-      });
-      if ((data.results||[]).length === 1000 && data.last_id) return fetchPage(data.last_id);
+  // Reutiliza el caché compartido — no hace fetch independiente al billing API
+  mlGetBillingRecords(mes).then(function(raw) {
+    var total = 0;
+    (raw.ml || []).forEach(function(r) {
+      var t = (r.charge_info || {}).detail_sub_type;
+      if (t === 'PADS' || t === 'CBADS') total += Math.abs((r.charge_info || {}).detail_amount || 0);
     });
-  }
-  fetchPage(0).then(function() {
     var c = document.getElementById('mlAdsBillingCard');
-    if (!c) return;
-    if (!total) { c.innerHTML = ''; return; }
+    if (!c || !total) return;
     var ventaMXN = (ML_2026_DATA.meses[mes] || {}).ventas || 0;
     var pct = ventaMXN ? ' · <b>' + (total/ventaMXN*100).toFixed(1) + '% de ventas</b>' : '';
     c.innerHTML = '<div style="background:#fef9c3;border-radius:8px;padding:10px 16px;margin-bottom:14px">' +
@@ -10250,6 +10242,50 @@ function mlEstadoChangeMes(mes) {
 var _mlEstadoGen = 0;
 var _mlEstadoMemCache = {};
 
+/* ── Caché compartido de registros brutos de billing ────────────────────
+   Evita que loadMLEstado, _mlAdsLoadBilling y _mlFullLoadAllMeses
+   llamen el mismo endpoint simultáneamente y generen 429.            */
+var _mlBillingRawCache   = {};  // { 'YYYY-MM': { ml: [...], mp: [...], _ts } }
+var _mlBillingRawFetching= {};  // { 'YYYY-MM': Promise<{ml,mp}> }
+
+function mlGetBillingRecords(mes) {
+  var curMes = _mlCurMes();
+  var cached = _mlBillingRawCache[mes];
+  if (cached) {
+    var ageH = (Date.now() - (cached._ts || 0)) / 3600000;
+    if (mes < curMes || ageH < 1) return Promise.resolve(cached);
+  }
+  if (_mlBillingRawFetching[mes]) return _mlBillingRawFetching[mes];
+
+  var periodKey = mes + '-01';
+  var mlRecs = [], mpRecs = [];
+
+  function fetchGroup(group, arr, fromId) {
+    return mlApiFetch(
+      'https://api.mercadolibre.com/billing/integration/periods/key/' + periodKey +
+      '/group/' + group + '/details?document_type=BILL&limit=1000&from_id=' + fromId +
+      '&sort_by=ID&order_by=ASC'
+    ).then(function(data) {
+      (data.results || []).forEach(function(r) { arr.push(r); });
+      if (data.last_id && (data.results || []).length > 0)
+        return new Promise(function(r) { setTimeout(r, 15000); })
+          .then(function() { return fetchGroup(group, arr, data.last_id); });
+    });
+  }
+
+  _mlBillingRawFetching[mes] = fetchGroup('ML', mlRecs, 0)
+    .then(function() { return new Promise(function(r) { setTimeout(r, 5000); }); })
+    .then(function() { return fetchGroup('MP', mpRecs, 0); })
+    .then(function() {
+      var d = { ml: mlRecs, mp: mpRecs, _ts: Date.now() };
+      _mlBillingRawCache[mes] = d;
+      delete _mlBillingRawFetching[mes];
+      return d;
+    })
+    .catch(function(e) { delete _mlBillingRawFetching[mes]; throw e; });
+  return _mlBillingRawFetching[mes];
+}
+
 function _mlEstadoCacheGet(mes) {
   if (_mlEstadoMemCache[mes]) return _mlEstadoMemCache[mes];
   var ls = typeof localStorage !== 'undefined' ? localStorage : null;
@@ -10288,91 +10324,39 @@ function loadMLEstado(mes) {
   }
 
   contentEl.innerHTML = '<div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Cargando registros...</div>';
-  var periodKey = mes + '-01';
-  var acc = {};
-  var pageCount = 0;
+  if (statusEl) statusEl.textContent = 'descargando…';
 
-  function add(key, amt) { acc[key] = (acc[key] || 0) + amt; }
-
-  function fetchPage(fromId) {
-    if (gen !== _mlEstadoGen) return Promise.resolve(); // cancelled
-    var url = 'https://api.mercadolibre.com/billing/integration/periods/key/' + periodKey +
-      '/group/ML/details?document_type=BILL&limit=1000&from_id=' + fromId + '&sort_by=ID&order_by=ASC';
-    return mlApiFetch(url).then(function(data) {
-      if (gen !== _mlEstadoGen) return; // cancelled
-      var results = data.results || [];
-      pageCount++;
-      if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + '…';
-      for (var i = 0; i < results.length; i++) {
-        var rec = results[i];
-        var t = (rec.charge_info || {}).detail_sub_type || '';
-        var amt = Math.abs((rec.charge_info || {}).detail_amount || 0);
-        var grp = (rec.charge_info || {}).detail_type || '';
-        if (t === 'CV')                                        add('cv', amt);
-        else if (t === 'CFF')                                  add('envios_full', amt);
-        else if (t === 'CXD' || t === 'CDSD')                  add('envios_xd', amt);
-        else if (t === 'PADS' || t === 'CBADS')               add('publicidad', amt);
-        else if (t === 'CFWA' || t === 'CFCB' || t === 'CFRS' || t === 'CFPB' || t === 'CFBA') add('cfwa', amt);
-        else if (t === 'CESM')                                add('cesm', amt);
-        else if (t === 'BV')                                  add('bv', amt);
-        else if (t === 'BFF' || t === 'BXD')                  add('benvios', amt);
-        else if (grp === 'BONUS')                             add('bv', amt);
-        else if (grp === 'CHARGE')                            add('otros', amt);
-        else { add('sin_clasificar', amt); console.log('[EC] tipo no mapeado sub_type=' + JSON.stringify(t) + ' detail_type=' + JSON.stringify(grp) + ' amt=' + amt + ' id=' + (rec.id || '')); }
-      }
-      if (data.last_id) {
-        var nextId = data.last_id;
-        var t = 0;
-        function tick() {
-          if (gen !== _mlEstadoGen) return Promise.resolve();
-          if (t >= 13) return fetchPage(nextId);
-          if (statusEl) statusEl.textContent = 'Pág. ' + pageCount + ' cargada — esperando ' + (13-t) + 's…';
-          t++;
-          return new Promise(function(r) { setTimeout(r, 1000); }).then(tick);
-        }
-        return tick();
-      }
-    });
-  }
-
-  // Also fetch group/MP (Mercado Pago charges: adelanto de disponibilidad, servicios MP)
-  function fetchMPPage(fromId) {
-    if (gen !== _mlEstadoGen) return Promise.resolve();
-    var url = 'https://api.mercadolibre.com/billing/integration/periods/key/' + periodKey +
-      '/group/MP/details?document_type=BILL&limit=1000&from_id=' + fromId + '&sort_by=ID&order_by=ASC';
-    return mlApiFetch(url).then(function(data) {
-      if (gen !== _mlEstadoGen) return;
-      var results = data.results || [];
-      for (var i = 0; i < results.length; i++) {
-        var rec = results[i];
-        var t   = (rec.charge_info || {}).detail_sub_type || '';
-        var amt = Math.abs((rec.charge_info || {}).detail_amount || 0);
-        var grp = (rec.charge_info || {}).detail_type || '';
-        if      (t === 'CRIA')          add('adelanto', amt);
-        else if (t === 'CPOPC')         add('servicios_mp', amt);
-        else if (grp === 'CHARGE')      add('otros', amt);
-        else { add('sin_clasificar', amt); console.log('[EC-MP] tipo no mapeado sub_type=' + JSON.stringify(t) + ' grp=' + JSON.stringify(grp) + ' amt=' + amt); }
-      }
-      if (data.last_id && results.length > 0) {
-        return new Promise(function(r) { setTimeout(r, 14000); }).then(function() { return fetchMPPage(data.last_id); });
-      }
-    });
-  }
-
-  fetchPage(0).then(function() {
+  mlGetBillingRecords(mes).then(function(raw) {
     if (gen !== _mlEstadoGen) return;
-    if (statusEl) statusEl.textContent = pageCount + ' pág. ML · cargando MP…';
-    return fetchMPPage(0);
-  }).then(function() {
-    if (gen !== _mlEstadoGen) return; // cancelled
-    // Always cache in memory so Por Mes tab can read it; only persist to localStorage for past months
-    if (!isCurrent) {
-      _mlEstadoCachePut(mes, acc, pageCount);
-    } else {
-      _mlEstadoMemCache[mes] = Object.assign({}, acc, { _pages: pageCount });
-    }
+    var acc = {};
+    function add(key, amt) { acc[key] = (acc[key] || 0) + amt; }
+    (raw.ml || []).forEach(function(rec) {
+      var t = (rec.charge_info || {}).detail_sub_type || '';
+      var amt = Math.abs((rec.charge_info || {}).detail_amount || 0);
+      var grp = (rec.charge_info || {}).detail_type || '';
+      if (t === 'CV')                                                          add('cv', amt);
+      else if (t === 'CFF')                                                    add('envios_full', amt);
+      else if (t === 'CXD' || t === 'CDSD')                                    add('envios_xd', amt);
+      else if (t === 'PADS' || t === 'CBADS')                                 add('publicidad', amt);
+      else if (t === 'CFWA'||t==='CFCB'||t==='CFRS'||t==='CFPB'||t==='CFBA') add('cfwa', amt);
+      else if (t === 'CESM')                                                   add('cesm', amt);
+      else if (t === 'BV')                                                     add('bv', amt);
+      else if (t === 'BFF' || t === 'BXD')                                     add('benvios', amt);
+      else if (grp === 'BONUS')                                                add('bv', amt);
+      else if (grp === 'CHARGE')                                               add('otros', amt);
+    });
+    (raw.mp || []).forEach(function(rec) {
+      var t   = (rec.charge_info || {}).detail_sub_type || '';
+      var amt = Math.abs((rec.charge_info || {}).detail_amount || 0);
+      var grp = (rec.charge_info || {}).detail_type || '';
+      if      (t === 'CRIA')     add('adelanto', amt);
+      else if (t === 'CPOPC')    add('servicios_mp', amt);
+      else if (grp === 'CHARGE') add('otros', amt);
+    });
+    var pageCount = raw.ml.length > 0 ? Math.ceil(raw.ml.length / 1000) : 1;
+    _mlEstadoCachePut(mes, acc, pageCount);
     _mlEstadoUpdatePills();
-    if (statusEl) statusEl.textContent = pageCount + ' página(s)' + (!isCurrent ? ' · guardado ✓' : ' · en memoria');
+    if (statusEl) statusEl.textContent = pageCount + ' pág. · ' + (isCurrent ? 'en memoria' : 'guardado ✓');
     _mlEstadoRender(acc, mes);
   }).catch(function(e) {
     if (gen !== _mlEstadoGen) return;
