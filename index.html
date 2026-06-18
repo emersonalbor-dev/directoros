@@ -5051,7 +5051,11 @@ function _fmtK(n) {
 
 var _actualizandoVentas = false;
 async function actualizarVentas(esAuto) {
-  if (!esAuto && _actualizandoVentas) return;
+  if (!esAuto) console.log('[VENTAS] clic manual · _actualizandoVentas=' + _actualizandoVentas);
+  if (!esAuto && _actualizandoVentas) {
+    console.log('[VENTAS] bloqueado por auto-fetch en curso');
+    return;
+  }
   if (!esAuto) _actualizandoVentas = true;
 
   var btn   = document.getElementById('btnActualizarVentas');
