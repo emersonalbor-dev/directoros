@@ -10262,7 +10262,7 @@ function _mlEstadoCacheGet(mes) {
 }
 
 function _mlEstadoCachePut(mes, acc, pages) {
-  var d = Object.assign({}, acc, { _pages: pages });
+  var d = Object.assign({}, acc, { _pages: pages, _ts: Date.now() });
   _mlEstadoMemCache[mes] = d;
   var ls = typeof localStorage !== 'undefined' ? localStorage : null;
   if (ls) { try { ls.setItem('ml_estado_v7_' + mes, JSON.stringify(d)); } catch(e) {} }
@@ -10276,10 +10276,11 @@ function loadMLEstado(mes) {
 
   var isCurrent = mes >= _mlCurMes();
 
-  // Meses pasados: usar caché (memoria → localStorage)
-  if (!isCurrent) {
-    var cached = _mlEstadoCacheGet(mes);
-    if (cached) {
+  // Usar caché: pasados → siempre; actual → si tiene menos de 1 hora
+  var cached = _mlEstadoCacheGet(mes);
+  if (cached) {
+    var edadH = ((Date.now() - (cached._ts || 0)) / 3600000);
+    if (!isCurrent || edadH < 1) {
       if (statusEl) statusEl.textContent = (cached._pages || '?') + ' pág. · ✓ caché';
       _mlEstadoRender(cached, mes);
       return;
