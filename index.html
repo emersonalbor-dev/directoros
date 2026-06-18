@@ -907,6 +907,14 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 .merch-tab i{font-size:13px}
 .merch-sub-panel{display:none}
 .merch-sub-panel.active{display:block}
+/* ── Marketing sub-tabs ── */
+.mkt-tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border)}
+.mkt-tab{padding:8px 18px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.mkt-tab:hover{color:var(--ink)}
+.mkt-tab.active{color:var(--maraga);border-bottom-color:var(--maraga);font-weight:600}
+.mkt-tab i{font-size:13px}
+.mkt-sub-panel{display:none}
+.mkt-sub-panel.active{display:block}
 /* ── SC Recommender ── */
 .sc-layout{display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start}
 @media(max-width:900px){.sc-layout{grid-template-columns:1fr}}
@@ -2440,6 +2448,13 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 
         <!-- ===== SUBMODULO MARKETING ===== -->
         <div class="recursos-panel" id="recursos-panel-marketing">
+        <!-- Sub-tabs Marketing -->
+        <div class="mkt-tabs">
+          <button class="mkt-tab active" onclick="switchMktTab('plan',this)"><i class="ti ti-target"></i> Plan de Ventas</button>
+          <button class="mkt-tab" onclick="switchMktTab('kits',this)"><i class="ti ti-package"></i> Creador de Kits</button>
+        </div>
+        <!-- Sub-panel: Plan de Ventas -->
+        <div class="mkt-sub-panel active" id="mkt-panel-plan">
         <!-- ─── PLAN VENTAS 4M — TOP 100 SKUS ──────────────────────── -->
         <div class="recursos-section-divider"><span><i class="ti ti-target" style="margin-right:6px"></i>Plan de Ventas — Top 100 SKUs</span></div>
         <div class="calc-card" style="padding:18px 20px" id="skuPlanCard">
@@ -2510,7 +2525,11 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           <div id="skuPlanFooter" style="font-size:11px;color:var(--muted);margin-top:8px;text-align:right"></div>
         </div>
 
-        <div class="recursos-section-divider" style="margin-top:32px"><span>&#127873; Creador de Kits / Bundles</span></div>
+        </div><!-- /mkt-panel-plan -->
+
+        <!-- Sub-panel: Creador de Kits -->
+        <div class="mkt-sub-panel" id="mkt-panel-kits">
+        <div class="recursos-section-divider"><span>&#127873; Creador de Kits / Bundles</span></div>
         <div>
           <div class="kit-top-layout">
             <div class="calc-card" style="display:flex;flex-direction:column;gap:10px">
@@ -2628,6 +2647,8 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             </div>
           </div>
         </div>
+
+        </div><!-- /mkt-panel-kits -->
 
         </div><!-- /recursos-panel-marketing -->
 
@@ -8300,6 +8321,14 @@ function switchMerchTab(name, el) {
   document.querySelectorAll('.merch-sub-panel').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('merch-panel-' + name).classList.add('active');
+}
+
+function switchMktTab(name, el) {
+  document.querySelectorAll('.mkt-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.mkt-sub-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('mkt-panel-' + name).classList.add('active');
+  if (name === 'plan') skuPlanInit();
 }
 
 function scSugerirDientes() {
