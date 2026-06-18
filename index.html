@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -2440,7 +2440,77 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 
         <!-- ===== SUBMODULO MARKETING ===== -->
         <div class="recursos-panel" id="recursos-panel-marketing">
-        <div class="recursos-section-divider"><span>&#127873; Creador de Kits / Bundles</span></div>
+        <!-- ─── PLAN VENTAS 4M — TOP 100 SKUS ──────────────────────── -->
+        <div class="recursos-section-divider"><span><i class="ti ti-target" style="margin-right:6px"></i>Plan de Ventas — Top 100 SKUs</span></div>
+        <div class="calc-card" style="padding:18px 20px" id="skuPlanCard">
+          <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+            <div style="flex:1;min-width:200px">
+              <div style="font-weight:700;font-size:15px">Plan de Ventas 4M &mdash; Top 100 SKUs</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">Basado en ventas reales por plataforma &bull; ML + Amazon + Walmart + Maraga &bull; semestre 2026</div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+              <div style="display:flex;align-items:center;gap:5px;font-size:12px;background:var(--surface);border-radius:8px;padding:7px 10px;border:1px solid var(--line)">
+                <i class="ti ti-target" style="color:var(--maraga)"></i>
+                <span style="color:var(--muted)">Meta&nbsp;MXN:&nbsp;$</span>
+                <input type="number" id="skuPlanMeta" value="4000000" min="100000" step="100000"
+                  style="width:90px;border:none;background:transparent;font-size:12px;font-weight:700;color:var(--ink);outline:none"
+                  oninput="skuPlanRefresh()">
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;font-size:12px;background:var(--surface);border-radius:8px;padding:7px 10px;border:1px solid var(--line)">
+                <i class="ti ti-speakerphone" style="color:#f59e0b"></i>
+                <span style="color:var(--muted)">Publicidad:&nbsp;$</span>
+                <input type="number" id="skuPlanPub" value="80000" min="1000" step="1000"
+                  style="width:72px;border:none;background:transparent;font-size:12px;font-weight:700;color:var(--ink);outline:none"
+                  oninput="skuPlanRefresh()">
+              </div>
+              <button class="btn btn-sm" onclick="skuPlanDownload()" style="background:var(--maraga);color:#fff;border-color:var(--maraga)">
+                <i class="ti ti-file-spreadsheet"></i> Descargar Excel
+              </button>
+            </div>
+          </div>
+
+          <div id="skuPlanStats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
+
+          <div style="background:var(--surface);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;border:1px solid var(--line)">
+            <input type="text" id="skuPlanQ" placeholder="Buscar SKU / descripcion..." autocomplete="off"
+              style="flex:1;min-width:160px;border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-size:12px;background:var(--bg);color:var(--ink)"
+              oninput="skuPlanFilter()">
+            <select id="skuPlanLineaF" onchange="skuPlanFilterLinea()"
+              style="border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:12px;background:var(--bg);color:var(--ink)">
+              <option value="">Línea (todas)</option>
+            </select>
+            <select id="skuPlanFamiliaF" onchange="skuPlanFilter()"
+              style="border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:12px;background:var(--bg);color:var(--ink)">
+              <option value="">Familia (todas)</option>
+            </select>
+            <select id="skuPlanMerchF" onchange="skuPlanFilter()"
+              style="border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:12px;background:var(--bg);color:var(--ink)">
+              <option value="">Responsable (todos)</option>
+            </select>
+            <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+              <span style="font-size:11px;color:var(--muted);white-space:nowrap">Plataforma:</span>
+              <button id="skuPlat_ML"  onclick="skuPlanTogglePlat('ML')"  style="border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;background:var(--bg);color:var(--text);cursor:pointer">ML</button>
+              <button id="skuPlat_AMZ" onclick="skuPlanTogglePlat('AMZ')" style="border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;background:var(--bg);color:var(--text);cursor:pointer">Amazon</button>
+              <button id="skuPlat_WMT" onclick="skuPlanTogglePlat('WMT')" style="border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;background:var(--bg);color:var(--text);cursor:pointer">Walmart</button>
+              <button id="skuPlat_MRG" onclick="skuPlanTogglePlat('MRG')" style="border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;background:var(--bg);color:var(--text);cursor:pointer">Maraga</button>
+              <button id="skuPlat_TKT" onclick="skuPlanTogglePlat('TKT')" style="border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;background:var(--bg);color:var(--text);cursor:pointer">TikTok</button>
+            </div>
+            <button onclick="skuPlanClearFilters()"
+              style="font-size:11px;color:var(--muted);background:none;border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer">
+              <i class="ti ti-x"></i> Limpiar
+            </button>
+          </div>
+
+          <div style="overflow-x:auto;border:1px solid var(--line);border-radius:10px;max-height:540px;overflow-y:auto">
+            <table id="skuPlanTable" style="width:100%;border-collapse:collapse;font-size:12px">
+              <thead id="skuPlanThead" style="position:sticky;top:0;z-index:2;background:var(--surface)"></thead>
+              <tbody id="skuPlanTbody"></tbody>
+            </table>
+          </div>
+          <div id="skuPlanFooter" style="font-size:11px;color:var(--muted);margin-top:8px;text-align:right"></div>
+        </div>
+
+        <div class="recursos-section-divider" style="margin-top:32px"><span>&#127873; Creador de Kits / Bundles</span></div>
         <div>
           <div class="kit-top-layout">
             <div class="calc-card" style="display:flex;flex-direction:column;gap:10px">
@@ -2557,76 +2627,6 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
               <span style="font-size:11px;color:var(--muted);margin-left:4px"><i class="ti ti-api"></i> API push disponible &mdash; v1.0</span>
             </div>
           </div>
-        </div>
-
-        <!-- ─── PLAN VENTAS 4M — TOP 100 SKUS ──────────────────────── -->
-        <div class="recursos-section-divider" style="margin-top:24px"><span><i class="ti ti-target" style="margin-right:6px"></i>Plan de Ventas — Top 100 SKUs</span></div>
-        <div class="calc-card" style="padding:18px 20px" id="skuPlanCard">
-          <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px">
-            <div style="flex:1;min-width:200px">
-              <div style="font-weight:700;font-size:15px">Plan de Ventas 4M &mdash; Top 100 SKUs</div>
-              <div style="font-size:11px;color:var(--muted);margin-top:2px">Basado en ventas reales por plataforma &bull; ML + Amazon + Walmart + Maraga &bull; semestre 2026</div>
-            </div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-              <div style="display:flex;align-items:center;gap:5px;font-size:12px;background:var(--surface);border-radius:8px;padding:7px 10px;border:1px solid var(--line)">
-                <i class="ti ti-target" style="color:var(--maraga)"></i>
-                <span style="color:var(--muted)">Meta&nbsp;MXN:&nbsp;$</span>
-                <input type="number" id="skuPlanMeta" value="4000000" min="100000" step="100000"
-                  style="width:90px;border:none;background:transparent;font-size:12px;font-weight:700;color:var(--ink);outline:none"
-                  oninput="skuPlanRefresh()">
-              </div>
-              <div style="display:flex;align-items:center;gap:5px;font-size:12px;background:var(--surface);border-radius:8px;padding:7px 10px;border:1px solid var(--line)">
-                <i class="ti ti-speakerphone" style="color:#f59e0b"></i>
-                <span style="color:var(--muted)">Publicidad:&nbsp;$</span>
-                <input type="number" id="skuPlanPub" value="80000" min="1000" step="1000"
-                  style="width:72px;border:none;background:transparent;font-size:12px;font-weight:700;color:var(--ink);outline:none"
-                  oninput="skuPlanRefresh()">
-              </div>
-              <button class="btn btn-sm" onclick="skuPlanDownload()" style="background:var(--maraga);color:#fff;border-color:var(--maraga)">
-                <i class="ti ti-file-spreadsheet"></i> Descargar Excel
-              </button>
-            </div>
-          </div>
-
-          <div id="skuPlanStats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
-
-          <div style="background:var(--surface);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;border:1px solid var(--line)">
-            <input type="text" id="skuPlanQ" placeholder="Buscar SKU / descripcion..." autocomplete="off"
-              style="flex:1;min-width:160px;border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-size:12px;background:var(--bg);color:var(--ink)"
-              oninput="skuPlanFilter()">
-            <select id="skuPlanLineaF" onchange="skuPlanFilterLinea()"
-              style="border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:12px;background:var(--bg);color:var(--ink)">
-              <option value="">Línea (todas)</option>
-            </select>
-            <select id="skuPlanFamiliaF" onchange="skuPlanFilter()"
-              style="border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:12px;background:var(--bg);color:var(--ink)">
-              <option value="">Familia (todas)</option>
-            </select>
-            <select id="skuPlanMerchF" onchange="skuPlanFilter()"
-              style="border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:12px;background:var(--bg);color:var(--ink)">
-              <option value="">Responsable (todos)</option>
-            </select>
-            <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
-              <span style="font-size:11px;color:var(--muted);white-space:nowrap">Plataforma:</span>
-              <button id="skuPlat_ML"  onclick="skuPlanTogglePlat('ML')"  style="border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;background:var(--bg);color:var(--text);cursor:pointer">ML</button>
-              <button id="skuPlat_AMZ" onclick="skuPlanTogglePlat('AMZ')" style="border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;background:var(--bg);color:var(--text);cursor:pointer">Amazon</button>
-              <button id="skuPlat_WMT" onclick="skuPlanTogglePlat('WMT')" style="border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;background:var(--bg);color:var(--text);cursor:pointer">Walmart</button>
-              <button id="skuPlat_MRG" onclick="skuPlanTogglePlat('MRG')" style="border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;background:var(--bg);color:var(--text);cursor:pointer">Maraga</button>
-              <button id="skuPlat_TKT" onclick="skuPlanTogglePlat('TKT')" style="border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:11px;font-weight:600;background:var(--bg);color:var(--text);cursor:pointer">TikTok</button>
-            </div>
-            <button onclick="skuPlanClearFilters()"
-              style="font-size:11px;color:var(--muted);background:none;border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer">
-              <i class="ti ti-x"></i> Limpiar
-            </button>
-          </div>
-
-          <div style="overflow-x:auto;border:1px solid var(--line);border-radius:10px;max-height:540px;overflow-y:auto">
-            <table id="skuPlanTable" style="width:100%;border-collapse:collapse;font-size:12px">
-              <thead id="skuPlanThead" style="position:sticky;top:0;z-index:2;background:var(--surface)"></thead>
-              <tbody id="skuPlanTbody"></tbody>
-            </table>
-          </div>
-          <div id="skuPlanFooter" style="font-size:11px;color:var(--muted);margin-top:8px;text-align:right"></div>
         </div>
 
         </div><!-- /recursos-panel-marketing -->
