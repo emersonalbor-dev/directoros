@@ -9418,21 +9418,10 @@ function _mlFullLoadMes(mes) {
   if (_mlEstadoCacheGet(mes)) { if (_mlFullSubTab === 'meses') mlFullRenderMeses(); return Promise.resolve(); }
   _mlFullLoadingSet[mes] = true;
   if (_mlFullSubTab === 'meses') mlFullRenderMeses();
-  // Usa el caché compartido — no hace fetch propio al billing API
+  // Railway ya devuelve datos agregados por categoría
   return mlGetBillingRecords(mes).then(function(raw) {
-    var acc = {}, pages = Math.ceil((raw.ml||[]).length / 1000) || 1;
-    function add(k, v) { acc[k] = (acc[k]||0) + v; }
-    (raw.ml || []).forEach(function(rec) {
-      var t = (rec.charge_info||{}).detail_sub_type||'', amt = Math.abs((rec.charge_info||{}).detail_amount||0), grp = (rec.charge_info||{}).detail_type||'';
-      if (t==='CV') add('cv',amt); else if (t==='CFF') add('envios_full',amt); else if (t==='CXD'||t==='CDSD') add('envios_xd',amt);
-      else if (t==='PADS'||t==='CBADS') add('publicidad',amt); else if (t==='CFWA'||t==='CFCB'||t==='CFRS'||t==='CFPB'||t==='CFBA') add('cfwa',amt);
-      else if (t==='CESM') add('cesm',amt); else if (t==='BV') add('bv',amt); else if (t==='BFF'||t==='BXD') add('benvios',amt);
-      else if (grp==='BONUS') add('bv',amt); else if (grp==='CHARGE') add('otros',amt);
-    });
-    (raw.mp || []).forEach(function(rec) {
-      var t = (rec.charge_info||{}).detail_sub_type||'', amt = Math.abs((rec.charge_info||{}).detail_amount||0), grp = (rec.charge_info||{}).detail_type||'';
-      if (t==='CRIA') add('adelanto',amt); else if (t==='CPOPC') add('servicios_mp',amt); else if (grp==='CHARGE') add('otros',amt);
-    });
+    var acc = Object.assign({}, raw.ml || {}, raw.mp || {});
+    var pages = raw.pages || 1;
     _mlEstadoCachePut(mes, acc, pages);
     delete _mlFullLoadingSet[mes];
     if (_mlFullSubTab === 'meses') mlFullRenderMeses();
@@ -9622,12 +9611,9 @@ function _mlAdsLoadBilling(mes) {
   if (!card) return;
   card.innerHTML = '';
   // Reutiliza el caché compartido — no hace fetch independiente al billing API
+  // Railway ya devuelve el total de publicidad agregado
   mlGetBillingRecords(mes).then(function(raw) {
-    var total = 0;
-    (raw.ml || []).forEach(function(r) {
-      var t = (r.charge_info || {}).detail_sub_type;
-      if (t === 'PADS' || t === 'CBADS') total += Math.abs((r.charge_info || {}).detail_amount || 0);
-    });
+    var total = raw.publicidad || (raw.ml && raw.ml.publicidad) || 0;
     var c = document.getElementById('mlAdsBillingCard');
     if (!c || !total) return;
     var ventaMXN = (ML_2026_DATA.meses[mes] || {}).ventas || 0;
@@ -10212,11 +10198,11 @@ function mlEstadoChangeMes(mes) {
 var _mlEstadoGen = 0;
 var _mlEstadoMemCache = {};
 
-/* ── Caché compartido de registros brutos de billing ────────────────────
-   Evita que loadMLEstado, _mlAdsLoadBilling y _mlFullLoadAllMeses
-   llamen el mismo endpoint simultáneamente y generen 429.            */
-var _mlBillingRawCache   = {};  // { 'YYYY-MM': { ml: [...], mp: [...], _ts } }
-var _mlBillingRawFetching= {};  // { 'YYYY-MM': Promise<{ml,mp}> }
+/* ── Caché compartido de billing (proxy vía Railway, no ML directo) ──────────
+   Railway agrega los registros y maneja el rate limit de billing internamente.
+   Formato: { mes, ml:{cv,envios_full,...}, mp:{adelanto,...}, publicidad, pages, _ts } */
+var _mlBillingRawCache   = {};  // { 'YYYY-MM': agregado }
+var _mlBillingRawFetching= {};  // { 'YYYY-MM': Promise<agregado> }
 
 function mlGetBillingRecords(mes) {
   var curMes = _mlCurMes();
@@ -10227,32 +10213,20 @@ function mlGetBillingRecords(mes) {
   }
   if (_mlBillingRawFetching[mes]) return _mlBillingRawFetching[mes];
 
-  var periodKey = mes + '-01';
-  var mlRecs = [], mpRecs = [];
-
-  function fetchGroup(group, arr, fromId) {
-    return mlApiFetch(
-      'https://api.mercadolibre.com/billing/integration/periods/key/' + periodKey +
-      '/group/' + group + '/details?document_type=BILL&limit=1000&from_id=' + fromId +
-      '&sort_by=ID&order_by=ASC'
-    ).then(function(data) {
-      (data.results || []).forEach(function(r) { arr.push(r); });
-      if (data.last_id && (data.results || []).length > 0)
-        return new Promise(function(r) { setTimeout(r, 15000); })
-          .then(function() { return fetchGroup(group, arr, data.last_id); });
-    });
-  }
-
-  _mlBillingRawFetching[mes] = fetchGroup('ML', mlRecs, 0)
-    .then(function() { return new Promise(function(r) { setTimeout(r, 5000); }); })
-    .then(function() { return fetchGroup('MP', mpRecs, 0); })
-    .then(function() {
-      var d = { ml: mlRecs, mp: mpRecs, _ts: Date.now() };
-      _mlBillingRawCache[mes] = d;
-      delete _mlBillingRawFetching[mes];
-      return d;
-    })
-    .catch(function(e) { delete _mlBillingRawFetching[mes]; throw e; });
+  // Railway hace el fetch al billing API server-side (evita rate limit en browser)
+  _mlBillingRawFetching[mes] = fetch(VENTAS_API_BASE + '/api/ml/billing/' + mes, {
+    signal: AbortSignal.timeout(600000)  // billing puede tardar varios minutos
+  })
+  .then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status + ' al obtener billing de Railway');
+    return r.json();
+  })
+  .then(function(data) {
+    _mlBillingRawCache[mes] = data;
+    delete _mlBillingRawFetching[mes];
+    return data;
+  })
+  .catch(function(e) { delete _mlBillingRawFetching[mes]; throw e; });
   return _mlBillingRawFetching[mes];
 }
 
@@ -10298,32 +10272,9 @@ function loadMLEstado(mes) {
 
   mlGetBillingRecords(mes).then(function(raw) {
     if (gen !== _mlEstadoGen) return;
-    var acc = {};
-    function add(key, amt) { acc[key] = (acc[key] || 0) + amt; }
-    (raw.ml || []).forEach(function(rec) {
-      var t = (rec.charge_info || {}).detail_sub_type || '';
-      var amt = Math.abs((rec.charge_info || {}).detail_amount || 0);
-      var grp = (rec.charge_info || {}).detail_type || '';
-      if (t === 'CV')                                                          add('cv', amt);
-      else if (t === 'CFF')                                                    add('envios_full', amt);
-      else if (t === 'CXD' || t === 'CDSD')                                    add('envios_xd', amt);
-      else if (t === 'PADS' || t === 'CBADS')                                 add('publicidad', amt);
-      else if (t === 'CFWA'||t==='CFCB'||t==='CFRS'||t==='CFPB'||t==='CFBA') add('cfwa', amt);
-      else if (t === 'CESM')                                                   add('cesm', amt);
-      else if (t === 'BV')                                                     add('bv', amt);
-      else if (t === 'BFF' || t === 'BXD')                                     add('benvios', amt);
-      else if (grp === 'BONUS')                                                add('bv', amt);
-      else if (grp === 'CHARGE')                                               add('otros', amt);
-    });
-    (raw.mp || []).forEach(function(rec) {
-      var t   = (rec.charge_info || {}).detail_sub_type || '';
-      var amt = Math.abs((rec.charge_info || {}).detail_amount || 0);
-      var grp = (rec.charge_info || {}).detail_type || '';
-      if      (t === 'CRIA')     add('adelanto', amt);
-      else if (t === 'CPOPC')    add('servicios_mp', amt);
-      else if (grp === 'CHARGE') add('otros', amt);
-    });
-    var pageCount = raw.ml.length > 0 ? Math.ceil(raw.ml.length / 1000) : 1;
+    // Railway ya devuelve datos agregados por categoría
+    var acc = Object.assign({}, raw.ml || {}, raw.mp || {});
+    var pageCount = raw.pages || 1;
     _mlEstadoCachePut(mes, acc, pageCount);
     _mlEstadoUpdatePills();
     if (statusEl) statusEl.textContent = pageCount + ' pág. · ' + (isCurrent ? 'en memoria' : 'guardado ✓');
