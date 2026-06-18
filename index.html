@@ -5132,7 +5132,7 @@ async function actualizarVentas(esAuto) {
       if (existing.mes !== mes) existing = {};
       localStorage.setItem('ventas_cache_v3', JSON.stringify({
         mes: mes, ts: Date.now(),
-        walmart:      null,
+        walmart:      data.walmart      || existing.walmart      || null,
         mercadolibre: data.mercadolibre || existing.mercadolibre || null,
       }));
     } catch(e) { /* storage lleno o modo privado — ignorar */ }
@@ -5230,12 +5230,57 @@ async function actualizarVentas(esAuto) {
     }
   } catch(e) {}
 
-  // — Paso 2: auto-fetch silencioso (1.5 s de retraso para que DOM esté listo) —
-  setTimeout(function() {
-    // Llama actualizarVentas sin que el botón esté bloqueado
-    var btn = document.getElementById('btnActualizarVentas');
-    if (btn) btn.disabled = false;
-    actualizarVentas(true);
+  // — Paso 2: auto-fetch silencioso — no toca el botón para que el usuario siempre pueda hacer clic
+  setTimeout(async function() {
+    var atDiv = document.getElementById('ventasActualizadoAt');
+    try {
+      var _hoy2 = new Date();
+      var _mesActual2 = _hoy2.getFullYear() + '-' + String(_hoy2.getMonth()+1).padStart(2,'0');
+      var _promesas2 = [
+        fetch(VENTAS_API_BASE + '/api/ventas/plataforma-mes?mes=' + _mesActual2, { signal: AbortSignal.timeout(30000) })
+      ];
+      _promesas2.push(fetch(VENTAS_API_BASE + '/api/ventas/mes-actual', { signal: AbortSignal.timeout(60000) }));
+      var _res2 = await Promise.allSettled(_promesas2);
+
+      var _platOk = _res2[0].status === 'fulfilled' && _res2[0].value.ok;
+      var _dirOk  = _res2[1].status === 'fulfilled' && _res2[1].value.ok;
+      var _data2  = _platOk ? await _res2[0].value.json() : {};
+      var _dir2   = _dirOk  ? await _res2[1].value.json() : {};
+
+      if (!VENTAS_PLAT_DATA[_mesActual2]) VENTAS_PLAT_DATA[_mesActual2] = {};
+      if (_dir2.mercadolibre && _dir2.mercadolibre.total)
+        VENTAS_PLAT_DATA[_mesActual2].mercadolibre = _dir2.mercadolibre;
+      if (_dir2.walmart && _dir2.walmart.total)
+        VENTAS_PLAT_DATA[_mesActual2].walmart = _dir2.walmart;
+      if (_data2.amazon)    VENTAS_PLAT_DATA[_mesActual2].amazon    = _data2.amazon;
+      if (_data2.maraga_mx) VENTAS_PLAT_DATA[_mesActual2].maraga_mx = _data2.maraga_mx;
+      if (_data2.tiktok)    VENTAS_PLAT_DATA[_mesActual2].tiktok    = _data2.tiktok;
+
+      setDashMes(_mesActual2);
+
+      // Guardar en localStorage
+      try {
+        localStorage.setItem('ventas_cache_v3', JSON.stringify({
+          mes: _mesActual2, ts: Date.now(),
+          walmart:      _dir2.walmart      || null,
+          mercadolibre: _dir2.mercadolibre || null,
+        }));
+      } catch(e) {}
+
+      if (atDiv) {
+        var _h2 = new Date().toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+        atDiv.style.display = 'flex';
+        atDiv.innerHTML =
+          '<i class="ti ti-chart-dots-3" style="color:var(--maraga);margin-right:4px"></i>' +
+          '<span style="color:var(--muted)">Actualizado · ' + _h2 + '</span>';
+      }
+    } catch(e) {
+      if (atDiv) {
+        atDiv.style.display = 'flex';
+        atDiv.innerHTML = '<i class="ti ti-cloud-off" style="color:var(--muted);margin-right:4px"></i>' +
+          '<span style="color:var(--muted)">Sin conexión · datos guardados</span>';
+      }
+    }
   }, 1500);
 })();
 
