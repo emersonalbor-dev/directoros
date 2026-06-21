@@ -8063,103 +8063,105 @@ function est154RenderRep(){
 function est154RenderAds(){
   var el=document.getElementById('est154-panel-ads');
   if(!el) return;
-  var totalAds=1669057;
+  var totalPresup=1669057, totalMeta=83207225;
+  var totalAcos=(totalPresup/totalMeta*100).toFixed(2);
   var platClr={'Mercado Libre':'#f59e0b','MaragaMX':'var(--maraga)','Amazon':'#ff9900','Walmart':'#0071dc'};
 
-  var h='<div class="est154-kpi-g" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">';
-  h+='<div class="est154-kpi"><div class="est154-kpi-l"><i class="ti ti-speakerphone" style="margin-right:4px;color:var(--maraga)"></i>Presupuesto Total Ads</div><div class="est154-kpi-v" style="color:var(--maraga-dark)">$1.67M</div><div class="est154-kpi-s">267 lineas SKU&times;plataforma</div></div>';
-  h+='<div class="est154-kpi"><div class="est154-kpi-l"><i class="ti ti-target" style="margin-right:4px;color:#10b981"></i>Meta cubierta por Ads</div><div class="est154-kpi-v" style="color:#065f46">$83.2M</div><div class="est154-kpi-s">Plataformas con soporte</div></div>';
-  h+='<div class="est154-kpi"><div class="est154-kpi-l"><i class="ti ti-trending-up" style="margin-right:4px;color:#3b82f6"></i>ROAS Promedio Obj.</div><div class="est154-kpi-v" style="color:#1e40af">~50x</div><div class="est154-kpi-s">Varia por TKT y plataforma</div></div>';
-  h+='</div>';
-
-  // Platform cards
-  h+='<div class="recursos-section-divider"><span><i class="ti ti-chart-bar" style="margin-right:6px"></i>Distribucion por Plataforma</span></div>';
-  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:18px">';
+  // KPIs: presupuesto + ACOS total + ACOS por plataforma
+  var h='<div class="est154-kpi-g" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:16px">';
+  h+='<div class="est154-kpi"><div class="est154-kpi-l"><i class="ti ti-speakerphone" style="margin-right:4px;color:var(--maraga)"></i>Presupuesto Total</div><div class="est154-kpi-v" style="color:var(--maraga-dark)">$1.67M</div><div class="est154-kpi-s">267 lineas SKU&times;plataforma</div></div>';
+  h+='<div class="est154-kpi" style="border-left:3px solid #3b82f6"><div class="est154-kpi-l"><i class="ti ti-percentage" style="margin-right:4px;color:#3b82f6"></i>ACOS Total</div><div class="est154-kpi-v" style="color:#1e40af">'+totalAcos+'%</div><div class="est154-kpi-s">Presup / Meta MXN global</div></div>';
   _EST154_ADS_PLAT.forEach(function(p){
-    var pct=(p.presup/totalAds*100).toFixed(1);
+    var acos=(p.presup/p.meta*100).toFixed(2);
     var clr=platClr[p.plat]||'var(--maraga)';
-    h+='<div class="est154-kpi" style="border-left:4px solid '+clr+'">';
-    h+='<div style="font-weight:700;font-size:13px;color:var(--ink)">'+p.plat+'</div>';
-    h+='<div style="display:flex;justify-content:space-between;margin-top:8px">';
-    h+='<div><div style="font-size:10px;color:var(--muted)">Presupuesto</div><div style="font-size:16px;font-weight:800;color:var(--ink)">'+_fmt(p.presup)+'</div></div>';
-    h+='<div style="text-align:right"><div style="font-size:10px;color:var(--muted)">% del total</div><div style="font-size:16px;font-weight:800;color:'+clr+'">'+pct+'%</div></div>';
-    h+='</div>';
-    h+='<div style="margin-top:8px;display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">';
-    h+='<span>SKUs: <b style="color:var(--ink)">'+p.skus+'</b></span>';
-    h+='<span>Meta: <b>'+_fmt(p.meta)+'</b></span>';
-    h+='</div>';
-    h+='<div class="est154-pet-bar" style="margin-top:8px"><div class="est154-pet-fill" style="width:'+pct+'%;background:'+clr+'"></div></div>';
+    h+='<div class="est154-kpi" style="border-left:3px solid '+clr+'">';
+    h+='<div class="est154-kpi-l">'+p.plat+'</div>';
+    h+='<div class="est154-kpi-v" style="color:var(--ink);font-size:16px">ACOS '+acos+'%</div>';
+    h+='<div class="est154-kpi-s">'+_fmt(p.presup)+' / '+_fmt(p.meta)+' meta</div>';
     h+='</div>';
   });
   h+='</div>';
 
   // Campaigns by group — accordion table
-  h+='<div class="recursos-section-divider"><span><i class="ti ti-layers-intersect" style="margin-right:6px"></i>Campanas Ads por Grupo (Plataforma x Ticket)</span></div>';
+  h+='<div class="recursos-section-divider"><span><i class="ti ti-layers-intersect" style="margin-right:6px"></i>Campanas Ads por Grupo (Plataforma &times; Ticket)</span></div>';
   var plats=['Amazon','MaragaMX','Mercado Libre','Walmart'];
   plats.forEach(function(plat){
     var pg=_EST154_ADS_GROUPS.filter(function(g){return g.plat===plat;});
     if(!pg.length) return;
     var clr=platClr[plat]||'var(--maraga)';
-    var platTotal=pg.reduce(function(s,g){return s+g.presup;},0);
+    var platPresup=pg.reduce(function(s,g){return s+g.presup;},0);
     var platMeta=pg.reduce(function(s,g){return s+g.metaM;},0);
+    var platAcos=(platPresup/platMeta*100).toFixed(2);
     h+='<div style="margin-bottom:14px">';
     h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
     h+='<div style="width:4px;height:18px;background:'+clr+';border-radius:2px"></div>';
     h+='<span style="font-weight:700;font-size:13px">'+plat+'</span>';
-    h+='<span style="font-size:11px;color:var(--muted)">'+_fmt(platPresup=platTotal)+' presupuesto &bull; '+_fmt(platMeta)+' meta</span>';
+    h+='<span style="font-size:11px;color:var(--muted)">'+_fmt(platPresup)+' presup &bull; '+_fmt(platMeta)+' meta &bull;</span>';
+    h+='<span style="font-size:12px;font-weight:700;color:'+clr+'">ACOS '+platAcos+'%</span>';
     h+='</div>';
     h+='<div style="overflow-x:auto;border:1px solid var(--line);border-radius:10px"><table class="est154-tbl">';
-    h+='<thead><tr><th>Grupo</th><th>Rango Ticket</th><th style="text-align:center">SKUs</th><th style="text-align:right">P.Min</th><th style="text-align:right">P.Prom</th><th style="text-align:right">P.Max</th><th style="text-align:right">Meta Unid</th><th style="text-align:right">Meta MXN</th><th style="text-align:right">Presup Ads</th><th style="text-align:right">ACOS act.</th><th style="text-align:center">ACOS obj.</th><th style="text-align:center">Detalle</th></tr></thead>';
+    h+='<thead><tr><th>Grupo</th><th>Rango Ticket</th><th style="text-align:center">SKUs</th><th style="text-align:right">P.Prom</th><th style="text-align:right">Meta MXN</th><th style="text-align:right">Presup</th><th style="text-align:right">ACOS act.</th><th style="text-align:center">ACOS obj.</th><th style="text-align:center">Detalle</th></tr></thead>';
     h+='<tbody>';
     pg.forEach(function(g){
-      var acosClr=g.acos<g.acosObj.split('-')[0]?'#10b981':g.acos<parseFloat(g.acosObj.split('-')[1])?'#3b82f6':'#f59e0b';
+      var acosClr=g.acos<parseFloat(g.acosObj)?'#10b981':g.acos<parseFloat(g.acosObj.split('-')[1]||99)?'#3b82f6':'#f59e0b';
       h+='<tr>';
       h+='<td style="font-weight:700;font-size:11px;white-space:nowrap">'+g.id+'</td>';
       h+='<td style="font-size:11px">'+g.rango+'</td>';
       h+='<td style="text-align:center">'+g.skus+'</td>';
-      h+='<td style="text-align:right;font-size:11px">$'+g.pMin.toLocaleString('es-MX')+'</td>';
       h+='<td style="text-align:right;font-size:11px;font-weight:600">$'+g.pProm.toLocaleString('es-MX')+'</td>';
-      h+='<td style="text-align:right;font-size:11px">$'+g.pMax.toLocaleString('es-MX')+'</td>';
-      h+='<td style="text-align:right">'+Math.round(g.metaU).toLocaleString('es-MX')+'</td>';
       h+='<td style="text-align:right;font-weight:600">'+_fmt(g.metaM)+'</td>';
       h+='<td style="text-align:right;font-weight:700;color:'+clr+'">'+_fmt(g.presup)+'</td>';
-      h+='<td style="text-align:right;font-weight:700;color:'+acosClr+'">'+g.acos.toFixed(2)+'%</td>';
+      h+='<td style="text-align:right;font-weight:800;font-size:13px;color:'+acosClr+'">'+g.acos.toFixed(2)+'%</td>';
       h+='<td style="text-align:center"><span style="font-size:10px;background:#f0fdf4;color:#166534;border-radius:4px;padding:2px 5px">'+g.acosObj+'</span></td>';
       h+='<td style="text-align:center"><button onclick="_e154AdsToggle(\''+g.id+'\')" style="font-size:10px;color:var(--maraga);background:none;border:1px solid var(--line);border-radius:4px;padding:2px 7px;cursor:pointer" id="btn-'+g.id+'">Ver</button></td>';
       h+='</tr>';
-      // Collapsible SKU detail rows
-      h+='<tr id="det-'+g.id+'" style="display:none"><td colspan="12" style="padding:0">';
+      // Collapsible SKU detail
+      h+='<tr id="det-'+g.id+'" style="display:none"><td colspan="9" style="padding:0">';
       h+='<div style="overflow-x:auto;background:var(--bg);border-top:1px solid var(--line)">';
       h+='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--surface)">';
-      h+='<th style="padding:5px 8px;text-align:left;font-weight:600;color:var(--muted)">SKU</th>';
-      h+='<th style="padding:5px 8px;text-align:left;font-weight:600;color:var(--muted)">Producto</th>';
-      h+='<th style="padding:5px 8px;text-align:left;font-weight:600;color:var(--muted)">Peloton</th>';
-      h+='<th style="padding:5px 8px;text-align:right;font-weight:600;color:var(--muted)">Precio</th>';
-      h+='<th style="padding:5px 8px;text-align:right;font-weight:600;color:var(--muted)">Meta MXN</th>';
-      h+='<th style="padding:5px 8px;text-align:right;font-weight:600;color:var(--muted)">Meta Unid</th>';
-      h+='<th style="padding:5px 8px;text-align:right;font-weight:600;color:var(--muted)">Presup</th>';
-      h+='<th style="padding:5px 8px;text-align:center;font-weight:600;color:var(--muted)">Nivel Ads</th>';
-      h+='<th style="padding:5px 8px;text-align:right;font-weight:600;color:var(--muted)">Stock</th>';
-      h+='<th style="padding:5px 8px;text-align:right;font-weight:600;color:var(--muted)">Cob%</th>';
+      ['SKU','Producto','Peloton','Precio','Meta MXN','Presup','ACOS%','Nivel Ads','Stock','Cob%'].forEach(function(hd,i){
+        var al=i>=3?'right':'left';
+        if(hd==='Nivel Ads'||hd==='Peloton') al='center';
+        h+='<th style="padding:5px 8px;text-align:'+al+';font-weight:600;color:var(--muted)">'+hd+'</th>';
+      });
       h+='</tr></thead><tbody>';
       var gSkus=_EST154_ADS_SKUS.filter(function(s){return s[0]===g.id;});
+      var totM=0,totP=0;
       gSkus.forEach(function(s){
+        var skuAcos=s[5]>0?+(s[7]/s[5]*100).toFixed(2):0;
+        var acosClr2=skuAcos<parseFloat(g.acosObj)?'#10b981':skuAcos<parseFloat(g.acosObj.split('-')[1]||99)?'#3b82f6':'#f59e0b';
         var cobClr=s[10]>=100?'#10b981':s[10]>=50?'#3b82f6':s[10]>=25?'#f59e0b':'#ef4444';
+        totM+=s[5]; totP+=s[7];
         h+='<tr style="border-bottom:1px solid var(--line)">';
         h+='<td style="padding:4px 8px;font-weight:600;white-space:nowrap">'+s[1]+'</td>';
-        h+='<td style="padding:4px 8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s[2]+'</td>';
-        h+='<td style="padding:4px 8px"><span class="pet-badge '+_petClass(s[3])+'">'+_petShort(s[3])+'</span></td>';
+        h+='<td style="padding:4px 8px;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s[2]+'</td>';
+        h+='<td style="padding:4px 8px;text-align:center"><span class="pet-badge '+_petClass(s[3])+'">'+_petShort(s[3])+'</span></td>';
         h+='<td style="padding:4px 8px;text-align:right">$'+s[4].toLocaleString('es-MX')+'</td>';
         h+='<td style="padding:4px 8px;text-align:right;font-weight:600">'+_fmt(s[5])+'</td>';
-        h+='<td style="padding:4px 8px;text-align:right">'+s[6].toLocaleString('es-MX')+'</td>';
         h+='<td style="padding:4px 8px;text-align:right;font-weight:600">'+_fmt(s[7])+'</td>';
+        h+='<td style="padding:4px 8px;text-align:right;font-weight:800;color:'+acosClr2+'">'+skuAcos.toFixed(2)+'%</td>';
         h+='<td style="padding:4px 8px;text-align:center"><span class="ads-chip '+_adsClass(s[8])+'">'+_adsShort(s[8])+'</span></td>';
         h+='<td style="padding:4px 8px;text-align:right">'+s[9].toLocaleString('es-MX')+'</td>';
         h+='<td style="padding:4px 8px;text-align:right;font-weight:700;color:'+cobClr+'">'+s[10]+'%</td>';
         h+='</tr>';
       });
+      // Totals row
+      var totAcos=totM>0?(totP/totM*100).toFixed(2):'0.00';
+      h+='<tr style="background:var(--surface);font-weight:700;border-top:2px solid var(--line)">';
+      h+='<td colspan="4" style="padding:5px 8px;text-align:right;font-size:11px;color:var(--muted)">TOTAL GRUPO</td>';
+      h+='<td style="padding:5px 8px;text-align:right">'+_fmt(totM)+'</td>';
+      h+='<td style="padding:5px 8px;text-align:right">'+_fmt(totP)+'</td>';
+      h+='<td style="padding:5px 8px;text-align:right;color:#3b82f6">'+totAcos+'%</td>';
+      h+='<td colspan="3"></td>';
+      h+='</tr>';
       h+='</tbody></table></div></td></tr>';
     });
+    // Platform totals row
+    h+='<tr style="background:var(--surface);font-weight:700"><td colspan="4" style="text-align:right;font-size:11px;color:var(--muted);padding:6px 10px">TOTAL '+plat.toUpperCase()+'</td>';
+    h+='<td style="text-align:right;padding:6px 10px">'+_fmt(platMeta)+'</td>';
+    h+='<td style="text-align:right;padding:6px 10px;color:'+clr+'">'+_fmt(platPresup)+'</td>';
+    h+='<td style="text-align:right;padding:6px 10px;font-size:13px;color:'+clr+'">'+platAcos+'%</td>';
+    h+='<td colspan="2"></td></tr>';
     h+='</tbody></table></div></div>';
   });
 
