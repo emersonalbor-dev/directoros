@@ -1737,7 +1737,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
         <span class="nav-badge" id="navBadgeBooking" style="display:none">0</span>
       </button>
       <button class="nav-item" data-view="recursos" onclick="switchView('recursos', this)">
-        <i class="ti ti-tools"></i> Recursos
+        <i class="ti ti-tools"></i> Sistema Comercial
       </button>
       <button class="nav-item" data-view="mercadolibre" onclick="switchView('mercadolibre', this)">
         <i class="ti ti-brand-mercado-libre" style="color:#f59e0b"></i> Mercado Libre
@@ -2108,7 +2108,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
       <div class="view" id="view-recursos">
         <div class="kanban-toolbar">
           <div>
-            <h2>Recursos</h2>
+            <h2>Sistema Comercial</h2>
             <div class="sub">Herramientas para el equipo comercial y de marketing</div>
           </div>
         </div>
@@ -8579,7 +8579,7 @@ async function pubGenerar() {
     var em = (e.message || '').toLowerCase();
     var ea = document.getElementById('pubErrorArea');
     if (em.includes('x-api-key') || em.includes('api_key') || em.includes('authentication') || em.includes('invalid') || em.includes('unauthorized') || em.includes('401')) {
-      if (ea) { ea.style.display = 'block'; ea.innerHTML = '<b>API Key inválida o expirada.</b> Ve a Recursos → Kit → ⚙ y actualiza tu clave Anthropic.'; }
+      if (ea) { ea.style.display = 'block'; ea.innerHTML = '<b>API Key inválida o expirada.</b> Ve a Sistema Comercial → Kit → ⚙ y actualiza tu clave Anthropic.'; }
       showToast('API Key inválida — reconfigúrala', 'error');
       setTimeout(kitConfigAI, 1200);
     } else {
@@ -12979,7 +12979,7 @@ const viewTitles = {
   calendar: { title: 'Smart Calendar', sub: 'Time blocking 70 / 20 / 10' },
   kanban: { title: 'Task Delegation', sub: 'Seguimiento del equipo con alertas a 24h' },
   booking: { title: 'Team Booking', sub: 'Agendamiento con OKR obligatorio' },
-  recursos: { title: 'Recursos Merchandiser', sub: 'Herramientas de análisis para el equipo comercial' },
+  recursos: { title: 'Sistema Comercial', sub: 'Herramientas de análisis para el equipo comercial' },
   admin: { title: 'Centro de administración', sub: 'Equipo, empresas, permisos y configuración' },
   tableau: { title: 'Analytics · Tableau', sub: 'Dashboards de ventas e inventarios · Maraga' },
   mercadolibre: { title: 'Mercado Libre', sub: 'Ventas, publicidad y reputación · 2026' }
