@@ -7874,51 +7874,77 @@ function _fmtN(n) { return (n||n===0)?n.toLocaleString('es-MX'):'—'; }
 function est154RenderResumen() {
   var el=document.getElementById('est154-panel-resumen');
   if (!el) return;
+  // Compute 2026 actuals from SKU data
+  var tot2026=0, totMeta=0, totVb=0;
+  var merch2026={}, pet2026={'1':0,'2':0,'3':0,'4':0,'5':0,'d':0};
+  _EST154_SKUS.forEach(function(r){
+    var v26=r[17]||0;
+    tot2026+=v26; totMeta+=r[7]; totVb+=r[6];
+    merch2026[r[4]]=(merch2026[r[4]]||0)+v26;
+    var pid=_petClass(r[3]).replace('pet-','');
+    pet2026[pid]=(pet2026[pid]||0)+v26;
+  });
+  var pctReal=(tot2026/totMeta*100).toFixed(1);
+  var gap=totMeta-tot2026;
+
   var h='<div class="est154-kpi-g">';
-  h+='<div class="est154-kpi"><div class="est154-kpi-l"><i class="ti ti-target" style="margin-right:4px;color:var(--maraga)"></i>Meta Total 2026</div><div class="est154-kpi-v" style="color:var(--maraga-dark)">$127M</div><div class="est154-kpi-s">100&times;$1M + 54&times;$500K</div></div>';
-  h+='<div class="est154-kpi"><div class="est154-kpi-l"><i class="ti ti-trending-up" style="margin-right:4px;color:#10b981"></i>Venta Base (Run Rate)</div><div class="est154-kpi-v" style="color:#065f46">$31.4M</div><div class="est154-kpi-s">Mayor entre 2025 y RR 2026</div></div>';
-  h+='<div class="est154-kpi"><div class="est154-kpi-l"><i class="ti ti-alert-triangle" style="margin-right:4px;color:#f59e0b"></i>GAP a Cerrar</div><div class="est154-kpi-v" style="color:#92400e">$95.6M</div><div class="est154-kpi-s">24.7% de avance actual</div></div>';
+  h+='<div class="est154-kpi"><div class="est154-kpi-l"><i class="ti ti-target" style="margin-right:4px;color:var(--maraga)"></i>Meta Total 2026</div><div class="est154-kpi-v" style="color:var(--maraga-dark)">'+_fmt(totMeta)+'</div><div class="est154-kpi-s">100&times;$1M + 54&times;$500K</div></div>';
+  h+='<div class="est154-kpi" style="border-left:3px solid #10b981"><div class="est154-kpi-l"><i class="ti ti-cash-banknote" style="margin-right:4px;color:#10b981"></i>Venta 2026 Acum.</div><div class="est154-kpi-v" style="color:#065f46">'+_fmt(tot2026)+'</div><div class="est154-kpi-s">Ene&ndash;Jun 20, 2026</div></div>';
+  h+='<div class="est154-kpi" style="border-left:3px solid #3b82f6"><div class="est154-kpi-l"><i class="ti ti-percentage" style="margin-right:4px;color:#3b82f6"></i>Avance Real 2026</div><div class="est154-kpi-v" style="color:#1e40af">'+pctReal+'%</div><div class="est154-kpi-s">vs meta anual</div></div>';
+  h+='<div class="est154-kpi"><div class="est154-kpi-l"><i class="ti ti-alert-triangle" style="margin-right:4px;color:#f59e0b"></i>GAP a Cerrar</div><div class="est154-kpi-v" style="color:#92400e">'+_fmt(gap)+'</div><div class="est154-kpi-s">'+pctReal+'% de avance real</div></div>';
   h+='<div class="est154-kpi"><div class="est154-kpi-l"><i class="ti ti-speakerphone" style="margin-right:4px;color:#3b82f6"></i>Presupuesto Ads</div><div class="est154-kpi-v" style="color:#1e40af">$1.67M</div><div class="est154-kpi-s">267 lineas SKU&times;plataforma</div></div>';
-  h+='<div class="est154-kpi"><div class="est154-kpi-l"><i class="ti ti-truck" style="margin-right:4px;color:#ec4899"></i>Plan Reposicion</div><div class="est154-kpi-v" style="color:#9d174d">90 SKUs</div><div class="est154-kpi-s">648K unids &bull; $81M inversion</div></div>';
   h+='<div class="est154-kpi"><div class="est154-kpi-l"><i class="ti ti-package" style="margin-right:4px;color:#8b5cf6"></i>Stock Libre Total</div><div class="est154-kpi-v" style="color:#5b21b6">1.43M</div><div class="est154-kpi-s">unidades consolidadas</div></div>';
   h+='</div>';
+
   h+='<div class="recursos-section-divider"><span><i class="ti ti-layers" style="margin-right:6px"></i>Distribucion por Peloton</span></div>';
   h+='<div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:16px">';
   _EST154_PELOTON.forEach(function(p){
+    var pid=p.id==='D'?'d':p.id;
+    var v26=pet2026[pid]||0;
     var barPct=Math.min((p.vbase/13700000)*80,100);
+    var avPct=p.meta>0?(v26/p.meta*100).toFixed(1):0;
+    var avClr=parseFloat(avPct)>=50?'#10b981':parseFloat(avPct)>=25?'#f59e0b':'#ef4444';
     h+='<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap">';
     h+='<span class="pet-badge '+p.cls+'" style="min-width:88px;text-align:center">'+p.lbl+'</span>';
     h+='<span style="font-size:10px;color:var(--muted);width:62px">'+p.desc+'</span>';
     h+='<span style="font-size:12px;font-weight:700;color:var(--ink);width:22px;text-align:center">'+p.count+'</span>';
     h+='<div class="est154-pet-bar"><div class="est154-pet-fill" style="width:'+barPct+'%;background:'+p.color+'"></div></div>';
     h+='<span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:80px">VBase: <b style="color:var(--ink)">'+_fmt(p.vbase)+'</b></span>';
-    h+='<span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:70px">Meta: <b>'+_fmt(p.meta)+'</b></span>';
-    h+='<span style="font-size:11px;color:var(--muted);white-space:nowrap">Ads: <b>'+_fmt(p.ads)+'</b></span>';
+    h+='<span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:80px"><i class="ti ti-cash-banknote" style="font-size:10px;margin-right:2px;color:#10b981"></i>2026: <b style="color:#065f46">'+_fmt(v26)+'</b></span>';
+    h+='<span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:65px">Meta: <b>'+_fmt(p.meta)+'</b></span>';
+    h+='<span style="font-size:11px;font-weight:700;color:'+avClr+'">'+avPct+'%</span>';
     h+='</div>';
   });
   h+='</div>';
+
   h+='<div class="recursos-section-divider"><span><i class="ti ti-user" style="margin-right:6px"></i>Por Responsable</span></div>';
   h+='<div style="overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin-bottom:16px"><table class="est154-tbl"><thead><tr>';
-  ['Responsable','SKUs','Venta Base','Meta','% Avance','Stock Libre','Ads Presup.','SKUs stock<meta'].forEach(function(hd){h+='<th>'+hd+'</th>';});
+  ['Responsable','SKUs','Venta 2026','% Real','Meta','VBase','Stock Libre','Ads Presup.'].forEach(function(hd){h+='<th>'+hd+'</th>';});
   h+='</tr></thead><tbody>';
-  var merch_stock_lt={'Cecilia Lozano':40,'Hernan Hernandez':14,'Evelyn Sanchez':35,'Priscila Juarez':1};
   _EST154_MERCH.forEach(function(m){
-    var pct=(m.vbase/m.meta*100).toFixed(1);
-    var bar=Math.min(parseFloat(pct)*2,100);
-    var clr=parseFloat(pct)>=50?'#10b981':parseFloat(pct)>=25?'#f59e0b':'#ef4444';
+    var v26=merch2026[m.n]||0;
+    var pct26=(v26/m.meta*100).toFixed(1);
+    var bar26=Math.min(parseFloat(pct26)*2,100);
+    var clr26=parseFloat(pct26)>=50?'#10b981':parseFloat(pct26)>=25?'#f59e0b':'#ef4444';
     h+='<tr>';
     h+='<td style="font-weight:600">'+m.n+'</td>';
     h+='<td style="text-align:center">'+m.skus+'</td>';
-    h+='<td style="font-weight:600">'+_fmt(m.vbase)+'</td>';
+    h+='<td style="font-weight:700;color:#065f46">'+_fmt(v26)+'</td>';
+    h+='<td><div style="display:flex;align-items:center;gap:6px"><div class="est154-pet-bar" style="min-width:40px"><div class="est154-pet-fill" style="width:'+bar26+'%;background:'+clr26+'"></div></div><span style="font-size:11px;color:'+clr26+';font-weight:700">'+pct26+'%</span></div></td>';
     h+='<td>'+_fmt(m.meta)+'</td>';
-    h+='<td><div style="display:flex;align-items:center;gap:6px"><div class="est154-pet-bar" style="min-width:40px"><div class="est154-pet-fill" style="width:'+bar+'%;background:'+clr+'"></div></div><span style="font-size:11px;color:'+clr+';font-weight:700">'+pct+'%</span></div></td>';
+    h+='<td style="color:var(--muted)">'+_fmt(m.vbase)+'</td>';
     h+='<td>'+_fmtN(m.stock)+'</td>';
     h+='<td>'+_fmt(m.ads)+'</td>';
-    h+='<td style="text-align:center"><span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">'+(merch_stock_lt[m.n]||0)+'</span></td>';
     h+='</tr>';
   });
+  // Totals row
+  var tot26m=Object.values(merch2026).reduce(function(s,v){return s+v;},0);
+  h+='<tr style="background:var(--surface);font-weight:700"><td>TOTAL</td><td style="text-align:center">154</td>';
+  h+='<td style="color:#065f46">'+_fmt(tot26m)+'</td>';
+  h+='<td style="color:#1e40af">'+pctReal+'%</td>';
+  h+='<td>'+_fmt(totMeta)+'</td><td colspan="3"></td></tr>';
   h+='</tbody></table></div>';
-  h+='<div style="font-size:11px;color:var(--muted);padding:6px 0">* Venta Base = mayor entre Venta Real 2025 y Run Rate 2026 &bull; Meta Top 100: $100M total &bull; Meta Ampliacion 54: $27M total &bull; Periodo: Ene 1 - Jun 20, 2026 (5.67 meses)</div>';
+  h+='<div style="font-size:11px;color:var(--muted);padding:6px 0">* Venta 2026 Acum. = ventas reales Ene 1 &ndash; Jun 20, 2026 (5.67 meses) &bull; Venta Base = mayor entre Venta Real 2025 y RR 2026</div>';
   el.innerHTML=h;
 }
 function _petClass(p){
@@ -7985,23 +8011,36 @@ function est154RenderSKUs(){
   h+='<span style="font-size:11px;color:var(--muted)">'+filtered.length+' SKUs</span>';
   h+='</div>';
   h+='<div style="overflow-x:auto;overflow-y:auto;max-height:560px;border:1px solid var(--line);border-radius:10px"><table class="est154-tbl"><thead><tr>';
-  var cols=['#','SKU','Producto','Peloton','Resp.','Venta Base','Meta','Cob%','Stock','Meses','Ads ML','Ads AMZ','Ads WMT','Ads MRG','$ Ads'];
-  cols.forEach(function(c,i){h+='<th onclick="_e154Sort('+i+')" title="Ordenar por '+c+'">'+c+'</th>';});
+  // cols mapped to data indices for sort; V.2026=17, %Real=computed (no sort)
+  var colDefs=[
+    ['#',0],['SKU',1],['Producto',2],['Peloton',3],['Resp.',4],
+    ['Venta Base',6],['V.2026 ▸',17],['% Real',-1],['Meta',7],['Cob%',8],
+    ['Stock',9],['Meses',10],['Ads ML',13],['Ads AMZ',14],['Ads WMT',15],['Ads MRG',16],['$ Ads',12]
+  ];
+  colDefs.forEach(function(c){
+    if(c[1]>=0) h+='<th onclick="_e154Sort('+c[1]+')" title="Ordenar por '+c[0]+'">'+c[0]+'</th>';
+    else h+='<th style="color:#10b981">'+c[0]+'</th>';
+  });
   h+='</tr></thead><tbody>';
-  var tVb=0,tMeta=0,tAds=0;
+  var tVb=0,tMeta=0,tAds=0,t26=0;
   filtered.forEach(function(r){
+    var v26=r[17]||0;
+    var pctReal=r[7]>0?(v26/r[7]*100).toFixed(1):0;
+    var realClr=parseFloat(pctReal)>=100?'#10b981':parseFloat(pctReal)>=50?'#3b82f6':parseFloat(pctReal)>=25?'#f59e0b':'#ef4444';
     var cobClr=r[8]>=100?'#10b981':r[8]>=50?'#3b82f6':r[8]>=25?'#f59e0b':'#ef4444';
     var msClr=r[10]<=2?'#dc2626':r[10]<=5?'#f59e0b':'#6b7280';
-    tVb+=r[6]; tMeta+=r[7]; tAds+=r[12];
+    tVb+=r[6]; tMeta+=r[7]; tAds+=r[12]; t26+=v26;
     h+='<tr>';
     h+='<td style="text-align:center;color:var(--muted);font-size:11px">'+r[0]+'</td>';
     h+='<td style="font-weight:600;white-space:nowrap;font-size:11px">'+r[1]+'</td>';
     h+='<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+r[2].replace(/"/g,'&quot;')+'">'+r[2]+'</td>';
     h+='<td><span class="pet-badge '+_petClass(r[3])+'">'+_petShort(r[3])+'</span></td>';
     h+='<td style="font-size:11px;white-space:nowrap">'+r[4].split(' ')[0]+'</td>';
-    h+='<td style="text-align:right;font-weight:600">'+_fmt(r[6])+'</td>';
+    h+='<td style="text-align:right;color:var(--muted)">'+_fmt(r[6])+'</td>';
+    h+='<td style="text-align:right;font-weight:700;color:#065f46">'+_fmt(v26)+'</td>';
+    h+='<td style="text-align:right;font-weight:700;color:'+realClr+'">'+pctReal+'%</td>';
     h+='<td style="text-align:right;color:var(--muted)">'+_fmt(r[7])+'</td>';
-    h+='<td style="text-align:right;font-weight:700;color:'+cobClr+'">'+r[8]+'%</td>';
+    h+='<td style="text-align:right;font-weight:600;color:'+cobClr+'">'+r[8]+'%</td>';
     h+='<td style="text-align:right">'+_fmtN(r[9])+'</td>';
     h+='<td style="text-align:center;color:'+msClr+';font-weight:600">'+r[10]+'</td>';
     h+='<td><span class="ads-chip '+_adsClass(r[13])+'">'+_adsShort(r[13])+'</span></td>';
@@ -8011,8 +8050,12 @@ function est154RenderSKUs(){
     h+='<td style="text-align:right;font-weight:600">'+_fmt(r[12])+'</td>';
     h+='</tr>';
   });
+  var totPct=tMeta>0?(t26/tMeta*100).toFixed(1):0;
   h+='<tr style="background:var(--surface);font-weight:700"><td colspan="5" style="text-align:right;font-size:11px;padding-right:10px">TOTALES</td>';
-  h+='<td style="text-align:right">'+_fmt(tVb)+'</td><td style="text-align:right">'+_fmt(tMeta)+'</td>';
+  h+='<td style="text-align:right">'+_fmt(tVb)+'</td>';
+  h+='<td style="text-align:right;color:#065f46">'+_fmt(t26)+'</td>';
+  h+='<td style="text-align:right;color:#1e40af">'+totPct+'%</td>';
+  h+='<td style="text-align:right">'+_fmt(tMeta)+'</td>';
   h+='<td colspan="7"></td><td style="text-align:right">'+_fmt(tAds)+'</td></tr>';
   h+='</tbody></table></div>';
   el.innerHTML=h;
