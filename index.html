@@ -7874,13 +7874,15 @@ function _fmtN(n) { return (n||n===0)?n.toLocaleString('es-MX'):'—'; }
 function est154RenderResumen() {
   var el=document.getElementById('est154-panel-resumen');
   if (!el) return;
-  // Compute 2026 actuals from SKU data
+  // Compute 2026 actuals — Meta sólo Top 100 (excluye pelotón D Ampliación)
   var tot2026=0, totMeta=0, totVb=0;
-  var merch2026={}, pet2026={'1':0,'2':0,'3':0,'4':0,'5':0,'d':0};
+  var merch2026={}, merchMeta={}, pet2026={'1':0,'2':0,'3':0,'4':0,'5':0,'d':0};
   _EST154_SKUS.forEach(function(r){
     var v26=r[17]||0;
-    tot2026+=v26; totMeta+=r[7]; totVb+=r[6];
-    merch2026[r[4]]=(merch2026[r[4]]||0)+v26;
+    var isTop100=_petClass(r[3])!=='pet-d';
+    if(isTop100){ tot2026+=v26; totMeta+=r[7]; totVb+=r[6]; }
+    merch2026[r[4]]=(merch2026[r[4]]||0)+(isTop100?v26:0);
+    merchMeta[r[4]]=(merchMeta[r[4]]||0)+(isTop100?r[7]:0);
     var pid=_petClass(r[3]).replace('pet-','');
     pet2026[pid]=(pet2026[pid]||0)+v26;
   });
@@ -7901,18 +7903,23 @@ function est154RenderResumen() {
   _EST154_PELOTON.forEach(function(p){
     var pid=p.id==='D'?'d':p.id;
     var v26=pet2026[pid]||0;
+    var isAmp=p.id==='D';
     var barPct=Math.min((p.vbase/13700000)*80,100);
-    var avPct=p.meta>0?(v26/p.meta*100).toFixed(1):0;
-    var avClr=parseFloat(avPct)>=50?'#10b981':parseFloat(avPct)>=25?'#f59e0b':'#ef4444';
-    h+='<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap">';
+    var avPct=(!isAmp&&p.meta>0)?(v26/p.meta*100).toFixed(1):null;
+    var avClr=avPct===null?'var(--muted)':parseFloat(avPct)>=50?'#10b981':parseFloat(avPct)>=25?'#f59e0b':'#ef4444';
+    h+='<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap'+(isAmp?';opacity:.75':'')+'">';
     h+='<span class="pet-badge '+p.cls+'" style="min-width:88px;text-align:center">'+p.lbl+'</span>';
     h+='<span style="font-size:10px;color:var(--muted);width:62px">'+p.desc+'</span>';
     h+='<span style="font-size:12px;font-weight:700;color:var(--ink);width:22px;text-align:center">'+p.count+'</span>';
     h+='<div class="est154-pet-bar"><div class="est154-pet-fill" style="width:'+barPct+'%;background:'+p.color+'"></div></div>';
     h+='<span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:80px">VBase: <b style="color:var(--ink)">'+_fmt(p.vbase)+'</b></span>';
     h+='<span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:80px"><i class="ti ti-cash-banknote" style="font-size:10px;margin-right:2px;color:#10b981"></i>2026: <b style="color:#065f46">'+_fmt(v26)+'</b></span>';
-    h+='<span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:65px">Meta: <b>'+_fmt(p.meta)+'</b></span>';
-    h+='<span style="font-size:11px;font-weight:700;color:'+avClr+'">'+avPct+'%</span>';
+    if(!isAmp){
+      h+='<span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:65px">Meta: <b>'+_fmt(p.meta)+'</b></span>';
+      h+='<span style="font-size:11px;font-weight:700;color:'+avClr+'">'+avPct+'%</span>';
+    } else {
+      h+='<span style="font-size:10px;background:#ede9fe;color:#6b21a8;border-radius:4px;padding:2px 7px">Ampliacion &mdash; fuera de meta principal</span>';
+    }
     h+='</div>';
   });
   h+='</div>';
@@ -7923,7 +7930,8 @@ function est154RenderResumen() {
   h+='</tr></thead><tbody>';
   _EST154_MERCH.forEach(function(m){
     var v26=merch2026[m.n]||0;
-    var pct26=(v26/m.meta*100).toFixed(1);
+    var mMeta=merchMeta[m.n]||0;
+    var pct26=mMeta>0?(v26/mMeta*100).toFixed(1):0;
     var bar26=Math.min(parseFloat(pct26)*2,100);
     var clr26=parseFloat(pct26)>=50?'#10b981':parseFloat(pct26)>=25?'#f59e0b':'#ef4444';
     h+='<tr>';
@@ -7931,20 +7939,18 @@ function est154RenderResumen() {
     h+='<td style="text-align:center">'+m.skus+'</td>';
     h+='<td style="font-weight:700;color:#065f46">'+_fmt(v26)+'</td>';
     h+='<td><div style="display:flex;align-items:center;gap:6px"><div class="est154-pet-bar" style="min-width:40px"><div class="est154-pet-fill" style="width:'+bar26+'%;background:'+clr26+'"></div></div><span style="font-size:11px;color:'+clr26+';font-weight:700">'+pct26+'%</span></div></td>';
-    h+='<td>'+_fmt(m.meta)+'</td>';
+    h+='<td>'+_fmt(mMeta)+'</td>';
     h+='<td style="color:var(--muted)">'+_fmt(m.vbase)+'</td>';
     h+='<td>'+_fmtN(m.stock)+'</td>';
     h+='<td>'+_fmt(m.ads)+'</td>';
     h+='</tr>';
   });
-  // Totals row
-  var tot26m=Object.values(merch2026).reduce(function(s,v){return s+v;},0);
-  h+='<tr style="background:var(--surface);font-weight:700"><td>TOTAL</td><td style="text-align:center">154</td>';
-  h+='<td style="color:#065f46">'+_fmt(tot26m)+'</td>';
+  h+='<tr style="background:var(--surface);font-weight:700"><td>TOTAL Top 100</td><td style="text-align:center">100</td>';
+  h+='<td style="color:#065f46">'+_fmt(tot2026)+'</td>';
   h+='<td style="color:#1e40af">'+pctReal+'%</td>';
   h+='<td>'+_fmt(totMeta)+'</td><td colspan="3"></td></tr>';
   h+='</tbody></table></div>';
-  h+='<div style="font-size:11px;color:var(--muted);padding:6px 0">* Venta 2026 Acum. = ventas reales Ene 1 &ndash; Jun 20, 2026 (5.67 meses) &bull; Venta Base = mayor entre Venta Real 2025 y RR 2026</div>';
+  h+='<div style="font-size:11px;color:var(--muted);padding:6px 0">* Venta 2026 Acum. = ventas reales Ene 1 &ndash; Jun 20, 2026 (5.67 meses) &bull; Meta y % avance calculados solo sobre Top 100 SKUs ($100M) &bull; Ampliaci&oacute;n 54 SKUs excluida de meta principal</div>';
   el.innerHTML=h;
 }
 function _petClass(p){
@@ -8022,14 +8028,16 @@ function est154RenderSKUs(){
     else h+='<th style="color:#10b981">'+c[0]+'</th>';
   });
   h+='</tr></thead><tbody>';
-  var tVb=0,tMeta=0,tAds=0,t26=0;
+  var tVb=0,tMeta=0,tAds=0,t26=0,tMeta100=0,t26_100=0;
   filtered.forEach(function(r){
     var v26=r[17]||0;
+    var isTop100=_petClass(r[3])!=='pet-d';
     var pctReal=r[7]>0?(v26/r[7]*100).toFixed(1):0;
     var realClr=parseFloat(pctReal)>=100?'#10b981':parseFloat(pctReal)>=50?'#3b82f6':parseFloat(pctReal)>=25?'#f59e0b':'#ef4444';
     var cobClr=r[8]>=100?'#10b981':r[8]>=50?'#3b82f6':r[8]>=25?'#f59e0b':'#ef4444';
     var msClr=r[10]<=2?'#dc2626':r[10]<=5?'#f59e0b':'#6b7280';
     tVb+=r[6]; tMeta+=r[7]; tAds+=r[12]; t26+=v26;
+    if(isTop100){tMeta100+=r[7];t26_100+=v26;}
     h+='<tr>';
     h+='<td style="text-align:center;color:var(--muted);font-size:11px">'+r[0]+'</td>';
     h+='<td style="font-weight:600;white-space:nowrap;font-size:11px">'+r[1]+'</td>';
@@ -8050,11 +8058,11 @@ function est154RenderSKUs(){
     h+='<td style="text-align:right;font-weight:600">'+_fmt(r[12])+'</td>';
     h+='</tr>';
   });
-  var totPct=tMeta>0?(t26/tMeta*100).toFixed(1):0;
+  var totPct=tMeta100>0?(t26_100/tMeta100*100).toFixed(1):0;
   h+='<tr style="background:var(--surface);font-weight:700"><td colspan="5" style="text-align:right;font-size:11px;padding-right:10px">TOTALES</td>';
   h+='<td style="text-align:right">'+_fmt(tVb)+'</td>';
   h+='<td style="text-align:right;color:#065f46">'+_fmt(t26)+'</td>';
-  h+='<td style="text-align:right;color:#1e40af">'+totPct+'%</td>';
+  h+='<td style="text-align:right;color:#1e40af" title="% avance vs meta Top 100">'+totPct+'%</td>';
   h+='<td style="text-align:right">'+_fmt(tMeta)+'</td>';
   h+='<td colspan="7"></td><td style="text-align:right">'+_fmt(tAds)+'</td></tr>';
   h+='</tbody></table></div>';
