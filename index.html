@@ -944,6 +944,17 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 .mkt-tab i{font-size:13px}
 .mkt-sub-panel{display:none}
 .mkt-sub-panel.active{display:block}
+/* ── Redes Sociales Content Generator ── */
+.redes-chip-lbl{display:inline-flex;align-items:center;gap:5px;font-size:11px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:4px 10px;cursor:pointer;transition:all .15s;user-select:none;color:var(--ink)}
+.redes-chip-lbl:hover{border-color:var(--maraga);color:var(--maraga)}
+.redes-chip-lbl input[type=checkbox]{display:none}
+.redes-chip-lbl:has(input:checked){background:var(--maraga);color:#fff;border-color:var(--maraga)}
+.redes-plat-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.redes-content-item{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:8px}
+.redes-copy-btn{background:none;border:1px solid var(--line);border-radius:6px;padding:3px 9px;font-size:10px;cursor:pointer;color:var(--muted);transition:all .15s}
+.redes-copy-btn:hover{background:var(--maraga);color:#fff;border-color:var(--maraga)}
+.redes-hashtag{display:inline-block;background:#f3e8ff;color:#6b21a8;border-radius:4px;padding:2px 7px;font-size:11px;margin:2px;font-weight:600}
+.redes-trend-badge{display:inline-flex;align-items:center;gap:4px;background:#fef9c3;color:#713f12;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;margin-bottom:6px}
 /* ── SC Recommender ── */
 .sc-layout{display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start}
 @media(max-width:900px){.sc-layout{grid-template-columns:1fr}}
@@ -2485,6 +2496,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
         <div class="mkt-tabs">
           <button class="mkt-tab active" onclick="switchMktTab('plan',this)"><i class="ti ti-target"></i> Plan de Ventas</button>
           <button class="mkt-tab" onclick="switchMktTab('kits',this)"><i class="ti ti-package"></i> Creador de Kits</button>
+          <button class="mkt-tab" onclick="switchMktTab('redes',this)"><i class="ti ti-brand-instagram"></i> Contenido Redes</button>
         </div>
         <!-- Sub-panel: Estrategia 154 SKUs -->
         <div class="mkt-sub-panel active" id="mkt-panel-plan">
@@ -2631,6 +2643,123 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
         </div>
 
         </div><!-- /mkt-panel-kits -->
+
+        <!-- Sub-panel: Contenido Redes Sociales -->
+        <div class="mkt-sub-panel" id="mkt-panel-redes">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <div style="font-weight:700;font-size:15px"><i class="ti ti-brand-instagram" style="margin-right:6px;color:var(--maraga)"></i>Generador de Contenido para Redes Sociales</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">Sube la ficha t&eacute;cnica de tu producto o familia &bull; Obtiene tendencias + contenido listo para publicar</div>
+            </div>
+            <div style="font-size:11px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:8px;padding:5px 12px;display:flex;align-items:center;gap:5px">
+              <i class="ti ti-sparkles"></i> Powered by Claude AI
+            </div>
+          </div>
+
+          <!-- Upload + Config grid -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">
+
+            <!-- PDF Upload -->
+            <div>
+              <div style="font-weight:600;font-size:12px;color:var(--ink);margin-bottom:8px"><i class="ti ti-file-type-pdf" style="color:#ef4444;margin-right:4px"></i>Ficha T&eacute;cnica (PDF)</div>
+              <div id="redes-drop-zone" onclick="document.getElementById('redes-file-input').click()"
+                style="border:2px dashed var(--line);border-radius:12px;padding:24px 16px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface)"
+                ondragover="event.preventDefault();this.style.borderColor='var(--maraga)';this.style.background='#fdf4ff'"
+                ondragleave="this.style.borderColor='var(--line)';this.style.background='var(--surface)'"
+                ondrop="_redesDrop(event)">
+                <div id="redes-drop-icon" style="font-size:28px;color:var(--muted);margin-bottom:6px"><i class="ti ti-file-upload"></i></div>
+                <div id="redes-drop-label" style="font-size:12px;color:var(--muted)">Arrastra tu PDF aqu&iacute; o <b style="color:var(--maraga)">selecciona archivo</b></div>
+                <div id="redes-file-name" style="font-size:11px;color:var(--maraga);margin-top:6px;font-weight:600;display:none"></div>
+              </div>
+              <input type="file" id="redes-file-input" accept=".pdf" style="display:none" onchange="_redesFileSelect(this)">
+              <div style="font-size:10px;color:var(--muted);margin-top:5px;text-align:center">Ficha t&eacute;cnica, cat&aacute;logo, especificaciones &bull; Max 10MB</div>
+
+              <!-- Optional text fallback -->
+              <div style="margin-top:10px">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">O describe el producto (opcional si ya subiste PDF):</div>
+                <textarea id="redes-desc" placeholder="Ej: Soldadora inversora 200A, uso industrial y doméstico, 110/220V, incluye electrodo 6013..." style="width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:12px;background:var(--bg);color:var(--ink);resize:vertical;height:70px;font-family:inherit"></textarea>
+              </div>
+            </div>
+
+            <!-- Config -->
+            <div style="display:flex;flex-direction:column;gap:14px">
+
+              <!-- Plataformas -->
+              <div>
+                <div style="font-weight:600;font-size:12px;color:var(--ink);margin-bottom:8px"><i class="ti ti-device-mobile" style="margin-right:4px;color:#3b82f6"></i>Plataformas</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px" id="redes-plats">
+                  <label class="redes-chip-lbl"><input type="checkbox" value="Instagram" checked> <i class="ti ti-brand-instagram" style="color:#e1306c"></i> Instagram</label>
+                  <label class="redes-chip-lbl"><input type="checkbox" value="TikTok" checked> <i class="ti ti-brand-tiktok"></i> TikTok</label>
+                  <label class="redes-chip-lbl"><input type="checkbox" value="Facebook"> <i class="ti ti-brand-facebook" style="color:#1877f2"></i> Facebook</label>
+                  <label class="redes-chip-lbl"><input type="checkbox" value="LinkedIn"> <i class="ti ti-brand-linkedin" style="color:#0a66c2"></i> LinkedIn</label>
+                  <label class="redes-chip-lbl"><input type="checkbox" value="YouTube"> <i class="ti ti-brand-youtube" style="color:#ff0000"></i> YouTube</label>
+                  <label class="redes-chip-lbl"><input type="checkbox" value="X/Twitter"> <i class="ti ti-brand-x"></i> X/Twitter</label>
+                </div>
+              </div>
+
+              <!-- Tipo de contenido -->
+              <div>
+                <div style="font-weight:600;font-size:12px;color:var(--ink);margin-bottom:8px"><i class="ti ti-layout-grid" style="margin-right:4px;color:#8b5cf6"></i>Tipo de Contenido</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  <label class="redes-chip-lbl"><input type="checkbox" value="Post feed" checked> Post Feed</label>
+                  <label class="redes-chip-lbl"><input type="checkbox" value="Story/Historia" checked> Story</label>
+                  <label class="redes-chip-lbl"><input type="checkbox" value="Reel/Video corto" checked> Reel</label>
+                  <label class="redes-chip-lbl"><input type="checkbox" value="Campaña publicitaria"> Campaña Ads</label>
+                  <label class="redes-chip-lbl"><input type="checkbox" value="Email marketing"> Email Mkt</label>
+                </div>
+              </div>
+
+              <!-- Tono y Audiencia -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div>
+                  <div style="font-weight:600;font-size:12px;color:var(--ink);margin-bottom:6px"><i class="ti ti-mood-smile" style="margin-right:4px"></i>Tono</div>
+                  <select id="redes-tono" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12px;background:var(--bg);color:var(--ink)">
+                    <option value="Profesional y confiable">Profesional</option>
+                    <option value="Casual y cercano" selected>Casual</option>
+                    <option value="Técnico y especialista">Técnico</option>
+                    <option value="Inspiracional y aspiracional">Inspiracional</option>
+                    <option value="Urgente y promocional">Urgente/Promo</option>
+                  </select>
+                </div>
+                <div>
+                  <div style="font-weight:600;font-size:12px;color:var(--ink);margin-bottom:6px"><i class="ti ti-users" style="margin-right:4px"></i>Audiencia</div>
+                  <select id="redes-audiencia" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12px;background:var(--bg);color:var(--ink)">
+                    <option value="B2C - Consumidor final" selected>B2C</option>
+                    <option value="B2B - Empresas y distribuidores">B2B</option>
+                    <option value="B2B y B2C mixto">B2B + B2C</option>
+                    <option value="Profesionales técnicos y especialistas">Técnicos</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Num ideas -->
+              <div>
+                <div style="font-weight:600;font-size:12px;color:var(--ink);margin-bottom:6px"><i class="ti ti-list-numbers" style="margin-right:4px"></i>Ideas por plataforma</div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input type="range" id="redes-nideas" min="2" max="5" value="3" style="flex:1" oninput="document.getElementById('redes-nval').textContent=this.value">
+                  <span id="redes-nval" style="font-weight:700;color:var(--maraga);width:20px;text-align:center">3</span>
+                </div>
+              </div>
+
+            </div>
+          </div><!-- /grid -->
+
+          <!-- Generate button -->
+          <div style="text-align:center;margin-bottom:20px">
+            <button onclick="redesGenerar()" id="redes-btn"
+              style="background:linear-gradient(135deg,var(--maraga),var(--maraga-dark));color:#fff;border:none;border-radius:12px;padding:13px 40px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(139,0,139,.25)">
+              <i class="ti ti-sparkles" id="redes-btn-icon"></i>
+              <span id="redes-btn-label">Generar Contenido</span>
+            </button>
+            <div id="redes-api-warn" style="display:none;margin-top:8px;font-size:11px;color:#dc2626">
+              <i class="ti ti-alert-triangle"></i> Configura tu API Key de Anthropic en Sistema Comercial &rarr; Kit IA &rarr; &#9881;
+            </div>
+          </div>
+
+          <!-- Results -->
+          <div id="redes-results"></div>
+
+        </div><!-- /mkt-panel-redes -->
 
         </div><!-- /recursos-panel-marketing -->
 
@@ -4651,14 +4780,14 @@ var VENTAS_PLAT_DATA = {
   },
   '2026-06': {
     mercadolibre: {
-      total: 610335, ordenes: 624, unidades: 708, ticketPromedio: 978,
-      parcial: true, parcialLabel: 'al 17 de junio',
+      total: 889361.01, ordenes: 914, unidades: 1018, ticketPromedio: 973,
+      parcial: true, parcialLabel: 'al 25 de junio',
       top: [
-        { titulo: 'Careta Electrónica Maraga Free450 Sombra 11 Color', ingresos: 101200, unidades: 192 },
-        { titulo: 'Soldadora Inverter Maraga 300a - 220-440v Arc300dv', ingresos: 48600, unidades: 4 },
-        { titulo: 'Soldadora Inversora Maraga Arc200 200 Ampers Color', ingresos: 45000, unidades: 9 },
-        { titulo: 'Disco De Diamante Para Corte Metal Maraga 14 Pulga', ingresos: 28500, unidades: 29 },
-        { titulo: 'Pistola De Clavos Maraga Cn70 1 1/2 A 2 3/4 Pulgad', ingresos: 25000, unidades: 5 }
+        { titulo: 'Careta Electrónica Maraga Free450 Sombra 11 Color', ingresos: 158196 },
+        { titulo: 'Soldadora Inverter Maraga 300a - 220-440v Arc300dv', ingresos: 72894.60 },
+        { titulo: 'Disco De Diamante Para Corte Metal Maraga 14 Pulga', ingresos: 66164 },
+        { titulo: 'Cortadora Metal Maraga 2400w 14 Pulgadas', ingresos: 57279.60 },
+        { titulo: 'Careta Electrónica Para Soldar Maraga Sombra Ajust', ingresos: 56441.70 }
       ]
     },
 walmart: {
@@ -8356,6 +8485,296 @@ function _bdQ(v){_bodeguitasFilter.q=v;bodeguitasRender();}
 function _bdPlat(v){_bodeguitasFilter.plat=v;bodeguitasRender();}
 function _bdMerch(v){_bodeguitasFilter.merch=v;bodeguitasRender();}
 function _bdClear(){_bodeguitasFilter={plat:'',merch:'',q:''};bodeguitasRender();}
+
+/* ── Contenido Redes Sociales ──────────────────────────────────────── */
+var _redesPdfB64 = null;
+var _redesPdfName = '';
+var _redesGenerating = false;
+
+function switchMktTab_redes_init() {}  // called by switchMktTab
+
+function _redesDrop(e) {
+  e.preventDefault();
+  var file = e.dataTransfer.files[0];
+  if (file) _redesHandleFile(file);
+  document.getElementById('redes-drop-zone').style.borderColor = 'var(--line)';
+  document.getElementById('redes-drop-zone').style.background = 'var(--surface)';
+}
+function _redesFileSelect(input) {
+  if (input.files[0]) _redesHandleFile(input.files[0]);
+}
+function _redesHandleFile(file) {
+  if (!file.type.includes('pdf') && !file.name.endsWith('.pdf')) {
+    alert('Por favor sube un archivo PDF.'); return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    alert('El archivo supera 10MB.'); return;
+  }
+  _redesPdfName = file.name;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var b64 = e.target.result.split(',')[1];
+    _redesPdfB64 = b64;
+    var nameEl = document.getElementById('redes-file-name');
+    var labelEl = document.getElementById('redes-drop-label');
+    var iconEl  = document.getElementById('redes-drop-icon');
+    nameEl.textContent = '✓ ' + file.name;
+    nameEl.style.display = 'block';
+    labelEl.textContent = 'Cambiar archivo';
+    iconEl.innerHTML = '<i class="ti ti-file-check" style="color:#10b981"></i>';
+  };
+  reader.readAsDataURL(file);
+}
+
+function _redesGetPlats() {
+  return Array.from(document.querySelectorAll('#redes-plats input[type=checkbox]:checked')).map(c => c.value);
+}
+function _redesGetTipos() {
+  return Array.from(document.querySelectorAll('#mkt-panel-redes input[type=checkbox]:checked')).filter(c => !c.closest('#redes-plats')).map(c => c.value);
+}
+
+async function redesGenerar() {
+  var apiKey = (typeof localStorage !== 'undefined' && localStorage.getItem('directoros_ai_key')) || '';
+  if (!apiKey) {
+    document.getElementById('redes-api-warn').style.display = 'block';
+    return;
+  }
+  document.getElementById('redes-api-warn').style.display = 'none';
+
+  var plats = _redesGetPlats();
+  var tipos = _redesGetTipos();
+  var tono  = document.getElementById('redes-tono').value;
+  var aud   = document.getElementById('redes-audiencia').value;
+  var nIdeas = document.getElementById('redes-nideas').value;
+  var descTexto = (document.getElementById('redes-desc').value || '').trim();
+
+  if (plats.length === 0) { alert('Selecciona al menos una plataforma.'); return; }
+  if (!_redesPdfB64 && !descTexto) { alert('Sube la ficha técnica PDF o describe el producto.'); return; }
+  if (_redesGenerating) return;
+  _redesGenerating = true;
+
+  var btn   = document.getElementById('redes-btn');
+  var icon  = document.getElementById('redes-btn-icon');
+  var label = document.getElementById('redes-btn-label');
+  btn.disabled = true; btn.style.opacity = '0.7';
+  icon.className = 'ti ti-loader-2'; icon.style.animation = 'spin 1s linear infinite';
+  label.textContent = 'Analizando y generando…';
+
+  var results = document.getElementById('redes-results');
+  results.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)"><i class="ti ti-loader-2" style="font-size:28px;animation:spin 1s linear infinite"></i><br><br><b>Analizando ficha técnica y buscando tendencias…</b><br><span style="font-size:11px">Esto puede tomar 15–30 segundos</span></div>';
+
+  var prompt = 'Eres un experto en marketing digital y social media para México, especializado en productos industriales, herramientas y ferretería. El idioma de respuesta debe ser ESPAÑOL.\n\n' +
+    'Analiza el producto/familia de la ficha técnica adjunta' + (descTexto ? ' y la siguiente descripción adicional: "' + descTexto + '"' : '') + '.\n\n' +
+    'Genera recomendaciones completas de contenido para redes sociales con los siguientes parámetros:\n' +
+    '- Plataformas: ' + plats.join(', ') + '\n' +
+    '- Tipos de contenido: ' + (tipos.length ? tipos.join(', ') : 'Post feed, Story, Reel') + '\n' +
+    '- Tono: ' + tono + '\n' +
+    '- Audiencia objetivo: ' + aud + '\n' +
+    '- Ideas por plataforma: ' + nIdeas + '\n\n' +
+    'Responde ÚNICAMENTE con un objeto JSON válido (sin markdown, sin ```json, solo el JSON puro) con esta estructura exacta:\n' +
+    '{\n' +
+    '  "producto": "nombre del producto o familia detectado",\n' +
+    '  "categoria": "categoría de mercado",\n' +
+    '  "tendencias": [\n' +
+    '    {"titulo": "nombre de la tendencia", "descripcion": "cómo aplica a este producto", "relevancia": "alta|media", "hashtags_tendencia": ["#tag1","#tag2"]}\n' +
+    '  ],\n' +
+    '  "plataformas": {\n' +
+    '    "NOMBRE_PLATAFORMA": {\n' +
+    '      "estrategia": "enfoque recomendado para esta plataforma",\n' +
+    '      "mejores_horarios": "horarios sugeridos de publicación",\n' +
+    '      "contenidos": [\n' +
+    '        {"tipo": "Post feed|Story|Reel|etc", "titulo": "titulo del contenido", "caption": "texto completo para publicar con emojis", "hook": "primera línea gancho", "cta": "llamada a la acción", "formato_visual": "descripción del visual/imagen/video sugerido"}\n' +
+    '      ]\n' +
+    '    }\n' +
+    '  },\n' +
+    '  "hashtags": {\n' +
+    '    "primarios": ["#tag1","#tag2","#tag3"],\n' +
+    '    "secundarios": ["#tag4","#tag5"],\n' +
+    '    "nicho": ["#tag6","#tag7"],\n' +
+    '    "ubicacion": ["#tag8","#tag9"]\n' +
+    '  },\n' +
+    '  "campanas": [\n' +
+    '    {"nombre": "nombre de la campaña", "concepto": "idea central", "plataformas": ["Instagram","TikTok"], "duracion": "X semanas", "contenidos_clave": ["idea1","idea2"], "cta_principal": "acción esperada", "kpis": ["métrica1","métrica2"]}\n' +
+    '  ],\n' +
+    '  "tips_extra": ["consejo1","consejo2","consejo3"]\n' +
+    '}';
+
+  try {
+    var msgContent = [];
+    if (_redesPdfB64) {
+      msgContent.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: _redesPdfB64 } });
+    }
+    msgContent.push({ type: 'text', text: prompt });
+
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'pdfs-2024-09-25',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-7',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: msgContent }]
+      })
+    });
+
+    if (!resp.ok) {
+      var errTxt = await resp.text();
+      throw new Error('API error ' + resp.status + ': ' + errTxt);
+    }
+    var data = await resp.json();
+    var raw = data.content && data.content[0] && data.content[0].text || '';
+    var jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Respuesta no contiene JSON válido');
+    var rec = JSON.parse(jsonMatch[0]);
+    _redesRenderResults(rec, plats);
+  } catch(err) {
+    results.innerHTML = '<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:16px;color:#dc2626"><i class="ti ti-alert-triangle"></i> <b>Error al generar:</b> ' + err.message + '</div>';
+  } finally {
+    _redesGenerating = false;
+    btn.disabled = false; btn.style.opacity = '1';
+    icon.className = 'ti ti-sparkles'; icon.style.animation = '';
+    label.textContent = 'Generar Contenido';
+  }
+}
+
+function _redesCopy(text) {
+  navigator.clipboard.writeText(text).then(function() {
+    var els = document.querySelectorAll('.redes-copy-btn');
+    els.forEach(function(el) { if (el.dataset.copy === text) { el.textContent = '✓ Copiado'; setTimeout(function(){ el.textContent = 'Copiar'; }, 1500); } });
+  });
+}
+
+function _redesRenderResults(r, plats) {
+  var platColors = { Instagram: '#e1306c', TikTok: '#010101', Facebook: '#1877f2', LinkedIn: '#0a66c2', YouTube: '#ff0000', 'X/Twitter': '#1da1f2' };
+  var platIcons  = { Instagram: 'ti-brand-instagram', TikTok: 'ti-brand-tiktok', Facebook: 'ti-brand-facebook', LinkedIn: 'ti-brand-linkedin', YouTube: 'ti-brand-youtube', 'X/Twitter': 'ti-brand-x' };
+  var h = '';
+
+  // Header producto
+  h += '<div style="background:linear-gradient(135deg,var(--maraga),var(--maraga-dark));color:#fff;border-radius:12px;padding:16px 20px;margin-bottom:20px">';
+  h += '<div style="font-size:11px;opacity:.8;margin-bottom:2px">Producto analizado</div>';
+  h += '<div style="font-size:17px;font-weight:800">' + (r.producto || 'Producto') + '</div>';
+  h += '<div style="font-size:12px;opacity:.85;margin-top:2px">' + (r.categoria || '') + '</div>';
+  h += '</div>';
+
+  // Tendencias
+  if (r.tendencias && r.tendencias.length) {
+    h += '<div style="margin-bottom:20px"><div style="font-weight:700;font-size:13px;margin-bottom:10px"><i class="ti ti-trending-up" style="color:#f59e0b;margin-right:6px"></i>Tendencias Detectadas</div>';
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px">';
+    r.tendencias.forEach(function(t) {
+      var clr = t.relevancia === 'alta' ? '#f59e0b' : '#6b7280';
+      h += '<div class="redes-plat-card" style="border-left:4px solid ' + clr + '">';
+      h += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">';
+      h += '<span class="redes-trend-badge"><i class="ti ti-flame"></i>' + (t.relevancia === 'alta' ? 'Alta' : 'Media') + ' relevancia</span>';
+      h += '</div>';
+      h += '<div style="font-weight:700;font-size:12px;margin-bottom:4px">' + t.titulo + '</div>';
+      h += '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">' + t.descripcion + '</div>';
+      if (t.hashtags_tendencia && t.hashtags_tendencia.length) {
+        t.hashtags_tendencia.forEach(function(hh) { h += '<span class="redes-hashtag">' + hh + '</span>'; });
+      }
+      h += '</div>';
+    });
+    h += '</div></div>';
+  }
+
+  // Por plataforma
+  h += '<div style="margin-bottom:20px"><div style="font-weight:700;font-size:13px;margin-bottom:12px"><i class="ti ti-layout-columns" style="color:var(--maraga);margin-right:6px"></i>Contenido por Plataforma</div>';
+  plats.forEach(function(plat) {
+    var platData = r.plataformas && (r.plataformas[plat] || r.plataformas[plat.toLowerCase()]);
+    if (!platData) return;
+    var clr  = platColors[plat] || 'var(--maraga)';
+    var icon = platIcons[plat] || 'ti-brand-instagram';
+    h += '<div class="redes-plat-card" style="border-top:3px solid ' + clr + '">';
+    h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
+    h += '<i class="ti ' + icon + '" style="font-size:18px;color:' + clr + '"></i>';
+    h += '<span style="font-weight:700;font-size:13px">' + plat + '</span>';
+    if (platData.mejores_horarios) h += '<span style="font-size:10px;color:var(--muted);margin-left:auto"><i class="ti ti-clock" style="margin-right:3px"></i>' + platData.mejores_horarios + '</span>';
+    h += '</div>';
+    if (platData.estrategia) {
+      h += '<div style="font-size:11px;color:var(--muted);background:var(--bg);border-radius:6px;padding:8px;margin-bottom:10px"><i class="ti ti-bulb" style="margin-right:4px;color:#f59e0b"></i>' + platData.estrategia + '</div>';
+    }
+    if (platData.contenidos && platData.contenidos.length) {
+      platData.contenidos.forEach(function(c, idx) {
+        h += '<div class="redes-content-item">';
+        h += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">';
+        h += '<span style="background:' + clr + ';color:#fff;font-size:10px;border-radius:4px;padding:2px 7px;font-weight:700">' + (c.tipo || 'Post') + '</span>';
+        h += '<span style="font-weight:600;font-size:12px">' + (c.titulo || '') + '</span>';
+        h += '<button class="redes-copy-btn" data-copy="' + (c.caption||'').replace(/"/g,'&quot;') + '" onclick="_redesCopy(this.dataset.copy)">Copiar</button>';
+        h += '</div>';
+        if (c.hook) h += '<div style="font-size:11px;font-weight:700;color:var(--maraga-dark);margin-bottom:4px">🎯 Hook: ' + c.hook + '</div>';
+        if (c.caption) h += '<div style="font-size:11px;color:var(--ink);background:var(--surface);border-radius:6px;padding:8px;white-space:pre-wrap;margin-bottom:6px">' + c.caption.replace(/</g,'&lt;') + '</div>';
+        if (c.formato_visual) h += '<div style="font-size:10px;color:var(--muted);margin-bottom:4px"><i class="ti ti-camera" style="margin-right:3px"></i>' + c.formato_visual + '</div>';
+        if (c.cta) h += '<div style="font-size:10px;font-weight:600;color:#065f46"><i class="ti ti-arrow-right" style="margin-right:3px"></i>CTA: ' + c.cta + '</div>';
+        h += '</div>';
+      });
+    }
+    h += '</div>';
+  });
+  h += '</div>';
+
+  // Hashtags
+  if (r.hashtags) {
+    h += '<div class="redes-plat-card" style="margin-bottom:20px">';
+    h += '<div style="font-weight:700;font-size:13px;margin-bottom:10px"><i class="ti ti-hash" style="color:#8b5cf6;margin-right:6px"></i>Hashtags Recomendados</div>';
+    var allTags = [];
+    if (r.hashtags.primarios) {
+      h += '<div style="margin-bottom:8px"><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Primarios</span><br>';
+      r.hashtags.primarios.forEach(function(t){ h += '<span class="redes-hashtag">' + t + '</span>'; allTags.push(t); }); h += '</div>';
+    }
+    if (r.hashtags.secundarios) {
+      h += '<div style="margin-bottom:8px"><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Secundarios</span><br>';
+      r.hashtags.secundarios.forEach(function(t){ h += '<span class="redes-hashtag" style="background:#e0f2fe;color:#0369a1">' + t + '</span>'; allTags.push(t); }); h += '</div>';
+    }
+    if (r.hashtags.nicho) {
+      h += '<div style="margin-bottom:8px"><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Nicho</span><br>';
+      r.hashtags.nicho.forEach(function(t){ h += '<span class="redes-hashtag" style="background:#dcfce7;color:#166534">' + t + '</span>'; allTags.push(t); }); h += '</div>';
+    }
+    if (r.hashtags.ubicacion) {
+      h += '<div style="margin-bottom:8px"><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Ubicación</span><br>';
+      r.hashtags.ubicacion.forEach(function(t){ h += '<span class="redes-hashtag" style="background:#fef9c3;color:#713f12">' + t + '</span>'; allTags.push(t); }); h += '</div>';
+    }
+    h += '<button class="redes-copy-btn" onclick="_redesCopy(\'' + allTags.join(' ').replace(/'/g,"\\'") + '\')" style="margin-top:6px">Copiar todos los hashtags</button>';
+    h += '</div>';
+  }
+
+  // Campañas
+  if (r.campanas && r.campanas.length) {
+    h += '<div style="margin-bottom:20px"><div style="font-weight:700;font-size:13px;margin-bottom:10px"><i class="ti ti-speakerphone" style="color:var(--maraga);margin-right:6px"></i>Ideas de Campañas</div>';
+    r.campanas.forEach(function(c) {
+      h += '<div class="redes-plat-card" style="margin-bottom:10px">';
+      h += '<div style="font-weight:700;font-size:13px;color:var(--maraga);margin-bottom:4px">' + c.nombre + '</div>';
+      h += '<div style="font-size:11px;color:var(--ink);margin-bottom:8px">' + c.concepto + '</div>';
+      h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">';
+      if (c.plataformas) c.plataformas.forEach(function(p){ h += '<span style="font-size:10px;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:2px 7px">' + p + '</span>'; });
+      if (c.duracion) h += '<span style="font-size:10px;background:#f0fdf4;color:#166534;border-radius:4px;padding:2px 7px"><i class="ti ti-calendar" style="margin-right:2px"></i>' + c.duracion + '</span>';
+      h += '</div>';
+      if (c.contenidos_clave && c.contenidos_clave.length) {
+        h += '<div style="font-size:11px;color:var(--muted);margin-bottom:6px">';
+        c.contenidos_clave.forEach(function(k){ h += '<div style="margin-bottom:2px">▸ ' + k + '</div>'; });
+        h += '</div>';
+      }
+      if (c.cta_principal) h += '<div style="font-size:11px;font-weight:600;color:#065f46"><i class="ti ti-arrow-right" style="margin-right:3px"></i>CTA: ' + c.cta_principal + '</div>';
+      if (c.kpis && c.kpis.length) {
+        h += '<div style="font-size:10px;color:var(--muted);margin-top:6px">KPIs: ' + c.kpis.join(' · ') + '</div>';
+      }
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+
+  // Tips extra
+  if (r.tips_extra && r.tips_extra.length) {
+    h += '<div class="redes-plat-card" style="margin-bottom:20px;border-left:4px solid #10b981">';
+    h += '<div style="font-weight:700;font-size:12px;margin-bottom:8px"><i class="ti ti-bulb" style="color:#10b981;margin-right:6px"></i>Consejos Adicionales</div>';
+    r.tips_extra.forEach(function(t){ h += '<div style="font-size:11px;color:var(--ink);margin-bottom:5px">✓ ' + t + '</div>'; });
+    h += '</div>';
+  }
+
+  document.getElementById('redes-results').innerHTML = h;
+}
 
 /* ── Kit IA — Generador de descripción con Claude API ──────────────── */
 function kitConfigAI() {
