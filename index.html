@@ -3818,6 +3818,73 @@ function getSeedOkrs() {
   ];
 }
 
+function _injectProductionBand() {
+  var PROJ_MARKER = 'sierra-cintas-band';
+  // Idempotent: skip if already injected
+  if (state.projects.some(function(p){ return p.id === PROJ_MARKER; })) return;
+
+  // 1. Create project
+  var proj = { id: PROJ_MARKER, name: 'Sierra Cintas Production Band', wsId: 'maraga', color: '#0ea5e9' };
+  state.projects.push(proj);
+
+  // 2. Date helpers (semanas desde hoy ~25 jun 2026)
+  var base = new Date('2026-06-25');
+  function sem(n){ var d=new Date(base); d.setDate(d.getDate()+(n-1)*7+2); return d.toISOString().split('T')[0]; }
+  var sem1=sem(1), sem2=sem(2), sem3=sem(3), sem4=sem(4), sem8=sem(8);
+  var hoy=base.toISOString().split('T')[0];
+  var lunes=new Date(base); lunes.setDate(lunes.getDate()+((8-lunes.getDay())%7||7)); var lunFmt=lunes.toISOString().split('T')[0];
+
+  // 3. ID base (avoid collisions)
+  var maxId = state.tasks.reduce(function(m,t){ return Math.max(m,t.id||0); }, 100);
+  var now = new Date().toISOString();
+  function t(idSuffix, title, assigneeId, due, okrText, status) {
+    return { id: maxId + idSuffix, title: title, ws: 'maraga', assigneeId: assigneeId,
+             projectId: PROJ_MARKER, status: status||'todo', due: due,
+             okr: okrText, lastUpdate: now, createdAt: now };
+  }
+
+  var nuevas = [
+    // BLOQUE 0 — Validación (Crítica, Sem 1)
+    t(1,  '[0.1] Validar largo físico de cinta 3/4" y 1" contra SKU en almacén',   3, sem1, '🔴 Crítica · Entregable: Medida confirmada por SKU'),
+    t(2,  '[0.2] Confirmar lista de máquinas compatibles por medida (7x12 y clones)', 3, sem1, '🔴 Crítica · Tabla de compatibilidad cerrada'),
+    t(3,  '[0.3] Definir precio base y % descuento Pack 3, Pack 6 y Caja 12',       2, sem1, '🔴 Crítica · Lista de precios por presentación · Dirección + Mayra'),
+    t(4,  '[0.4] Confirmar inventario disponible por TPI para el lanzamiento',       3, sem1, '🔴 Crítica · Stock por SKU · Almacén'),
+    // BLOQUE 1 — Listings (Alta, Sem 1-2)
+    t(5,  '[1.1] Cargar listing padre 3/4" con 5 variantes TPI en Mercado Libre',   3, sem1, '🟠 Alta · 5 variantes publicadas · Dep: 0.1, 0.3'),
+    t(6,  '[1.2] Cargar Pack 3 y Pack Mixto Taller 3/4" en ML como publicaciones',  3, sem1, '🟠 Alta · 2 publicaciones de pack activas · Dep: 1.1'),
+    t(7,  '[1.3] Cargar parent-child por TPI en Amazon con bullets y A+ Content',   4, sem1, '🟠 Alta · Listing Amazon publicado · Dep: 0.1, 0.3'),
+    t(8,  '[1.4] Enviar SKUs 6/10 y 10/14 a FBA (mayor rotación esperada)',         4, sem1, '🟠 Alta · Inventario en bodega Amazon · Dep: 0.4'),
+    t(9,  '[1.5] Cargar tabla de selección de TPI como imagen en ambas plataformas', 3, sem2, '🟡 Media · Imagen en fichas · Dep: 2.1 · Hernán + Evelyn'),
+    t(10, '[1.6] Configurar guía "cómo medir tu cinta" en cada ficha (anti-devolución)', 3, sem2, '🟠 Alta · Sección en fichas · Dep: 2.1 · Hernán + Evelyn'),
+    // BLOQUE 2 — Contenido visual (Alta, Sem 1-2)
+    t(11, '[2.1] Producir 7 imágenes del brief (principal, medidas, tabla TPI, macro, en máquina, cómo medir, packs)', 7, sem1, '🟠 Alta · 7 imágenes finales · Dep: 0.1 · Dara'),
+    t(12, '[2.2] Agendar y ejecutar sesión de grabación en planta (shot list completo)', 6, sem1, '🔴 Crítica · Material crudo de video · Dep: 0.4 · Priscila + Dara'),
+    t(13, '[2.3] Editar video "Cómo medir tu cinta en 30 seg"',                     6, sem2, '🟠 Alta · Video vertical listo · Dep: 2.2'),
+    t(14, '[2.4] Editar 8-10 Reels/TikToks (corte, prueba duración, TPI correcto vs incorrecto)', 6, sem2, '🟡 Media · Biblioteca de videos · Dep: 2.2'),
+    t(15, '[2.5] Cortar videos de listing (30-60s) por SKU para ML y Amazon',       7, sem2, '🟡 Media · Videos de ficha · Dep: 2.2'),
+    // BLOQUE 3 — Ads (Alta, Sem 1-3)
+    t(16, '[3.1] Lanzar campañas AUTO en Amazon por grupo de TPI (minería de keywords)', 4, sem1, '🟠 Alta · Campañas AUTO activas · Dep: 1.3'),
+    t(17, '[3.2] Lanzar Product Ads en ML sobre "sierra cinta bimetálica" y "cinta 7x12"', 3, sem2, '🟠 Alta · Campaña ML activa · Dep: 1.1'),
+    t(18, '[3.3] Cargar negativas desde día 1 (madera, portátil, carpintería, largos que no vendes)', 4, sem2, '🟠 Alta · Listas de negativas · Dep: 3.1, 3.2 · Evelyn + Hernán'),
+    t(19, '[3.4] Auditar y reparar pixel/CAPI de Meta (gate para invertir en Meta)', 2, sem1, '🔴 Crítica · Atribución funcionando · Mayra'),
+    t(20, '[3.5] Configurar Spark Ads en TikTok sobre videos con mejor orgánico',   6, sem3, '🟡 Media · Campaña lista (activar sem 3) · Dep: 2.4'),
+    // BLOQUE 4 — Escala (Media, Sem 3-4)
+    t(21, '[4.1] Replicar estructura completa con medida de 1" (BS-1018B y pivote)', 3, sem3, '🟡 Media · Listings 1" publicados · Dep: Bloque 1 · Hernán + Evelyn'),
+    t(22, '[4.2] Espejo de catálogo de consumibles en Walmart, precio alineado',     5, sem3, '🟡 Media · Catálogo Walmart activo · Dep: Bloque 1 · Cecilia'),
+    t(23, '[4.3] Montar Caja 12 con cotizador por volumen + WhatsApp en maraga.mx', 3, sem4, '🟡 Media · Flujo de cotización B2B activo · Dep: 0.3 · Hernán + Mayra'),
+    t(24, '[4.4] Configurar Pack 6 de los TPI ganadores',                            3, sem4, '🟡 Media · Packs 6 publicados · Dep: Datos sem 1-2 · Hernán + Evelyn'),
+    // BLOQUE 5 — Operación y medición (Alta)
+    t(25, '[5.1] Armar tablero del lanzamiento con KPIs definidos',                  2, sem1, '🟠 Alta · Dashboard activo · Mayra'),
+    t(26, '[5.2] Responder preguntas del marketplace con tabla TPI (<2 hrs)',         3, hoy,  '🟠 Alta · Respuesta <2 hrs · Diaria · Hernán + Evelyn'),
+    t(27, '[5.3] Reporte semanal por canal antes del lunes 9am',                     1, lunFmt,'🟠 Alta · Datos en tablero · Semanal · Cada dueño de canal'),
+    t(28, '[5.4] Junta de seguimiento: lectura de datos y reasignación de presupuesto', 1, lunFmt,'🟠 Alta · Decisiones documentadas · Lunes 9am'),
+    t(29, '[5.5] Concentrar 60% del presupuesto en TPI/pack/keyword ganador',        2, sem3, '🟠 Alta · Presupuesto reasignado · Dep: Datos sem 1-2 · Mayra'),
+    t(30, '[5.6] Evaluar gate de escala (ACOS ≤18% y ≥35% unidades en pack)',       1, sem8, '🔴 Crítica · Decisión escalar / corregir · Sem 8')
+  ];
+
+  state.tasks = state.tasks.concat(nuevas);
+}
+
 function getSeedTasks() {
   const today = new Date();
   const addDays = n => { const d = new Date(today); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0]; };
@@ -4176,6 +4243,9 @@ async function init() {
   state.settings     = await storageGet(STORAGE_KEYS.SETTINGS)     || getSeedSettings();
   state.permissions  = await storageGet(STORAGE_KEYS.PERMISSIONS)  || JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
   state.projects     = await storageGet(STORAGE_KEYS.PROJECTS)     || [];
+
+  // Inyección Production Band (idempotente — sólo corre si no existe)
+  _injectProductionBand();
 
   // 3. Schema migrations (additive only — never destructive)
   Object.entries(DEFAULT_PERMISSIONS).forEach(([roleKey, defaultPerms]) => {
