@@ -6039,7 +6039,7 @@ function renderKanban() {
       ${wsProjects.map(p => `
         <button class="filter-chip ${state.activeProject===p.id?'active':''}"
                 style="${state.activeProject===p.id?`background:${p.color};color:#fff;border-color:${p.color}`:''}"
-                onclick="filterByProject(${p.id})">
+                onclick="filterByProject(${JSON.stringify(p.id)})">
           <span style="width:7px;height:7px;border-radius:50%;background:${p.color};display:inline-block;margin-right:4px;vertical-align:middle"></span>${escapeHtml(p.name)}
         </button>
       `).join('')}
@@ -8682,7 +8682,8 @@ async function redesGenerar() {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
         'anthropic-beta': 'pdfs-2024-09-25',
-        'content-type': 'application/json'
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
         model: 'claude-opus-4-7',
