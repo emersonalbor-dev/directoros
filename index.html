@@ -8697,22 +8697,22 @@ async function redesGenerar() {
       throw new Error('API error ' + resp.status + ': ' + errTxt);
     }
     var data = await resp.json();
+    var stopReason = data.stop_reason || '';
     var raw = data.content && data.content[0] && data.content[0].text || '';
-    var cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
-    var start = cleaned.indexOf('{');
-    if (start === -1) throw new Error('Respuesta no contiene JSON válido');
-    var depth = 0, inStr = false, esc = false, end = -1;
-    for (var i = start; i < cleaned.length; i++) {
-      var c = cleaned[i];
-      if (esc) { esc = false; continue; }
-      if (c === '\\' && inStr) { esc = true; continue; }
-      if (c === '"') { inStr = !inStr; continue; }
-      if (!inStr) { if (c === '{') depth++; else if (c === '}') { if (--depth === 0) { end = i; break; } } }
+    console.log('[redesGenerar] stop_reason:', stopReason, '| raw length:', raw.length, '| raw[:300]:', raw.substring(0, 300));
+    if (stopReason === 'max_tokens') throw new Error('Respuesta truncada por límite de tokens. Selecciona menos plataformas o reduce ideas.');
+    if (!raw) throw new Error('API devolvió respuesta vacía');
+    // Try direct parse, then strip markdown fences, then find outermost object
+    var rec;
+    try { rec = JSON.parse(raw); } catch(_) {
+      var cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      var jStart = cleaned.indexOf('{'), jEnd = cleaned.lastIndexOf('}');
+      if (jStart === -1 || jEnd === -1 || jEnd <= jStart) throw new Error('No se encontró JSON en la respuesta (len=' + raw.length + ')');
+      rec = JSON.parse(cleaned.slice(jStart, jEnd + 1));
     }
-    if (end === -1) throw new Error('JSON incompleto en la respuesta');
-    var rec = JSON.parse(cleaned.slice(start, end + 1));
     _redesRenderResults(rec, plats);
   } catch(err) {
+    console.error('[redesGenerar] error:', err);
     results.innerHTML = '<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:16px;color:#dc2626"><i class="ti ti-alert-triangle"></i> <b>Error al generar:</b> ' + err.message + '</div>';
   } finally {
     _redesGenerating = false;
