@@ -8698,9 +8698,19 @@ async function redesGenerar() {
     }
     var data = await resp.json();
     var raw = data.content && data.content[0] && data.content[0].text || '';
-    var jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Respuesta no contiene JSON válido');
-    var rec = JSON.parse(jsonMatch[0]);
+    var cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
+    var start = cleaned.indexOf('{');
+    if (start === -1) throw new Error('Respuesta no contiene JSON válido');
+    var depth = 0, inStr = false, esc = false, end = -1;
+    for (var i = start; i < cleaned.length; i++) {
+      var c = cleaned[i];
+      if (esc) { esc = false; continue; }
+      if (c === '\\' && inStr) { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (!inStr) { if (c === '{') depth++; else if (c === '}') { if (--depth === 0) { end = i; break; } } }
+    }
+    if (end === -1) throw new Error('JSON incompleto en la respuesta');
+    var rec = JSON.parse(cleaned.slice(start, end + 1));
     _redesRenderResults(rec, plats);
   } catch(err) {
     results.innerHTML = '<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:16px;color:#dc2626"><i class="ti ti-alert-triangle"></i> <b>Error al generar:</b> ' + err.message + '</div>';
