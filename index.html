@@ -11209,14 +11209,150 @@ function renderMLTab_resumen() {
         '</div>' +
       '</div>' +
     '</div>' +
-    '<div class="ml-card" style="margin-bottom:0">' +
+    '<div class="ml-card">' +
       '<div class="ml-card-h"><i class="ti ti-trophy"></i> Top 10 Productos del Mes</div>' +
       '<div id="mlTops"></div>' +
+    '</div>' +
+    '<div class="ml-card" style="margin-bottom:0">' +
+      '<div class="ml-card-h" style="display:flex;align-items:center;justify-content:space-between">' +
+        '<span><i class="ti ti-table"></i> Comportamiento de SKUs por Facturación</span>' +
+        '<span style="font-size:10px;font-weight:400;color:var(--muted)">calor = mayor facturación · hover = monto exacto</span>' +
+      '</div>' +
+      '<div id="mlSkuMatrixContent">' + _renderMLSkuMatrix() + '</div>' +
     '</div>';
 
   _renderMLKpis(mes);
   _renderMLTops(mes);
   _mlUpdateLastUpdateBadge();
+}
+
+/* ── SKU MATRIX: comportamiento mes a mes por facturación ─────────── */
+function _renderMLSkuMatrix() {
+  var KEYS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06'];
+  var ABBR = ['Ene','Feb','Mar','Abr','May','Jun'];
+
+  // Agregar todos los SKUs de todos los meses
+  var skuMap = {};
+  KEYS.forEach(function(k) {
+    var items = (ML_2026_DATA.meses[k] || {}).items || {};
+    Object.keys(items).forEach(function(id) {
+      var it = items[id];
+      if (!skuMap[id]) skuMap[id] = { titulo: it.titulo, months: {}, total: 0 };
+      if (!skuMap[id].months[k]) skuMap[id].months[k] = 0;
+      skuMap[id].months[k] += it.ingresos;
+      skuMap[id].total     += it.ingresos;
+    });
+  });
+
+  var rows = Object.keys(skuMap)
+    .map(function(id){ return { titulo: skuMap[id].titulo, months: skuMap[id].months, total: skuMap[id].total }; })
+    .sort(function(a,b){ return b.total - a.total; });
+
+  if (!rows.length) return '<p style="color:var(--muted);font-size:13px;padding:16px 0">Sin datos disponibles.</p>';
+
+  // Máximo por celda (para escala de calor)
+  var maxCell = 0;
+  rows.forEach(function(r){ KEYS.forEach(function(k){ var v = r.months[k]||0; if(v>maxCell) maxCell=v; }); });
+
+  // Totales por columna
+  var colTot = {}; KEYS.forEach(function(k){ colTot[k]=0; });
+  rows.forEach(function(r){ KEYS.forEach(function(k){ colTot[k]+= r.months[k]||0; }); });
+  var grand = rows.reduce(function(s,r){ return s+r.total; },0);
+
+  function fmt(v) {
+    if (!v) return '<span style="color:var(--muted)">—</span>';
+    if (v>=1000000) return '$'+(v/1000000).toFixed(1)+'M';
+    if (v>=1000)    return '$'+Math.round(v/1000)+'k';
+    return '$'+Math.round(v);
+  }
+  function fmtFull(v) {
+    if (!v) return '—';
+    return '$'+Math.round(v).toLocaleString('es-MX');
+  }
+  function heat(v) {
+    if (!v||!maxCell) return '';
+    var a = Math.max(0.05, Math.min(0.55, (v/maxCell)*0.55));
+    return 'background:rgba(245,158,11,'+a.toFixed(2)+')';
+  }
+
+  var SHOW = 30;
+  var all  = rows;
+
+  function buildTable(data, showBtn) {
+    var th = 'padding:7px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:2px solid var(--line);white-space:nowrap;text-align:right';
+    var h = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+    h += '<thead><tr>';
+    h += '<th style="'+th+';text-align:left;min-width:200px;max-width:300px">Producto</th>';
+    ABBR.forEach(function(a){ h += '<th style="'+th+'">'+a+'</th>'; });
+    h += '<th style="'+th+';color:var(--ink)">Total</th></tr></thead>';
+    h += '<tbody>';
+    data.forEach(function(r,i) {
+      var title = r.titulo.length>48 ? r.titulo.slice(0,47)+'…' : r.titulo;
+      var rowBg = i%2===1 ? 'background:var(--bg)' : '';
+      h += '<tr style="border-bottom:1px solid var(--border)">';
+      h += '<td style="padding:7px 8px;'+rowBg+';max-width:300px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="'+r.titulo.replace(/"/g,"'")+'">';
+      h += title+'</td>';
+      KEYS.forEach(function(k){
+        var v=r.months[k]||0;
+        h += '<td style="padding:7px 8px;text-align:right;'+heat(v)+(v?';color:var(--ink)':'')+'" title="'+fmtFull(v)+'">'+fmt(v)+'</td>';
+      });
+      h += '<td style="padding:7px 8px;text-align:right;font-weight:700;color:var(--ink)" title="'+fmtFull(r.total)+'">'+fmt(r.total)+'</td>';
+      h += '</tr>';
+    });
+    h += '</tbody>';
+    h += '<tfoot><tr style="border-top:2px solid var(--line);background:var(--bg)">';
+    h += '<td style="padding:8px;font-weight:700;font-size:11px;color:var(--ink)">Total del mes</td>';
+    KEYS.forEach(function(k){ h += '<td style="padding:8px;text-align:right;font-weight:700;color:var(--ink)">'+fmt(colTot[k])+'</td>'; });
+    h += '<td style="padding:8px;text-align:right;font-weight:800;color:var(--accent)">'+fmt(grand)+'</td>';
+    h += '</tr></tfoot></table></div>';
+    if (showBtn) {
+      h += '<div style="text-align:center;margin-top:10px">' +
+        '<button onclick="_mlSkuMatrixExpand()" style="font-size:11px;padding:5px 16px;background:var(--bg);border:1px solid var(--line);border-radius:6px;cursor:pointer;color:var(--muted)">' +
+        '<i class="ti ti-chevrons-down" style="font-size:11px"></i> Ver los '+(all.length-SHOW)+' SKUs restantes</button></div>';
+    }
+    return h;
+  }
+
+  return buildTable(all.length > SHOW ? all.slice(0, SHOW) : all, all.length > SHOW);
+}
+
+function _mlSkuMatrixExpand() {
+  var KEYS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06'];
+  var skuMap = {};
+  KEYS.forEach(function(k) {
+    var items = (ML_2026_DATA.meses[k]||{}).items||{};
+    Object.keys(items).forEach(function(id) {
+      var it=items[id];
+      if(!skuMap[id]) skuMap[id]={titulo:it.titulo,months:{},total:0};
+      if(!skuMap[id].months[k]) skuMap[id].months[k]=0;
+      skuMap[id].months[k]+=it.ingresos; skuMap[id].total+=it.ingresos;
+    });
+  });
+  var rows=Object.keys(skuMap).map(function(id){ return {titulo:skuMap[id].titulo,months:skuMap[id].months,total:skuMap[id].total}; }).sort(function(a,b){ return b.total-a.total; });
+  var maxCell=0;
+  rows.forEach(function(r){ KEYS.forEach(function(k){ var v=r.months[k]||0; if(v>maxCell)maxCell=v; }); });
+  var colTot={}; KEYS.forEach(function(k){ colTot[k]=0; }); rows.forEach(function(r){ KEYS.forEach(function(k){ colTot[k]+=r.months[k]||0; }); });
+  var grand=rows.reduce(function(s,r){ return s+r.total; },0);
+  function fmt(v){ if(!v) return '<span style="color:var(--muted)">—</span>'; if(v>=1000000) return '$'+(v/1000000).toFixed(1)+'M'; if(v>=1000) return '$'+Math.round(v/1000)+'k'; return '$'+Math.round(v); }
+  function fmtFull(v){ if(!v) return '—'; return '$'+Math.round(v).toLocaleString('es-MX'); }
+  function heat(v){ if(!v||!maxCell) return ''; var a=Math.max(0.05,Math.min(0.55,(v/maxCell)*0.55)); return 'background:rgba(245,158,11,'+a.toFixed(2)+')'; }
+  var th='padding:7px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:2px solid var(--line);white-space:nowrap;text-align:right';
+  var ABBR=['Ene','Feb','Mar','Abr','May','Jun'];
+  var h='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+  h+='<thead><tr><th style="'+th+';text-align:left;min-width:200px;max-width:300px">Producto</th>';
+  ABBR.forEach(function(a){ h+='<th style="'+th+'">'+a+'</th>'; });
+  h+='<th style="'+th+';color:var(--ink)">Total</th></tr></thead><tbody>';
+  rows.forEach(function(r,i){
+    var title=r.titulo.length>48?r.titulo.slice(0,47)+'…':r.titulo;
+    var rowBg=i%2===1?'background:var(--bg)':'';
+    h+='<tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 8px;'+rowBg+';max-width:300px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="'+r.titulo.replace(/"/g,"'")+'">'+title+'</td>';
+    KEYS.forEach(function(k){ var v=r.months[k]||0; h+='<td style="padding:7px 8px;text-align:right;'+heat(v)+(v?';color:var(--ink)':'')+'" title="'+fmtFull(v)+'">'+fmt(v)+'</td>'; });
+    h+='<td style="padding:7px 8px;text-align:right;font-weight:700;color:var(--ink)" title="'+fmtFull(r.total)+'">'+fmt(r.total)+'</td></tr>';
+  });
+  h+='</tbody><tfoot><tr style="border-top:2px solid var(--line);background:var(--bg)"><td style="padding:8px;font-weight:700;font-size:11px;color:var(--ink)">Total del mes</td>';
+  KEYS.forEach(function(k){ h+='<td style="padding:8px;text-align:right;font-weight:700;color:var(--ink)">'+fmt(colTot[k])+'</td>'; });
+  h+='<td style="padding:8px;text-align:right;font-weight:800;color:var(--accent)">'+fmt(grand)+'</td></tr></tfoot></table></div>';
+  var el=document.getElementById('mlSkuMatrixContent'); if(el) el.innerHTML=h;
 }
 
 /* ── PUBLICACIONES TAB ─────────────────────────────────────────────── */
