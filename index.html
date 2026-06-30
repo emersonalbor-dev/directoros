@@ -3911,12 +3911,12 @@ function _ads26SeedCampaigns() {
     [12, '#4f46e5', 4],  // Brocas y Perforadoras Bimetálicas
     [13, '#e11d48', 3],  // Rx plus - Hojas Especiales
     [14, '#6d28d9', 3],  // Classic - Herramientas Stanley
-    [15, '#0ea5e9', 1],  // Production Band - Sierras
-    [16, '#0369a1', 1]   // Pallet Band - Sierras
+    [15, '#0ea5e9', 4],  // Production Band - Sierras
+    [16, '#0369a1', 4]   // Pallet Band - Sierras
   ];
 
   // Asignados secundarios por campaña (para tareas de análisis y reporte)
-  var SEC = [5,5,4,5,4,3,5,4,5,3,3,1,4,3,3,1,1];
+  var SEC = [5,5,4,5,4,3,5,4,5,3,3,1,4,3,3,4,4];
 
   var maxId = state.tasks.reduce(function(m,t){ return Math.max(m,t.id||0); }, 300);
   var tid = 0;
@@ -4351,6 +4351,13 @@ async function init() {
   _injectProductionBand();
   // Inyección 17 campañas Ads Jul–Dic 2026 (idempotente)
   _ads26SeedCampaigns();
+  // Parche: reasignar Production Band y Pallet Band de Emerson (1) a Evelyn (4)
+  state.tasks.forEach(function(t){
+    if((t.projectId==='ads26-15'||t.projectId==='ads26-16')&&t.assigneeId===1) t.assigneeId=4;
+  });
+  state.projects.forEach(function(p){
+    if(p.id==='ads26-15'||p.id==='ads26-16') { /* color/name no cambia */ }
+  });
 
   // 3. Schema migrations (additive only — never destructive)
   Object.entries(DEFAULT_PERMISSIONS).forEach(([roleKey, defaultPerms]) => {
