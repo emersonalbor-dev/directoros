@@ -6151,7 +6151,8 @@ function renderKanban() {
       ${wsProjects.map(p => `
         <button class="filter-chip ${state.activeProject===p.id?'active':''}"
                 style="${state.activeProject===p.id?`background:${p.color};color:#fff;border-color:${p.color}`:''}"
-                onclick="filterByProject(${JSON.stringify(p.id)})">
+                data-pid="${p.id}"
+                onclick="filterByProject(this.dataset.pid)">
           <span style="width:7px;height:7px;border-radius:50%;background:${p.color};display:inline-block;margin-right:4px;vertical-align:middle"></span>${escapeHtml(p.name)}
         </button>
       `).join('')}
@@ -6312,7 +6313,13 @@ function filterTasks(filter) {
 }
 
 function filterByProject(projectId) {
-  state.activeProject = projectId;
+  // data-pid siempre devuelve string; proyectos viejos usan ID numérico (Date.now())
+  if (projectId === null || projectId === undefined) {
+    state.activeProject = null;
+  } else {
+    var n = Number(projectId);
+    state.activeProject = (!isNaN(n) && n > 0 && String(n) === String(projectId)) ? n : projectId;
+  }
   renderKanban();
 }
 
