@@ -10899,6 +10899,30 @@ function mlClearAutoRenew() {
   var r = document.getElementById('mlRefreshInput'); if (r) r.value = '';
 }
 
+function _mlUpdateLastUpdateBadge() {
+  var el = document.getElementById('mlLastUpdateBadge');
+  if (!el) return;
+  var ts = null;
+  try { ts = localStorage.getItem('ml_last_update'); } catch(e) {}
+  if (!ts) {
+    el.innerHTML = '<i class="ti ti-clock" style="font-size:10px;margin-right:3px;opacity:.5"></i><span style="color:var(--muted)">Sin actualización en vivo</span>';
+    return;
+  }
+  var d = new Date(ts);
+  var now = new Date();
+  var diff = Math.floor((now - d) / 60000);
+  var rel;
+  if (diff < 1)        rel = 'hace un momento';
+  else if (diff < 60)  rel = 'hace ' + diff + ' min';
+  else if (diff < 1440){ var h=Math.floor(diff/60); rel='hace '+(h===1?'1 hora':h+' hrs'); }
+  else                 rel = d.toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+  var timeStr = d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+  var stale = diff > 120;
+  el.innerHTML = '<i class="ti ti-refresh" style="font-size:10px;margin-right:3px;color:'+(stale?'#f59e0b':'#16a34a')+'"></i>' +
+    '<span style="color:'+(stale?'#d97706':'#16a34a')+';font-weight:600">' + timeStr + '</span>' +
+    '<span style="color:var(--muted);margin-left:4px">· ' + rel + '</span>';
+}
+
 function _mlAutoRenewUpdateBadge() {
   var ls = typeof localStorage !== 'undefined' ? localStorage : null;
   var active = ls && ls.getItem('ml_client_secret') && ls.getItem('ml_refresh_token');
@@ -11143,7 +11167,8 @@ function renderMLTab_resumen() {
 
   el.innerHTML =
     '<div class="ml-month-pills" style="align-items:center">' + pillsHtml +
-    (function(){ var now = new Date(); var curKey = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0'); return _mlMesActivo === curKey ? '<button id="mlRefreshBtn" onclick="mlRefreshCurrentMonth()" style="margin-left:auto;padding:5px 13px;font-size:11px;font-weight:600;border:1.5px solid var(--line);background:transparent;color:var(--muted);border-radius:20px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s" onmouseover="this.style.borderColor=\'#f59e0b\';this.style.color=\'#d97706\'" onmouseout="this.style.borderColor=\'var(--line)\';this.style.color=\'var(--muted)\'"><i class="ti ti-refresh"></i> Actualizar</button>' : ''; })() +
+    (function(){ var now = new Date(); var curKey = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0'); return _mlMesActivo === curKey ? '<button id="mlRefreshBtn" onclick="mlRefreshCurrentMonth()" style="margin-left:auto;padding:5px 13px;font-size:11px;font-weight:600;border:1.5px solid var(--line);background:transparent;color:var(--muted);border-radius:20px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s" onmouseover="this.style.borderColor=\'#f59e0b\';this.style.color=\'#d97706\'" onmouseout="this.style.borderColor=\'var(--line)\';this.style.color=\'var(--muted)\'"><i class="ti ti-refresh"></i> Actualizar</button>' : '<span style="margin-left:auto"></span>'; })() +
+    '<span id="mlLastUpdateBadge" style="font-size:10px;display:inline-flex;align-items:center;gap:2px;margin-left:10px;white-space:nowrap"></span>' +
     '</div>' +
     '<div class="ml-kpis" id="mlKpis"></div>' +
     '<div class="ml-grid2">' +
@@ -11191,6 +11216,7 @@ function renderMLTab_resumen() {
 
   _renderMLKpis(mes);
   _renderMLTops(mes);
+  _mlUpdateLastUpdateBadge();
 }
 
 /* ── PUBLICACIONES TAB ─────────────────────────────────────────────── */
@@ -12600,12 +12626,13 @@ function mlRefreshCurrentMonth() {
         top: top, items: items
       };
       _mlMesActivo = mes;
+      try { localStorage.setItem('ml_last_update', new Date().toISOString()); } catch(e2) {}
       if (_mlActiveTab === 'resumen') renderMLTab_resumen();
-      else { _renderMLKpis(mes); _renderMLTops(mes); }
+      else { _renderMLKpis(mes); _renderMLTops(mes); _mlUpdateLastUpdateBadge(); }
     })
     .catch(function(e) {
       if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-refresh"></i> Actualizar'; }
-      alert('Error al actualizar: ' + e.message);
+      showToast('Error al actualizar ML: ' + e.message, 'error');
     });
 }
 
