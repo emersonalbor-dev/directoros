@@ -3885,6 +3885,109 @@ function _injectProductionBand() {
   state.tasks = state.tasks.concat(nuevas);
 }
 
+function _ads26SeedCampaigns() {
+  // Idempotente — sólo corre si los proyectos no existen
+  if (state.projects.some(function(p){ return p.id === 'ads26-0'; })) return;
+
+  var now = new Date().toISOString();
+  // Fechas clave semestre Jul–Dic 2026
+  var d30='2026-06-30', d01='2026-07-01', d05='2026-07-05', d14='2026-07-14', d21='2026-07-21';
+
+  // [índice, color hex, assigneeId principal]
+  // IDs: 1=Emerson, 3=Hernán, 4=Evelyn, 5=Cecilia
+  var CFG = [
+    [0,  '#dc2626', 5],  // Soldadura - Inversores ARC
+    [1,  '#ea580c', 5],  // Soldadura - Consumibles Electrodo
+    [2,  '#d97706', 5],  // Herramientas de Corte y Esmerilado
+    [3,  '#65a30d', 5],  // Caretas y Equipo de Protección
+    [4,  '#16a34a', 5],  // Abrasivos y Discos
+    [5,  '#0891b2', 3],  // Clavos y Clavadoras
+    [6,  '#2563eb', 5],  // Soldadura - Fluxcore
+    [7,  '#7c3aed', 5],  // Generadores y Maquinaria
+    [8,  '#db2777', 5],  // Soldadura - MIG/Microalambre
+    [9,  '#9333ea', 4],  // Sierra Sable y Seguetas
+    [10, '#0d9488', 3],  // Fluidos y Refrigerantes
+    [11, '#b45309', 5],  // Refacciones y Accesorios
+    [12, '#4f46e5', 4],  // Brocas y Perforadoras Bimetálicas
+    [13, '#e11d48', 3],  // Rx plus - Hojas Especiales
+    [14, '#6d28d9', 3],  // Classic - Herramientas Stanley
+    [15, '#0ea5e9', 1],  // Production Band - Sierras
+    [16, '#0369a1', 1]   // Pallet Band - Sierras
+  ];
+
+  // Asignados secundarios por campaña (para tareas de análisis y reporte)
+  var SEC = [5,5,4,5,4,3,5,4,5,3,3,1,4,3,3,1,1];
+
+  var maxId = state.tasks.reduce(function(m,t){ return Math.max(m,t.id||0); }, 300);
+  var tid = 0;
+  var newProjs = [], newTasks = [];
+
+  function fmt(n){ return '$'+(n>=1000?(n/1000).toFixed(1)+'K':Math.round(n)); }
+
+  CFG.forEach(function(cfg,i){
+    var c = _ADS26_CAMP[i];
+    var nm=c[0], skus=c[1], bud=c[2], ml=c[3], amz=c[4], wmt=c[5], mrg=c[6];
+    var pid='ads26-'+i, pri=cfg[2], sec=SEC[i];
+
+    // Plataformas con presupuesto > 0
+    var plats=[];
+    if(ml>0)  plats.push('ML');
+    if(amz>0) plats.push('AMZ');
+    if(wmt>0) plats.push('WMT');
+    if(mrg>0) plats.push('MRG');
+    var platStr=plats.join(' · ');
+
+    newProjs.push({ id:pid, name:nm, wsId:'maraga', color:cfg[1], status:'active', createdAt:now });
+
+    function tk(title, aId, status, due, okr){
+      tid++;
+      return { id:maxId+tid, title:title, ws:'maraga', projectId:pid,
+               assigneeId:aId, status:status||'todo', due:due,
+               okr:okr||'', lastUpdate:now, createdAt:now };
+    }
+
+    // Tarea 1: Activar campañas (todo — inicia 1 jul)
+    newTasks.push(tk(
+      'Activar campañas Jul·26 en '+platStr+' — '+nm,
+      pri, 'todo', d01,
+      'ROAS objetivo ≥ 3.5x · Presupuesto '+fmt(bud)+'/mes'
+    ));
+    // Tarea 2: Auditar listings (doing — vence 30 jun, debe estar lista)
+    newTasks.push(tk(
+      'Auditar listings: títulos, bullets, keywords ('+skus+' SKUs)',
+      pri, 'doing', d30,
+      'CTR ≥ 12% · Listings 100% completos al 30·Jun'
+    ));
+    // Tarea 3: Cargar creatividades (todo — vence 5 jul)
+    newTasks.push(tk(
+      'Cargar creatividades finales — imágenes A+, banners y video',
+      pri, 'todo', d05,
+      'Creatividades aprobadas en ML, AMZ, WMT'
+    ));
+    // Tarea 4: Configurar presupuesto (review — vence 30 jun)
+    newTasks.push(tk(
+      'Configurar pujas y asignar presupuesto '+fmt(bud)+'/mes por plataforma',
+      pri, 'review', d30,
+      'Campaña configurada · '+platStr+' · Presupuesto '+fmt(bud)+'/mes'
+    ));
+    // Tarea 5: Reporte sem 1 (todo — vence 14 jul)
+    newTasks.push(tk(
+      'Reporte ROAS sem. 1 — revisar ACOS y ajustar pujas/negativos',
+      sec, 'todo', d14,
+      'ACOS ≤ 20% · Decisión de escala o corrección'
+    ));
+    // Tarea 6: Seguimiento mensual (todo — vence 21 jul)
+    newTasks.push(tk(
+      'Seguimiento mensual — validar rentabilidad y ajustar mix de plataformas',
+      sec, 'todo', d21,
+      'ROI mensual positivo · '+nm
+    ));
+  });
+
+  state.projects = state.projects.concat(newProjs);
+  state.tasks = state.tasks.concat(newTasks);
+}
+
 function getSeedTasks() {
   const today = new Date();
   const addDays = n => { const d = new Date(today); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0]; };
@@ -4246,6 +4349,8 @@ async function init() {
 
   // Inyección Production Band (idempotente — sólo corre si no existe)
   _injectProductionBand();
+  // Inyección 17 campañas Ads Jul–Dic 2026 (idempotente)
+  _ads26SeedCampaigns();
 
   // 3. Schema migrations (additive only — never destructive)
   Object.entries(DEFAULT_PERMISSIONS).forEach(([roleKey, defaultPerms]) => {
