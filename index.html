@@ -10795,7 +10795,7 @@ var ML_2026_DATA = {
   preguntas: {"sinResponder":0,"respondidas":561}
 };
 
-var _mlMesActivo = '2026-06';
+var _mlMesActivo = (function(){ var n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); })();
 var _mlActiveTab = 'resumen';
 
 /* ── Inyección de credenciales por URL hash (un solo clic de setup) ── */
@@ -11135,8 +11135,8 @@ function renderMLTab_resumen() {
   var r = ML_2026_DATA.reputacion;
   var pub = ML_2026_DATA.publicaciones;
   var q = ML_2026_DATA.preguntas;
-  var KEYS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06'];
-  var ABBR = ['Ene','Feb','Mar','Abr','May','Jun'];
+  var KEYS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07'];
+  var ABBR = ['Ene','Feb','Mar','Abr','May','Jun','Jul'];
 
   var pillsHtml = KEYS.map(function(k, i) {
     var isParcial = ML_2026_DATA.meses[k] && ML_2026_DATA.meses[k].parcial;
@@ -11164,7 +11164,7 @@ function renderMLTab_resumen() {
 
   el.innerHTML =
     '<div class="ml-month-pills" style="align-items:center">' + pillsHtml +
-    (function(){ var now = new Date(); var curKey = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0'); return _mlMesActivo === curKey ? '<button id="mlRefreshBtn" onclick="mlRefreshCurrentMonth()" style="margin-left:auto;padding:5px 13px;font-size:11px;font-weight:600;border:1.5px solid var(--line);background:transparent;color:var(--muted);border-radius:20px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s" onmouseover="this.style.borderColor=\'#f59e0b\';this.style.color=\'#d97706\'" onmouseout="this.style.borderColor=\'var(--line)\';this.style.color=\'var(--muted)\'"><i class="ti ti-refresh"></i> Actualizar</button>' : '<span style="margin-left:auto"></span>'; })() +
+    (function(){ var now = new Date(); var curKey = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0'); var prevD = new Date(now.getFullYear(), now.getMonth()-1, 1); var prevKey = prevD.getFullYear() + '-' + String(prevD.getMonth()+1).padStart(2,'0'); var showBtn = (_mlMesActivo === curKey || _mlMesActivo === prevKey); return showBtn ? '<button id="mlRefreshBtn" onclick="mlRefreshCurrentMonth()" style="margin-left:auto;padding:5px 13px;font-size:11px;font-weight:600;border:1.5px solid var(--line);background:transparent;color:var(--muted);border-radius:20px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s" onmouseover="this.style.borderColor=\'#f59e0b\';this.style.color=\'#d97706\'" onmouseout="this.style.borderColor=\'var(--line)\';this.style.color=\'var(--muted)\'"><i class="ti ti-refresh"></i> Actualizar</button>' : '<span style="margin-left:auto"></span>'; })() +
     '<span id="mlLastUpdateBadge" style="font-size:10px;display:inline-flex;align-items:center;gap:2px;margin-left:10px;white-space:nowrap"></span>' +
     '</div>' +
     '<div class="ml-kpis" id="mlKpis"></div>' +
@@ -11225,8 +11225,8 @@ function renderMLTab_resumen() {
 
 /* ── SKU MATRIX: comportamiento mes a mes por facturación ─────────── */
 function _mlSkuMatrixBuild(limitRows) {
-  var KEYS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06'];
-  var ABBR = ['Ene','Feb','Mar','Abr','May','Jun'];
+  var KEYS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07'];
+  var ABBR = ['Ene','Feb','Mar','Abr','May','Jun','Jul'];
 
   var skuMap = {};
   KEYS.forEach(function(k) {
@@ -12668,14 +12668,19 @@ function _mlEstadoRender(acc, mes) {
 
 /* ── ACTUALIZAR MES ACTUAL EN VIVO ─────────────────────────────────── */
 function mlRefreshCurrentMonth() {
-  var mes = '2026-06';
+  var mes = _mlMesActivo;
   var btn = document.getElementById('mlRefreshBtn');
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2 mlspin"></i> Actualizando...'; }
 
   var now = new Date();
-  var year = now.getFullYear(), month = String(now.getMonth() + 1).padStart(2, '0');
-  var from = encodeURIComponent(year + '-' + month + '-01T00:00:00.000-06:00');
-  var to   = encodeURIComponent(now.toISOString().slice(0, 10) + 'T23:59:59.000-06:00');
+  var parts = mes.split('-');
+  var mesYear = parseInt(parts[0]), mesNum = parseInt(parts[1]);
+  var isCurrentMonth = (mesYear === now.getFullYear() && mesNum === now.getMonth() + 1);
+  var mesStr = String(mesNum).padStart(2, '0');
+  var from = encodeURIComponent(mesYear + '-' + mesStr + '-01T00:00:00.000-06:00');
+  var lastDay = new Date(mesYear, mesNum, 0).getDate();
+  var toDateStr = isCurrentMonth ? now.toISOString().slice(0, 10) : (mesYear + '-' + mesStr + '-' + lastDay);
+  var to = encodeURIComponent(toDateStr + 'T23:59:59.000-06:00');
   var base = 'https://api.mercadolibre.com/orders/search?seller=' + ML_SELLER_ID +
     '&order.status=paid&order.date_created.from=' + from + '&order.date_created.to=' + to;
 
@@ -12722,7 +12727,8 @@ function mlRefreshCurrentMonth() {
       ML_2026_DATA.meses[mes] = {
         ventas: Math.round(ventas * scale), ordenes: r.total,
         unidades: Math.round(unidades * scale), skus: Object.keys(byId).length,
-        parcial: true, parcialLabel: 'al ' + now.getDate() + ' de ' + mnames[now.getMonth()],
+        parcial: isCurrentMonth,
+        parcialLabel: isCurrentMonth ? ('al ' + now.getDate() + ' de ' + mnames[mesNum - 1]) : null,
         top: top, items: items
       };
       _mlMesActivo = mes;
