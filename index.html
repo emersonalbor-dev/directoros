@@ -12087,13 +12087,11 @@ function renderMLTab_envios() {
   var mshort = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
   var pills = '';
-  for (var i = 5; i >= 0; i--) {
-    var m = mo - i, y = yr;
-    if (m <= 0) { m += 12; y--; }
-    var k = y + '-' + String(m).padStart(2,'0');
+  for (var m = 1; m <= mo; m++) {
+    var k = yr + '-' + String(m).padStart(2,'0');
     pills += '<button id="mlBillPill_' + k + '" data-mes="' + k + '" onclick="mlBillingSelectMes(\'' + k + '\')" ' +
       'style="display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:20px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap">' +
-      mshort[m] + ' ' + y +
+      mshort[m] + ' ' + yr +
       '<span id="mlBillPillIco_' + k + '" style="display:inline-flex;align-items:center;font-size:10px"></span>' +
     '</button>';
   }
@@ -12350,13 +12348,11 @@ function renderMLTab_estado() {
   var mshort = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
   var pills = '';
-  for (var i = 5; i >= 0; i--) {
-    var m = mo - i, y = yr;
-    if (m <= 0) { m += 12; y--; }
-    var k = y + '-' + String(m).padStart(2,'0');
+  for (var m = 1; m <= mo; m++) {
+    var k = yr + '-' + String(m).padStart(2,'0');
     pills += '<button id="mlEstPill_' + k + '" data-mes="' + k + '" onclick="mlEstadoSelectMes(\'' + k + '\')" ' +
       'style="display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:20px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap">' +
-      mshort[m] + ' ' + y +
+      mshort[m] + ' ' + yr +
       '<span id="mlEstPillIco_' + k + '" style="display:inline-flex;align-items:center;font-size:10px"></span>' +
     '</button>';
   }
