@@ -5123,7 +5123,7 @@ var RESUMEN_MERCH_DATA = {
 var _resumenPlatMes  = '';
 var _resumenMerchFil = 'all';
 var _resumenPlatFil  = 'all';
-function _resumenSetMerch(v) { _resumenMerchFil = v; renderResumenPlat(_resumenPlatMes); }
+function _resumenSetMerch(v) { _resumenMerchFil = v; _resumenPlatFil = 'all'; renderResumenPlat(_resumenPlatMes); }
 function _resumenSetPlat(v)  { _resumenPlatFil  = v; renderResumenPlat(_resumenPlatMes); }
 
 function renderResumenPlat(mes) {
