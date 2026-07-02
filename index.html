@@ -5084,12 +5084,56 @@ var RESUMEN_PLAT_DATA = {
   }
 };
 
+/* ===== RESUMEN MERCH DATA (por merchandiser x plataforma) ===== */
+var RESUMEN_MERCH_DATA = {
+  '2026-06': {
+    merchandisers: ['Hernan Hernandez','Cecilia Lozano','Evelyn Sanchez'],
+    skusPorMerch: { 'Hernan Hernandez':237, 'Cecilia Lozano':152, 'Evelyn Sanchez':360 },
+    plataformas: {
+      mercadolibre: {
+        'Hernan Hernandez': { vendidos:18, sinVta:219, pctVendidos:7.59,  mejorados:9,  fulfillment:6,  ventasTotal:321364, ventasMKT:59607,  inversionT:8916,  skusMKT:9,  dobleCero:5 },
+        'Cecilia Lozano':   { vendidos:32, sinVta:120, pctVendidos:21.05, mejorados:15, fulfillment:13, ventasTotal:757975, ventasMKT:233493, inversionT:35048, skusMKT:15, dobleCero:6 },
+        'Evelyn Sanchez':   { vendidos:45, sinVta:315, pctVendidos:12.50, mejorados:12, fulfillment:9,  ventasTotal:65347,  ventasMKT:3878,   inversionT:3478,  skusMKT:12, dobleCero:9 }
+      },
+      amazon: {
+        'Hernan Hernandez': { vendidos:5,  sinVta:232, pctVendidos:2.11,  mejorados:4,  fulfillment:1,  ventasTotal:23891,  ventasMKT:0,     inversionT:23,   skusMKT:4,  dobleCero:4  },
+        'Cecilia Lozano':   { vendidos:19, sinVta:133, pctVendidos:12.50, mejorados:7,  fulfillment:8,  ventasTotal:83806,  ventasMKT:8990,  inversionT:1850, skusMKT:7,  dobleCero:4  },
+        'Evelyn Sanchez':   { vendidos:27, sinVta:333, pctVendidos:7.50,  mejorados:22, fulfillment:6,  ventasTotal:47699,  ventasMKT:7927,  inversionT:1246, skusMKT:22, dobleCero:19 }
+      },
+      walmart: {
+        'Hernan Hernandez': { vendidos:6,  sinVta:231, pctVendidos:2.53,  mejorados:2,  fulfillment:1, ventasTotal:23886, ventasMKT:0,    inversionT:15,  skusMKT:2,  dobleCero:2 },
+        'Cecilia Lozano':   { vendidos:5,  sinVta:147, pctVendidos:3.29,  mejorados:11, fulfillment:7, ventasTotal:16469, ventasMKT:2867, inversionT:390, skusMKT:11, dobleCero:8 },
+        'Evelyn Sanchez':   { vendidos:4,  sinVta:356, pctVendidos:1.11,  mejorados:0,  fulfillment:1, ventasTotal:2782,  ventasMKT:0,    inversionT:0,   skusMKT:0,  dobleCero:0 }
+      },
+      maraga_mx: {
+        'Hernan Hernandez': { vendidos:12, sinVta:225, pctVendidos:5.06, mejorados:0, fulfillment:0, ventasTotal:131326, ventasMKT:0, inversionT:0, skusMKT:0, dobleCero:0 },
+        'Cecilia Lozano':   { vendidos:9,  sinVta:143, pctVendidos:5.92, mejorados:0, fulfillment:0, ventasTotal:32550,  ventasMKT:0, inversionT:0, skusMKT:0, dobleCero:0 },
+        'Evelyn Sanchez':   { vendidos:20, sinVta:340, pctVendidos:5.56, mejorados:0, fulfillment:0, ventasTotal:171478, ventasMKT:0, inversionT:0, skusMKT:0, dobleCero:0 }
+      },
+      tiktok: {
+        'Hernan Hernandez': { vendidos:2, sinVta:235, pctVendidos:0.84, mejorados:0, fulfillment:0, ventasTotal:2802, ventasMKT:0, inversionT:0, skusMKT:0, dobleCero:0 },
+        'Cecilia Lozano':   { vendidos:2, sinVta:150, pctVendidos:1.32, mejorados:0, fulfillment:0, ventasTotal:1550, ventasMKT:0, inversionT:0, skusMKT:0, dobleCero:0 },
+        'Evelyn Sanchez':   { vendidos:0, sinVta:360, pctVendidos:0,    mejorados:0, fulfillment:0, ventasTotal:0,    ventasMKT:0, inversionT:0, skusMKT:0, dobleCero:0 }
+      }
+    }
+  }
+};
+
+/* ===== RESUMEN PLATAFORMAS FILTER STATE ===== */
+var _resumenPlatMes  = '';
+var _resumenMerchFil = 'all';
+var _resumenPlatFil  = 'all';
+function _resumenSetMerch(v) { _resumenMerchFil = v; renderResumenPlat(_resumenPlatMes); }
+function _resumenSetPlat(v)  { _resumenPlatFil  = v; renderResumenPlat(_resumenPlatMes); }
+
 function renderResumenPlat(mes) {
+  _resumenPlatMes = mes;
   var el = document.getElementById('resumenPlatSection');
   if (!el) return;
   var d = RESUMEN_PLAT_DATA[mes];
   if (!d) { el.innerHTML = ''; return; }
-  var v = VENTAS_PLAT_DATA[mes] || {};
+  var v   = VENTAS_PLAT_DATA[mes] || {};
+  var md  = RESUMEN_MERCH_DATA[mes] || null;
 
   var PLATS = [
     { id:'mercadolibre', label:'Mercado Libre', cls:'resumen-row-ml',  dot:'#f59e0b' },
@@ -5098,15 +5142,22 @@ function renderResumenPlat(mes) {
     { id:'maraga_mx',    label:'MaragaMX',      cls:'resumen-row-mmx', dot:'#c62828' },
     { id:'tiktok',       label:'TikTok',        cls:'resumen-row-ttk', dot:'#333'    }
   ];
+  var PLAT_IDX = {};
+  PLATS.forEach(function(p){ PLAT_IDX[p.id] = p; });
+  var MERCH_COLORS = ['#7c3aed','#0891b2','#c026d3'];
 
-  var _$ = function(n) { return n != null && n > 0 ? '$' + Math.round(n).toLocaleString('es-MX') : '$0'; };
-  var _pct = function(num, den) { return (!den || den===0) ? '—' : (num/den*100).toFixed(2)+'%'; };
+  var _$   = function(n) { return (n > 0) ? '$' + Math.round(n).toLocaleString('es-MX') : '$0'; };
+  var _pct = function(num, den) { return (!den||den===0) ? '—' : (num/den*100).toFixed(2)+'%'; };
 
-  var totVendidos=0, totFulfill=0, totMKT=0, totInv=0, totVentas=0;
+  function pSty(active) {
+    return 'padding:4px 11px;border-radius:20px;border:1.5px solid '+(active?'var(--accent,#2563eb)':'var(--line)')+
+      ';background:'+(active?'var(--accent,#2563eb)':'var(--bg)')+
+      ';color:'+(active?'#fff':'var(--text)')+
+      ';font-size:11px;font-weight:'+(active?'700':'500')+
+      ';cursor:pointer;white-space:nowrap;transition:all .15s';
+  }
 
-  var rows = PLATS.map(function(p) {
-    var pd = d.plataformas[p.id] || {};
-    var ventasTotal = (v[p.id] && v[p.id].total) ? v[p.id].total : (pd.ventasTotal || 0);
+  function buildRow(label, dot, cls, skusTot, skusExcl, pd, ventasTotal) {
     var vendidos    = pd.vendidos    || 0;
     var sinVta      = pd.sinVta      != null ? pd.sinVta : '—';
     var pctV        = pd.pctVendidos != null ? pd.pctVendidos.toFixed(2)+'%' : '—';
@@ -5118,39 +5169,105 @@ function renderResumenPlat(mes) {
     var dobleCero   = pd.dobleCero   != null ? pd.dobleCero : '—';
     var acos        = (inversionT && ventasMKT) ? _pct(inversionT, ventasMKT) : '—';
     var tacos       = inversionT ? _pct(inversionT, ventasTotal) : '0.00%';
+    var vtHtml      = ventasTotal ? '<span class="resumen-val-pesos">$'+Math.round(ventasTotal).toLocaleString('es-MX')+'</span>' : '<span class="resumen-val-muted">—</span>';
+    return {
+      html: '<tr class="'+cls+'">'
+        +'<td><div class="resumen-plat-plat-name"><span class="resumen-plat-dot" style="background:'+dot+'"></span>'+label+'</div></td>'
+        +'<td>'+skusTot+'</td><td>'+skusExcl+'</td>'
+        +'<td><strong>'+vendidos+'</strong></td>'
+        +'<td>'+sinVta+'</td><td>'+pctV+'</td>'
+        +'<td>'+mejorados+'</td><td>'+fulfillment+'</td>'
+        +'<td>'+vtHtml+'</td>'
+        +'<td>'+_$(ventasMKT)+'</td><td>'+_$(inversionT)+'</td>'
+        +'<td>'+skusMKT+'</td><td>'+dobleCero+'</td>'
+        +'<td class="'+(!isNaN(parseFloat(acos))&&parseFloat(acos)>30?'resumen-val-pesos':'')+'">'+(acos==='—'?'<span class="resumen-val-muted">—</span>':acos)+'</td>'
+        +'<td>'+(tacos==='—'?'<span class="resumen-val-muted">—</span>':tacos)+'</td>'
+        +'</tr>',
+      vendidos:vendidos, fulfillment:fulfillment, ventasMKT:ventasMKT, inversionT:inversionT, ventasTotal:ventasTotal
+    };
+  }
 
-    totVendidos += vendidos; totFulfill += fulfillment;
-    totMKT += ventasMKT; totInv += inversionT; totVentas += ventasTotal;
+  /* ── Filter pills ─────────────────────────────────────────────── */
+  var filterHtml = '';
+  if (md) {
+    var merch = md.merchandisers || [];
+    var mPills = '<button onclick="_resumenSetMerch(\'all\')" style="'+pSty(_resumenMerchFil==='all')+'">Todos</button>';
+    merch.forEach(function(m) {
+      mPills += '<button onclick="_resumenSetMerch(\''+m+'\')" style="'+pSty(_resumenMerchFil===m)+'">'+m.split(' ')[0]+'</button>';
+    });
+    var pPills = '<button onclick="_resumenSetPlat(\'all\')" style="'+pSty(_resumenPlatFil==='all')+'">Todas</button>';
+    PLATS.forEach(function(p) {
+      pPills += '<button onclick="_resumenSetPlat(\''+p.id+'\')" style="'+pSty(_resumenPlatFil===p.id)+'">'+p.label+'</button>';
+    });
+    filterHtml =
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">'
+        +'<span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;min-width:52px">Merch.</span>'
+        +mPills+'</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:14px">'
+        +'<span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;min-width:52px">Plat.</span>'
+        +pPills+'</div>';
+  }
 
-    var vt = ventasTotal ? '<span class="resumen-val-pesos">$'+Math.round(ventasTotal).toLocaleString('es-MX')+'</span>' : '<span class="resumen-val-muted">—</span>';
-    return '<tr class="'+p.cls+'">'
-      +'<td><div class="resumen-plat-plat-name"><span class="resumen-plat-dot" style="background:'+p.dot+'"></span>'+p.label+'</div></td>'
-      +'<td>'+d.skusTotales+'</td>'
-      +'<td>'+d.skusExclusivos+'</td>'
-      +'<td><strong>'+vendidos+'</strong></td>'
-      +'<td>'+sinVta+'</td>'
-      +'<td>'+pctV+'</td>'
-      +'<td>'+mejorados+'</td>'
-      +'<td>'+fulfillment+'</td>'
-      +'<td>'+vt+'</td>'
-      +'<td>'+_$(ventasMKT)+'</td>'
-      +'<td>'+_$(inversionT)+'</td>'
-      +'<td>'+skusMKT+'</td>'
-      +'<td>'+dobleCero+'</td>'
-      +'<td class="'+(!isNaN(parseFloat(acos)) && parseFloat(acos)>30 ? 'resumen-val-pesos' : '')+'">'+(acos==='—'?'<span class="resumen-val-muted">—</span>':acos)+'</td>'
-      +'<td>'+(tacos==='—'?'<span class="resumen-val-muted">—</span>':tacos)+'</td>'
-      +'</tr>';
-  }).join('');
+  /* ── Build rows based on filter state ────────────────────────── */
+  var rows = '', totVendidos=0, totFulfill=0, totMKT=0, totInv=0, totVentas=0;
+  var col1Hdr = 'Plataforma', skusTotHdr = d.skusTotales, skusExclHdr = d.skusExclusivos;
 
-  var totTacos = totInv && totVentas ? _pct(totInv, totVentas) : '—';
+  if (!md || (_resumenMerchFil==='all' && _resumenPlatFil==='all')) {
+    /* DEFAULT — platforms as rows */
+    PLATS.forEach(function(p) {
+      var pd  = d.plataformas[p.id] || {};
+      var vt  = (v[p.id] && v[p.id].total) ? v[p.id].total : (pd.ventasTotal || 0);
+      var r   = buildRow(p.label, p.dot, p.cls, d.skusTotales, d.skusExclusivos, pd, vt);
+      rows += r.html;
+      totVendidos+=r.vendidos; totFulfill+=r.fulfillment; totMKT+=r.ventasMKT; totInv+=r.inversionT; totVentas+=r.ventasTotal;
+    });
+
+  } else if (_resumenMerchFil!=='all' && _resumenPlatFil==='all') {
+    /* MERCH SELECTED — platforms as rows, merch-filtered data */
+    var ms = (md.skusPorMerch||{})[_resumenMerchFil] || d.skusTotales;
+    skusTotHdr = ms; skusExclHdr = '—';
+    PLATS.forEach(function(p) {
+      var pd  = ((md.plataformas[p.id]||{})[_resumenMerchFil]) || {};
+      var vt  = pd.ventasTotal || 0;
+      var r   = buildRow(p.label, p.dot, p.cls, ms, '—', pd, vt);
+      rows += r.html;
+      totVendidos+=r.vendidos; totFulfill+=r.fulfillment; totMKT+=r.ventasMKT; totInv+=r.inversionT; totVentas+=r.ventasTotal;
+    });
+
+  } else if (_resumenMerchFil==='all' && _resumenPlatFil!=='all') {
+    /* PLAT SELECTED — merchandisers as rows */
+    col1Hdr = 'Merchandiser'; skusExclHdr = '—';
+    var pi  = PLAT_IDX[_resumenPlatFil] || {dot:'#666'};
+    var mrch = md.merchandisers || [];
+    mrch.forEach(function(m, i) {
+      var ms2 = (md.skusPorMerch||{})[m] || '—';
+      var pd  = ((md.plataformas[_resumenPlatFil]||{})[m]) || {};
+      var vt  = pd.ventasTotal || 0;
+      var r   = buildRow(m, MERCH_COLORS[i]||'#666', PLATS[i%PLATS.length].cls, ms2, '—', pd, vt);
+      rows += r.html;
+      totVendidos+=r.vendidos; totFulfill+=r.fulfillment; totMKT+=r.ventasMKT; totInv+=r.inversionT; totVentas+=r.ventasTotal;
+    });
+
+  } else {
+    /* BOTH SELECTED — single row */
+    col1Hdr = 'Merchandiser'; skusExclHdr = '—';
+    var pi2  = PLAT_IDX[_resumenPlatFil] || {dot:'#666'};
+    var ms3  = (md.skusPorMerch||{})[_resumenMerchFil] || '—';
+    var pd3  = ((md.plataformas[_resumenPlatFil]||{})[_resumenMerchFil]) || {};
+    var r    = buildRow(_resumenMerchFil, pi2.dot, 'resumen-row-ml', ms3, '—', pd3, pd3.ventasTotal||0);
+    rows += r.html; skusTotHdr = ms3;
+    totVendidos=r.vendidos; totFulfill=r.fulfillment; totMKT=r.ventasMKT; totInv=r.inversionT; totVentas=r.ventasTotal;
+  }
+
+  var totTacos = (totInv && totVentas) ? _pct(totInv, totVentas) : '—';
 
   el.innerHTML = '<div class="resumen-plat">'
     +'<div class="resumen-plat-title">Resumen Plataformas &middot; '+(MESES_LABEL[mes]||mes)+'</div>'
+    +filterHtml
     +'<div class="resumen-plat-scroll"><table>'
     +'<thead><tr>'
-    +'<th style="min-width:130px">Plataforma</th>'
-    +'<th>SKUs<br>Totales</th>'
-    +'<th>SKUs<br>Exclusivos</th>'
+    +'<th style="min-width:140px">'+col1Hdr+'</th>'
+    +'<th>SKUs<br>Totales</th><th>SKUs<br>Exclusivos</th>'
     +'<th>SKUs<br>Vendidos</th><th>SKUs<br>sin vta</th>'
     +'<th>%<br>vendidos</th><th>SKU<br>Mejorados</th>'
     +'<th>Bodeguitas</th><th>Ventas<br>Totales</th>'
@@ -5161,10 +5278,9 @@ function renderResumenPlat(mes) {
     +'<tbody>'+rows
     +'<tr class="resumen-row-total">'
     +'<td><div class="resumen-plat-plat-name">TOTAL</div></td>'
-    +'<td>'+d.skusTotales+'</td>'
-    +'<td>'+d.skusExclusivos+'</td>'
+    +'<td>'+skusTotHdr+'</td><td>'+skusExclHdr+'</td>'
     +'<td>'+totVendidos+'</td><td>—</td><td>—</td>'
-    +'<td>0</td><td>'+totFulfill+'</td>'
+    +'<td>—</td><td>'+totFulfill+'</td>'
     +'<td>$'+Math.round(totVentas).toLocaleString('es-MX')+'</td>'
     +'<td>$'+Math.round(totMKT).toLocaleString('es-MX')+'</td>'
     +'<td>$'+Math.round(totInv).toLocaleString('es-MX')+'</td>'
