@@ -11327,9 +11327,12 @@ function renderMLTab_resumen() {
       '<div id="mlTops"></div>' +
     '</div>' +
     '<div class="ml-card" style="margin-bottom:0">' +
-      '<div class="ml-card-h" style="display:flex;align-items:center;justify-content:space-between">' +
+      '<div class="ml-card-h" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">' +
         '<span><i class="ti ti-table"></i> Comportamiento de SKUs por Facturación</span>' +
-        '<span style="font-size:10px;font-weight:400;color:var(--muted)">calor = mayor facturación · hover = monto exacto</span>' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<span style="font-size:10px;font-weight:400;color:var(--muted)">calor = mayor facturación · hover = monto exacto</span>' +
+          '<button id="mlSkuMatrixRefreshBtn" onclick="mlSkuMatrixRefresh()" style="padding:3px 11px;font-size:11px;font-weight:600;border:1.5px solid var(--line);background:transparent;color:var(--muted);border-radius:20px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .15s" onmouseover="this.style.borderColor=\'#f59e0b\';this.style.color=\'#d97706\'" onmouseout="this.style.borderColor=\'var(--line)\';this.style.color=\'var(--muted)\'"><i class="ti ti-refresh" style="font-size:11px"></i> Actualizar</button>' +
+        '</div>' +
       '</div>' +
       '<div id="mlSkuMatrixContent">' + _renderMLSkuMatrix() + '</div>' +
     '</div>';
@@ -11437,6 +11440,12 @@ function _renderMLSkuMatrix() {
 function _mlSkuMatrixExpand() {
   var el = document.getElementById('mlSkuMatrixContent');
   if (el) el.innerHTML = _mlSkuMatrixBuild(null).html;
+}
+
+function mlSkuMatrixRefresh() {
+  var el = document.getElementById('mlSkuMatrixContent');
+  if (el) el.innerHTML = '<div class="ml-loading-msg"><i class="ti ti-loader-2 mlspin"></i> Actualizando datos...</div>';
+  mlRefreshCurrentMonth();
 }
 
 /* ── PUBLICACIONES TAB ─────────────────────────────────────────────── */
