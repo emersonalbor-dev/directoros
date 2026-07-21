@@ -2792,13 +2792,42 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           </div>
 
           <!-- Input -->
-          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px">
-            <div style="flex:1;min-width:220px">
-              <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">Producto o Familia de Productos</label>
-              <input id="mercadoProductoInput" type="text" placeholder="Ej: Soldadoras eléctricas, Caretas para soldar..." style="width:100%;padding:9px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;box-sizing:border-box" onkeydown="if(event.key==='Enter')mercadoRunAnalysis()">
+          <div style="background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:16px;margin-bottom:20px">
+            <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Contexto del producto</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+              <div>
+                <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Marca</label>
+                <input id="mercadoMarcaInput" type="text" placeholder="Ej. MIKELS" style="width:100%;padding:8px 11px;border:1.5px solid var(--line);border-radius:7px;background:var(--paper);color:var(--text);font-size:12px;box-sizing:border-box">
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Familia / Categoría</label>
+                <input id="mercadoProductoInput" type="text" placeholder="Ej. Sierras de cinta" style="width:100%;padding:8px 11px;border:1.5px solid var(--line);border-radius:7px;background:var(--paper);color:var(--text);font-size:12px;box-sizing:border-box">
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">SKU(s)</label>
+                <input id="mercadoSkuInput" type="text" placeholder="Ej. SC-14, SC-18, SC-24" style="width:100%;padding:8px 11px;border:1.5px solid var(--line);border-radius:7px;background:var(--paper);color:var(--text);font-size:12px;box-sizing:border-box">
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Precio o rango</label>
+                <input id="mercadoPrecioInput" type="text" placeholder="Ej. $4,299 – $8,999" style="width:100%;padding:8px 11px;border:1.5px solid var(--line);border-radius:7px;background:var(--paper);color:var(--text);font-size:12px;box-sizing:border-box">
+              </div>
             </div>
-            <button id="mercadoRunBtn" onclick="mercadoRunAnalysis()" style="padding:9px 20px;background:var(--maraga,#e65100);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap">
-              <i class="ti ti-robot"></i> Iniciar Análisis
+            <div style="margin-bottom:12px">
+              <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Notas adicionales</label>
+              <textarea id="mercadoNotasInput" placeholder="Características especiales, audiencia objetivo, diferenciadores, competidores conocidos, posicionamiento deseado..." style="width:100%;padding:8px 11px;border:1.5px solid var(--line);border-radius:7px;background:var(--paper);color:var(--text);font-size:12px;box-sizing:border-box;resize:vertical;min-height:62px;font-family:inherit"></textarea>
+            </div>
+            <div style="margin-bottom:14px">
+              <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Plataformas objetivo</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="mercadoPlat_ml" checked style="accent-color:#e65100;width:15px;height:15px"> Mercado Libre</label>
+                <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="mercadoPlat_amz" checked style="accent-color:#e65100;width:15px;height:15px"> Amazon</label>
+                <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="mercadoPlat_wmt" checked style="accent-color:#e65100;width:15px;height:15px"> Walmart</label>
+                <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="mercadoPlat_tkt" checked style="accent-color:#e65100;width:15px;height:15px"> TikTok Shop</label>
+                <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="mercadoPlat_web" style="accent-color:#e65100;width:15px;height:15px"> Mi Página Web</label>
+              </div>
+            </div>
+            <button id="mercadoRunBtn" onclick="mercadoRunAnalysis()" style="width:100%;padding:10px 20px;background:var(--maraga,#e65100);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px">
+              <i class="ti ti-robot"></i> Generar Estudio de Mercado
             </button>
           </div>
 
@@ -9976,10 +10005,25 @@ function switchMktTab(name, el) {
 /* ── Estudios de Mercado — Pipeline 4 Agentes ── */
 var _mercadoLastData = null;
 async function mercadoRunAnalysis() {
-  var producto = (document.getElementById('mercadoProductoInput').value || '').trim();
-  if (!producto) { alert('Por favor ingresa el nombre del producto a analizar.'); return; }
+  var marca    = (document.getElementById('mercadoMarcaInput').value || '').trim();
+  var familia  = (document.getElementById('mercadoProductoInput').value || '').trim();
+  var skus     = (document.getElementById('mercadoSkuInput').value || '').trim();
+  var precio   = (document.getElementById('mercadoPrecioInput').value || '').trim();
+  var notas    = (document.getElementById('mercadoNotasInput').value || '').trim();
+  var platMap  = {ml:'Mercado Libre', amz:'Amazon MX', wmt:'Walmart MX', tkt:'TikTok Shop', web:'Mi Página Web'};
+  var plats    = Object.keys(platMap).filter(function(k){ var el = document.getElementById('mercadoPlat_'+k); return el && el.checked; }).map(function(k){ return platMap[k]; });
+
+  if (!familia) { alert('Por favor ingresa la Familia / Categoría del producto.'); return; }
   var apiKey = localStorage.getItem('directoros_ai_key');
   if (!apiKey) { alert('API key no configurada. Ve a Configuración y agrega tu Claude API key.'); return; }
+
+  var producto = (marca ? marca + ' — ' : '') + familia;
+  var contexto = 'Producto / Familia: ' + familia
+    + (marca   ? '\nMarca: ' + marca   : '')
+    + (skus    ? '\nSKU(s): ' + skus   : '')
+    + (precio  ? '\nPrecio o rango: ' + precio : '')
+    + (plats.length ? '\nPlataformas objetivo: ' + plats.join(', ') : '')
+    + (notas   ? '\nNotas adicionales: ' + notas : '');
 
   var btn = document.getElementById('mercadoRunBtn');
   var pipeline = document.getElementById('mercadoPipeline');
@@ -9998,7 +10042,7 @@ async function mercadoRunAnalysis() {
     // Agente 1 — Analista de Mercado
     _mercadoSetAgentStatus(1, 'running', 'Analizando...');
     var sys1 = 'Eres un Analista de Mercado experto en e-commerce mexicano (MercadoLibre, Amazon MX, Walmart MX, TikTok Shop). Tu tarea es investigar competidores y el mercado para el producto indicado. Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin texto adicional.';
-    var usr1 = 'Producto: ' + producto + '\n\nGenera un análisis de mercado con este esquema JSON exacto:\n{\n  "competitors": [\n    {\n      "competitor_name": "string",\n      "market_share_pct": number,\n      "avg_price": number,\n      "ratings": number,\n      "reviews_count": number,\n      "main_keywords": ["string"],\n      "platforms": ["string"],\n      "ad_investment": "Alta|Media|Baja",\n      "strengths": ["string"],\n      "weaknesses": ["string"]\n    }\n  ],\n  "market_size_mxn": number,\n  "top_keywords": ["string"],\n  "consumer_trends": ["string"],\n  "price_range": {"min": number, "max": number},\n  "entry_barriers": ["string"],\n  "market_saturation_pct": number\n}';
+    var usr1 = contexto + '\n\nGenera un análisis de mercado con este esquema JSON exacto:\n{\n  "competitors": [\n    {\n      "competitor_name": "string",\n      "market_share_pct": number,\n      "avg_price": number,\n      "ratings": number,\n      "reviews_count": number,\n      "main_keywords": ["string"],\n      "platforms": ["string"],\n      "ad_investment": "Alta|Media|Baja",\n      "strengths": ["string"],\n      "weaknesses": ["string"]\n    }\n  ],\n  "market_size_mxn": number,\n  "top_keywords": ["string"],\n  "consumer_trends": ["string"],\n  "price_range": {"min": number, "max": number},\n  "entry_barriers": ["string"],\n  "market_saturation_pct": number\n}';
     var data1 = await _mercadoCallClaude(sys1, usr1, apiKey);
     _mercadoRenderAgent1(data1);
     _mercadoSetAgentStatus(1, 'done', 'Completado');
@@ -10006,7 +10050,7 @@ async function mercadoRunAnalysis() {
     // Agente 2 — Evaluador de Oportunidad Financiera
     _mercadoSetAgentStatus(2, 'running', 'Evaluando...');
     var sys2 = 'Eres un Evaluador de Oportunidades Financieras especialista en e-commerce. Con base en el análisis de mercado recibido, calcula el potencial financiero por plataforma. Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin texto adicional.';
-    var usr2 = 'Producto: ' + producto + '\nAnálisis de mercado previo:\n' + JSON.stringify(data1) + '\n\nGenera la evaluación financiera con este esquema JSON exacto:\n{\n  "opportunities": [\n    {\n      "platform": "string",\n      "estimated_monthly_revenue": number,\n      "required_investment": number,\n      "roi_pct": number,\n      "break_even_months": number,\n      "opportunity_score": number,\n      "rationale": "string"\n    }\n  ],\n  "total_market_potential_mxn": number,\n  "recommended_primary_platform": "string",\n  "risk_assessment": "Alto|Medio|Bajo",\n  "recommended_budget_mxn": number\n}';
+    var usr2 = contexto + '\nAnálisis de mercado previo:\n' + JSON.stringify(data1) + '\n\nGenera la evaluación financiera con este esquema JSON exacto:\n{\n  "opportunities": [\n    {\n      "platform": "string",\n      "estimated_monthly_revenue": number,\n      "required_investment": number,\n      "roi_pct": number,\n      "break_even_months": number,\n      "opportunity_score": number,\n      "rationale": "string"\n    }\n  ],\n  "total_market_potential_mxn": number,\n  "recommended_primary_platform": "string",\n  "risk_assessment": "Alto|Medio|Bajo",\n  "recommended_budget_mxn": number\n}';
     var data2 = await _mercadoCallClaude(sys2, usr2, apiKey);
     _mercadoRenderAgent2(data2);
     _mercadoSetAgentStatus(2, 'done', 'Completado');
@@ -10014,7 +10058,7 @@ async function mercadoRunAnalysis() {
     // Agente 3 — Definidor de Objetivos Comerciales
     _mercadoSetAgentStatus(3, 'running', 'Definiendo objetivos...');
     var sys3 = 'Eres un Estratega Comercial experto en e-commerce. Con base en el análisis de mercado y evaluación financiera, define objetivos de ventas mensuales realistas y alcanzables. Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin texto adicional.';
-    var usr3 = 'Producto: ' + producto + '\nEvaluación financiera:\n' + JSON.stringify(data2) + '\n\nGenera los objetivos comerciales con este esquema JSON exacto:\n{\n  "monthly_targets": [\n    {\n      "month": "string",\n      "platform": "string",\n      "target_units": number,\n      "target_revenue_mxn": number,\n      "required_ctr_pct": number,\n      "required_conversion_pct": number,\n      "tactics": ["string"]\n    }\n  ],\n  "priority_platforms": ["string"],\n  "revenue_goal_90d_mxn": number,\n  "kpis": [\n    {"metric": "string", "target": "string", "frequency": "string"}\n  ]\n}';
+    var usr3 = contexto + '\nEvaluación financiera:\n' + JSON.stringify(data2) + '\n\nGenera los objetivos comerciales con este esquema JSON exacto:\n{\n  "monthly_targets": [\n    {\n      "month": "string",\n      "platform": "string",\n      "target_units": number,\n      "target_revenue_mxn": number,\n      "required_ctr_pct": number,\n      "required_conversion_pct": number,\n      "tactics": ["string"]\n    }\n  ],\n  "priority_platforms": ["string"],\n  "revenue_goal_90d_mxn": number,\n  "kpis": [\n    {"metric": "string", "target": "string", "frequency": "string"}\n  ]\n}';
     var data3 = await _mercadoCallClaude(sys3, usr3, apiKey);
     _mercadoRenderAgent3(data3);
     _mercadoSetAgentStatus(3, 'done', 'Completado');
@@ -10022,7 +10066,7 @@ async function mercadoRunAnalysis() {
     // Agente 4 — Estratega de Medios y Contenido
     _mercadoSetAgentStatus(4, 'running', 'Planificando...');
     var sys4 = 'Eres un Estratega de Medios y Contenido para e-commerce. Con toda la información previa, crea un plan de medios y calendario de contenido accionable. Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin texto adicional.';
-    var usr4 = 'Producto: ' + producto + '\nPlataformas prioritarias: ' + (data3.priority_platforms||[]).join(', ') + '\nMeta 90 días: ' + _mercadoFmt(data3.revenue_goal_90d_mxn) + '\nPresupuesto recomendado: ' + _mercadoFmt((data2||{}).recommended_budget_mxn) + '\n\nGenera el plan de marketing con este esquema JSON exacto (máximo 4 canales y 8 entradas en el calendario):\n{\n  "budget_allocations": [\n    {\n      "channel": "string",\n      "budget_mxn": number,\n      "expected_reach": number,\n      "expected_conversions": number,\n      "content_type": "string",\n      "acos_pct": number\n    }\n  ],\n  "content_calendar": [\n    {\n      "week": number,\n      "day": "string",\n      "content_type": "string",\n      "platform": "string",\n      "hook": "string",\n      "cta": "string"\n    }\n  ],\n  "total_budget_mxn": number,\n  "creative_themes": ["string"],\n  "primary_cta": "string"\n}';
+    var usr4 = contexto + '\nPlataformas prioritarias: ' + (plats.length ? plats.join(', ') : (data3.priority_platforms||[]).join(', ')) + '\nMeta 90 días: ' + _mercadoFmt(data3.revenue_goal_90d_mxn) + '\nPresupuesto recomendado: ' + _mercadoFmt((data2||{}).recommended_budget_mxn) + '\n\nGenera el plan de marketing con este esquema JSON exacto (máximo 4 canales y 8 entradas en el calendario):\n{\n  "budget_allocations": [\n    {\n      "channel": "string",\n      "budget_mxn": number,\n      "expected_reach": number,\n      "expected_conversions": number,\n      "content_type": "string",\n      "acos_pct": number\n    }\n  ],\n  "content_calendar": [\n    {\n      "week": number,\n      "day": "string",\n      "content_type": "string",\n      "platform": "string",\n      "hook": "string",\n      "cta": "string"\n    }\n  ],\n  "total_budget_mxn": number,\n  "creative_themes": ["string"],\n  "primary_cta": "string"\n}';
     var data4 = await _mercadoCallClaude(sys4, usr4, apiKey);
     _mercadoRenderAgent4(data4);
     _mercadoSetAgentStatus(4, 'done', 'Completado');
