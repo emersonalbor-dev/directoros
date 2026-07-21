@@ -11118,6 +11118,16 @@ function mlApiFetch(url, opts, _retries) {
       }
       return json;
     });
+  }, function(networkErr) {
+    // Fallo de red real (sin respuesta HTTP, ej. "Failed to fetch"): reintenta
+    // con backoff corto antes de rendirse — muy común en secuencias largas de
+    // paginación (billing del mes en curso) donde una sola llamada puede fallar.
+    if (_retries < 3) {
+      var waitNet = 2000 * Math.pow(2, _retries);
+      return new Promise(function(res) { setTimeout(res, waitNet); })
+        .then(function() { return mlApiFetch(url, opts, _retries + 1); });
+    }
+    return Promise.reject(new Error('Sin conexión con Mercado Libre. Verifica tu internet e intenta de nuevo.'));
   });
 }
 
