@@ -2867,7 +2867,10 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 
             <!-- Final summary -->
             <div id="mercadoFinalCard" style="display:none;margin-top:16px;background:linear-gradient(135deg,var(--paper),var(--bg));border:1.5px solid var(--maraga,#e65100);border-radius:10px;padding:16px">
-              <div style="font-weight:700;font-size:14px;color:var(--maraga,#e65100);margin-bottom:10px"><i class="ti ti-report-analytics"></i> Resumen Estratégico</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+                <div style="font-weight:700;font-size:14px;color:var(--maraga,#e65100)"><i class="ti ti-report-analytics"></i> Resumen Estratégico</div>
+                <button onclick="mercadoDownloadPDF()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#e65100;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'"><i class="ti ti-file-type-pdf"></i> Descargar PDF</button>
+              </div>
               <div id="mercadoFinalBody"></div>
             </div>
           </div>
@@ -9971,6 +9974,7 @@ function switchMktTab(name, el) {
 }
 
 /* ── Estudios de Mercado — Pipeline 4 Agentes ── */
+var _mercadoLastData = null;
 async function mercadoRunAnalysis() {
   var producto = (document.getElementById('mercadoProductoInput').value || '').trim();
   if (!producto) { alert('Por favor ingresa el nombre del producto a analizar.'); return; }
@@ -10222,6 +10226,168 @@ function _mercadoRenderFinal(producto, d1, d2, d3, d4) {
   }
   body.innerHTML = h;
   card.style.display = 'block';
+  _mercadoLastData = {producto: producto, d1: d1, d2: d2, d3: d3, d4: d4, fecha: new Date().toLocaleDateString('es-MX', {year:'numeric',month:'long',day:'numeric'})};
+}
+
+function mercadoDownloadPDF() {
+  if (!_mercadoLastData) return;
+  var p = _mercadoLastData.producto, d1 = _mercadoLastData.d1, d2 = _mercadoLastData.d2, d3 = _mercadoLastData.d3, d4 = _mercadoLastData.d4, fecha = _mercadoLastData.fecha;
+
+  function fmt(n) { return typeof n === 'number' ? '$' + n.toLocaleString('es-MX', {maximumFractionDigits:0}) : (n||'—'); }
+  function pct(n) { return (n||0) + '%'; }
+  function row() { var c = Array.prototype.slice.call(arguments); return '<tr>' + c.map(function(x,i){ return (i===0?'<td style="font-weight:600">':'<td>') + (x===undefined||x===null?'—':x) + '</td>'; }).join('') + '</tr>'; }
+  function thead() { var c = Array.prototype.slice.call(arguments); return '<thead><tr>' + c.map(function(x){ return '<th>' + x + '</th>'; }).join('') + '</tr></thead>'; }
+  function section(icon, title, color, body) {
+    return '<div class="section"><div class="section-header" style="border-left-color:' + color + '"><span class="section-icon" style="background:' + color + '">' + icon + '</span><span>' + title + '</span></div>' + body + '</div>';
+  }
+  function kpiGrid(items) {
+    return '<div class="kpi-grid">' + items.map(function(i){ return '<div class="kpi-box"><div class="kpi-label">' + i[0] + '</div><div class="kpi-val">' + i[1] + '</div></div>'; }).join('') + '</div>';
+  }
+  function table(headArr, rowsHtml) {
+    return '<table>' + thead.apply(null, headArr) + '<tbody>' + rowsHtml + '</tbody></table>';
+  }
+
+  // Agente 1
+  var a1html = '';
+  if (d1) {
+    a1html += kpiGrid([
+      ['Tamaño de mercado', fmt(d1.market_size_mxn)],
+      ['Saturación', pct(d1.market_saturation_pct)],
+      ['Precio mín.', fmt((d1.price_range||{}).min)],
+      ['Precio máx.', fmt((d1.price_range||{}).max)]
+    ]);
+    if ((d1.competitors||[]).length) {
+      a1html += table(['Competidor','Precio prom.','Share %','Rating','Inversión ads'],
+        (d1.competitors||[]).map(function(c){ return row(c.competitor_name, fmt(c.avg_price), pct(c.market_share_pct), '⭐ ' + (c.ratings||0), c.ad_investment); }).join(''));
+    }
+    if ((d1.top_keywords||[]).length) a1html += '<p class="tags-label">Keywords clave:</p><p class="tags">' + (d1.top_keywords||[]).join(' · ') + '</p>';
+    if ((d1.consumer_trends||[]).length) a1html += '<p class="tags-label">Tendencias:</p><p class="tags">' + (d1.consumer_trends||[]).join(' · ') + '</p>';
+    if ((d1.entry_barriers||[]).length) a1html += '<p class="tags-label">Barreras de entrada:</p><p class="tags">' + (d1.entry_barriers||[]).join(' · ') + '</p>';
+  }
+
+  // Agente 2
+  var a2html = '';
+  if (d2) {
+    a2html += kpiGrid([
+      ['Potencial total', fmt(d2.total_market_potential_mxn)],
+      ['Presupuesto recom.', fmt(d2.recommended_budget_mxn)],
+      ['Plataforma principal', d2.recommended_primary_platform||'—'],
+      ['Nivel de riesgo', d2.risk_assessment||'—']
+    ]);
+    if ((d2.opportunities||[]).length) {
+      a2html += table(['Plataforma','Rev. mensual est.','Inversión req.','ROI %','Break-even','Score'],
+        (d2.opportunities||[]).map(function(o){ return row(o.platform, fmt(o.estimated_monthly_revenue), fmt(o.required_investment), pct(o.roi_pct), (o.break_even_months||0) + ' meses', (o.opportunity_score||0) + '/10'); }).join(''));
+    }
+  }
+
+  // Agente 3
+  var a3html = '';
+  if (d3) {
+    a3html += kpiGrid([
+      ['Meta 90 días', fmt(d3.revenue_goal_90d_mxn)],
+      ['Plataformas prioritarias', (d3.priority_platforms||[]).join(', ')]
+    ]);
+    if ((d3.monthly_targets||[]).length) {
+      a3html += table(['Mes','Plataforma','Unidades','Ingresos','CTR','Conversión'],
+        (d3.monthly_targets||[]).map(function(t){ return row(t.month, t.platform, t.target_units, fmt(t.target_revenue_mxn), pct(t.required_ctr_pct), pct(t.required_conversion_pct)); }).join(''));
+    }
+    if ((d3.kpis||[]).length) {
+      a3html += '<p class="tags-label">KPIs:</p>';
+      a3html += table(['Métrica','Objetivo','Frecuencia'],
+        (d3.kpis||[]).map(function(k){ return row(k.metric, k.target, k.frequency); }).join(''));
+    }
+  }
+
+  // Agente 4
+  var a4html = '';
+  if (d4) {
+    var allocs = d4.budget_allocations || [];
+    var avgAcos = allocs.length ? (allocs.reduce(function(s,a){ return s + (a.acos_pct||0); }, 0) / allocs.length).toFixed(1) : '—';
+    a4html += kpiGrid([
+      ['Presupuesto total', fmt(d4.total_budget_mxn)],
+      ['ACOS promedio', avgAcos + '%'],
+      ['CTA principal', d4.primary_cta||'—']
+    ]);
+    if (allocs.length) {
+      a4html += '<p class="tags-label">Distribución de presupuesto:</p>';
+      a4html += table(['Canal','Presupuesto','Alcance est.','Conversiones','ACOS','Tipo contenido'],
+        allocs.map(function(a){ return row(a.channel, fmt(a.budget_mxn), (a.expected_reach||0).toLocaleString('es-MX'), a.expected_conversions, pct(a.acos_pct), a.content_type); }).join(''));
+    }
+    if ((d4.content_calendar||[]).length) {
+      a4html += '<p class="tags-label">Calendario de contenido:</p>';
+      a4html += table(['Sem.','Día','Plataforma','Tipo','Hook','CTA'],
+        (d4.content_calendar||[]).slice(0,12).map(function(c){ return row(c.week, c.day, c.platform, c.content_type, c.hook, c.cta); }).join(''));
+    }
+    if ((d4.creative_themes||[]).length) a4html += '<p class="tags-label">Temas creativos:</p><p class="tags">' + (d4.creative_themes||[]).join(' · ') + '</p>';
+  }
+
+  // Resumen ejecutivo
+  var sat = d1 ? (d1.market_saturation_pct||0) : 0;
+  var satLabel = sat > 70 ? 'Mercado saturado — diferenciación crítica' : sat > 40 ? 'Mercado moderado — hay oportunidad' : 'Mercado con espacio disponible';
+  var resumenHtml = kpiGrid([
+    ['Producto', p],
+    ['Potencial de mercado', d2 ? fmt(d2.total_market_potential_mxn) : '—'],
+    ['Plataforma recomendada', d2 ? (d2.recommended_primary_platform||'—') : '—'],
+    ['Meta 90 días', d3 ? fmt(d3.revenue_goal_90d_mxn) : '—'],
+    ['Presupuesto marketing', d4 ? fmt(d4.total_budget_mxn) : '—'],
+    ['Saturación mercado', sat + '% — ' + satLabel],
+    ['Riesgo', d2 ? (d2.risk_assessment||'—') : '—'],
+    ['Fecha de análisis', fecha]
+  ]);
+
+  var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Estudio de Mercado — ' + p + '</title><style>' +
+    'body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1a1a1a;margin:0;padding:0;background:#fff}' +
+    '.cover{background:linear-gradient(135deg,#e65100,#f57c00);color:#fff;padding:48px 40px 36px;page-break-after:always}' +
+    '.cover h1{margin:0 0 8px;font-size:26px;font-weight:800;letter-spacing:-.5px}' +
+    '.cover p{margin:0;font-size:13px;opacity:.85}' +
+    '.cover .product{font-size:20px;font-weight:700;margin:16px 0 4px;background:rgba(255,255,255,.15);display:inline-block;padding:6px 14px;border-radius:6px}' +
+    '.cover .meta{font-size:11px;opacity:.7;margin-top:12px}' +
+    '.page{padding:28px 36px;page-break-inside:avoid}' +
+    '.section{margin-bottom:24px;page-break-inside:avoid}' +
+    '.section-header{display:flex;align-items:center;gap:8px;border-left:4px solid #e65100;padding-left:10px;margin-bottom:10px;font-size:13px;font-weight:700;color:#1a1a1a}' +
+    '.section-icon{width:22px;height:22px;border-radius:50%;color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}' +
+    '.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}' +
+    '.kpi-box{border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;background:#f9fafb}' +
+    '.kpi-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;margin-bottom:3px}' +
+    '.kpi-val{font-size:13px;font-weight:800;color:#111}' +
+    'table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:10px}' +
+    'th{text-align:left;padding:5px 7px;background:#f3f4f6;color:#374151;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1.5px solid #d1d5db}' +
+    'td{padding:5px 7px;border-bottom:1px solid #e5e7eb;vertical-align:top;color:#374151}' +
+    'tr:last-child td{border-bottom:none}' +
+    '.tags-label{font-size:9px;font-weight:700;text-transform:uppercase;color:#6b7280;margin:8px 0 3px}' +
+    '.tags{margin:0 0 8px;color:#374151;font-size:10px;line-height:1.6}' +
+    '.resumen-box{background:#fff7ed;border:1.5px solid #e65100;border-radius:8px;padding:16px;margin-bottom:20px}' +
+    '.resumen-box .kpi-grid{grid-template-columns:repeat(4,1fr)}' +
+    '.footer{font-size:9px;color:#9ca3af;text-align:center;margin-top:32px;padding-top:10px;border-top:1px solid #e5e7eb}' +
+    'h2{font-size:16px;font-weight:700;margin:0 0 4px;color:#111}' +
+    'h3{font-size:11px;font-weight:700;margin:0 0 12px;color:#6b7280;font-weight:400}' +
+    '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.cover{page-break-after:always}}' +
+    '</style></head><body>' +
+    '<div class="cover">' +
+      '<p style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;opacity:.75;margin-bottom:24px">Estudio de Mercado Multi-Agente · IA</p>' +
+      '<h1>' + p + '</h1>' +
+      '<p class="meta">Generado el ' + fecha + ' · 4 agentes de IA · Análisis de e-commerce MX</p>' +
+    '</div>' +
+    '<div class="page">' +
+      '<div class="resumen-box">' +
+        '<h2>Resumen Ejecutivo</h2>' +
+        '<h3>Principales métricas del análisis estratégico</h3>' +
+        resumenHtml +
+      '</div>' +
+      section('1', 'Análisis de Mercado y Competencia', '#7c3aed', a1html) +
+      section('2', 'Evaluación de Oportunidad Financiera', '#0284c7', a2html) +
+      section('3', 'Objetivos Comerciales', '#c026d3', a3html) +
+      section('4', 'Estrategia de Medios y Contenido (incluye ACOS)', '#d97706', a4html) +
+      '<div class="footer">Directoros · Sistema Comercial · Estudio generado con IA · ' + fecha + '</div>' +
+    '</div>' +
+    '</body></html>';
+
+  var win = window.open('', '_blank');
+  if (!win) { alert('Permite ventanas emergentes para descargar el PDF.'); return; }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(function(){ win.print(); }, 600);
 }
 /* ── fin Estudios de Mercado ── */
 
