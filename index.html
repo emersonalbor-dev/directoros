@@ -944,6 +944,25 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 .mkt-tab i{font-size:13px}
 .mkt-sub-panel{display:none}
 .mkt-sub-panel.active{display:block}
+/* ── Estudios de Mercado ── */
+.mercado-agent-card{background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:14px 16px;transition:border-color .2s}
+.mercado-agent-card.running{border-color:#f59e0b}
+.mercado-agent-card.done{border-color:#16a34a}
+.mercado-agent-card.error{border-color:#ef4444}
+.mercado-agent-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mercado-agent-num{width:26px;height:26px;border-radius:50%;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mercado-agent-status{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;background:var(--surface);color:var(--muted)}
+.mercado-agent-status.running{background:#fff3e0;color:#d97706}
+.mercado-agent-status.done{background:#dcfce7;color:#16a34a}
+.mercado-agent-status.error{background:#fee2e2;color:#ef4444}
+.mercado-kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:10px}
+.mercado-kpi{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.mercado-kpi-label{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.mercado-kpi-val{font-size:15px;font-weight:800;color:var(--text)}
+.mercado-table{width:100%;border-collapse:collapse;font-size:12px}
+.mercado-table th{text-align:left;padding:5px 8px;color:var(--muted);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--line)}
+.mercado-table td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.mercado-table tr:last-child td{border-bottom:none}
 /* ── Redes Sociales Content Generator ── */
 .redes-chip-lbl{display:inline-flex;align-items:center;gap:5px;font-size:11px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:4px 10px;cursor:pointer;transition:all .15s;user-select:none;color:var(--ink)}
 .redes-chip-lbl:hover{border-color:var(--maraga);color:var(--maraga)}
@@ -2498,6 +2517,7 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           <button class="mkt-tab active" onclick="switchMktTab('plan',this)"><i class="ti ti-target"></i> Plan de Ventas</button>
           <button class="mkt-tab" onclick="switchMktTab('kits',this)"><i class="ti ti-package"></i> Creador de Kits</button>
           <button class="mkt-tab" onclick="switchMktTab('redes',this)"><i class="ti ti-brand-instagram"></i> Contenido Redes</button>
+          <button class="mkt-tab" onclick="switchMktTab('mercado',this)"><i class="ti ti-microscope"></i> Estudios de Mercado</button>
         </div>
         <!-- Sub-panel: Estrategia 154 SKUs -->
         <div class="mkt-sub-panel active" id="mkt-panel-plan">
@@ -2761,6 +2781,98 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           <div id="redes-results"></div>
 
         </div><!-- /mkt-panel-redes -->
+
+        <!-- Sub-panel: Estudios de Mercado -->
+        <div class="mkt-sub-panel" id="mkt-panel-mercado">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px">
+            <div>
+              <div style="font-weight:700;font-size:15px">Estudio de Mercado Multi-Agente</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">4 agentes de IA analizan competencia, oportunidad, objetivos y estrategia de medios en secuencia</div>
+            </div>
+          </div>
+
+          <!-- Input -->
+          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px">
+            <div style="flex:1;min-width:220px">
+              <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">Producto o Familia de Productos</label>
+              <input id="mercadoProductoInput" type="text" placeholder="Ej: Soldadoras eléctricas, Caretas para soldar..." style="width:100%;padding:9px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;box-sizing:border-box" onkeydown="if(event.key==='Enter')mercadoRunAnalysis()">
+            </div>
+            <button id="mercadoRunBtn" onclick="mercadoRunAnalysis()" style="padding:9px 20px;background:var(--maraga,#e65100);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap">
+              <i class="ti ti-robot"></i> Iniciar Análisis
+            </button>
+          </div>
+
+          <!-- Pipeline -->
+          <div id="mercadoPipeline" style="display:none">
+            <!-- Agent cards -->
+            <div style="display:grid;gap:12px">
+
+              <div id="mercadoAgent1Card" class="mercado-agent-card">
+                <div class="mercado-agent-header">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div class="mercado-agent-num" style="background:#7c3aed">1</div>
+                    <div>
+                      <div style="font-weight:700;font-size:13px">Analista de Mercado y Competencia</div>
+                      <div style="font-size:11px;color:var(--muted)">Precios promedio · Competidores · Diferenciadores</div>
+                    </div>
+                  </div>
+                  <div id="mercadoAgent1Status" class="mercado-agent-status">En espera</div>
+                </div>
+                <div id="mercadoAgent1Body" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"></div>
+              </div>
+
+              <div id="mercadoAgent2Card" class="mercado-agent-card">
+                <div class="mercado-agent-header">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div class="mercado-agent-num" style="background:#0891b2">2</div>
+                    <div>
+                      <div style="font-weight:700;font-size:13px">Evaluador de Oportunidad Financiera</div>
+                      <div style="font-size:11px;color:var(--muted)">Unidades estimadas · Inventario · Facturación MXN</div>
+                    </div>
+                  </div>
+                  <div id="mercadoAgent2Status" class="mercado-agent-status">En espera</div>
+                </div>
+                <div id="mercadoAgent2Body" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"></div>
+              </div>
+
+              <div id="mercadoAgent3Card" class="mercado-agent-card">
+                <div class="mercado-agent-header">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div class="mercado-agent-num" style="background:#c026d3">3</div>
+                    <div>
+                      <div style="font-weight:700;font-size:13px">Planificador de Objetivos Comerciales</div>
+                      <div style="font-size:11px;color:var(--muted)">Metas por canal · Unidades · Facturación objetivo</div>
+                    </div>
+                  </div>
+                  <div id="mercadoAgent3Status" class="mercado-agent-status">En espera</div>
+                </div>
+                <div id="mercadoAgent3Body" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"></div>
+              </div>
+
+              <div id="mercadoAgent4Card" class="mercado-agent-card">
+                <div class="mercado-agent-header">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div class="mercado-agent-num" style="background:#d97706">4</div>
+                    <div>
+                      <div style="font-weight:700;font-size:13px">Estratega de Medios y Contenido</div>
+                      <div style="font-size:11px;color:var(--muted)">Presupuesto por plataforma · ROAS · Calendario de contenido</div>
+                    </div>
+                  </div>
+                  <div id="mercadoAgent4Status" class="mercado-agent-status">En espera</div>
+                </div>
+                <div id="mercadoAgent4Body" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"></div>
+              </div>
+
+            </div>
+
+            <!-- Final summary -->
+            <div id="mercadoFinalCard" style="display:none;margin-top:16px;background:linear-gradient(135deg,var(--paper),var(--bg));border:1.5px solid var(--maraga,#e65100);border-radius:10px;padding:16px">
+              <div style="font-weight:700;font-size:14px;color:var(--maraga,#e65100);margin-bottom:10px"><i class="ti ti-report-analytics"></i> Resumen Estratégico</div>
+              <div id="mercadoFinalBody"></div>
+            </div>
+          </div>
+
+        </div><!-- /mkt-panel-mercado -->
 
         </div><!-- /recursos-panel-marketing -->
 
@@ -9857,6 +9969,251 @@ function switchMktTab(name, el) {
   document.getElementById('mkt-panel-' + name).classList.add('active');
   if (name === 'plan') skuPlanInit();
 }
+
+/* ── Estudios de Mercado — Pipeline 4 Agentes ── */
+async function mercadoRunAnalysis() {
+  var producto = (document.getElementById('mercadoProductoInput').value || '').trim();
+  if (!producto) { alert('Por favor ingresa el nombre del producto a analizar.'); return; }
+  var apiKey = localStorage.getItem('directoros_ai_key');
+  if (!apiKey) { alert('API key no configurada. Ve a Configuración y agrega tu Claude API key.'); return; }
+
+  var btn = document.getElementById('mercadoRunBtn');
+  var pipeline = document.getElementById('mercadoPipeline');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2 mlspin"></i> Analizando...';
+  pipeline.style.display = 'block';
+  document.getElementById('mercadoFinalCard').style.display = 'none';
+
+  for (var i = 1; i <= 4; i++) {
+    _mercadoSetAgentStatus(i, 'pending', 'En espera');
+    var b = document.getElementById('mercadoAgent' + i + 'Body');
+    if (b) b.innerHTML = '';
+  }
+
+  try {
+    // Agente 1 — Analista de Mercado
+    _mercadoSetAgentStatus(1, 'running', 'Analizando...');
+    var sys1 = 'Eres un Analista de Mercado experto en e-commerce mexicano (MercadoLibre, Amazon MX, Walmart MX, TikTok Shop). Tu tarea es investigar competidores y el mercado para el producto indicado. Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin texto adicional.';
+    var usr1 = 'Producto: ' + producto + '\n\nGenera un análisis de mercado con este esquema JSON exacto:\n{\n  "competitors": [\n    {\n      "competitor_name": "string",\n      "market_share_pct": number,\n      "avg_price": number,\n      "ratings": number,\n      "reviews_count": number,\n      "main_keywords": ["string"],\n      "platforms": ["string"],\n      "ad_investment": "Alta|Media|Baja",\n      "strengths": ["string"],\n      "weaknesses": ["string"]\n    }\n  ],\n  "market_size_mxn": number,\n  "top_keywords": ["string"],\n  "consumer_trends": ["string"],\n  "price_range": {"min": number, "max": number},\n  "entry_barriers": ["string"],\n  "market_saturation_pct": number\n}';
+    var data1 = await _mercadoCallClaude(sys1, usr1, apiKey);
+    _mercadoRenderAgent1(data1);
+    _mercadoSetAgentStatus(1, 'done', 'Completado');
+
+    // Agente 2 — Evaluador de Oportunidad Financiera
+    _mercadoSetAgentStatus(2, 'running', 'Evaluando...');
+    var sys2 = 'Eres un Evaluador de Oportunidades Financieras especialista en e-commerce. Con base en el análisis de mercado recibido, calcula el potencial financiero por plataforma. Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin texto adicional.';
+    var usr2 = 'Producto: ' + producto + '\nAnálisis de mercado previo:\n' + JSON.stringify(data1) + '\n\nGenera la evaluación financiera con este esquema JSON exacto:\n{\n  "opportunities": [\n    {\n      "platform": "string",\n      "estimated_monthly_revenue": number,\n      "required_investment": number,\n      "roi_pct": number,\n      "break_even_months": number,\n      "opportunity_score": number,\n      "rationale": "string"\n    }\n  ],\n  "total_market_potential_mxn": number,\n  "recommended_primary_platform": "string",\n  "risk_assessment": "Alto|Medio|Bajo",\n  "recommended_budget_mxn": number\n}';
+    var data2 = await _mercadoCallClaude(sys2, usr2, apiKey);
+    _mercadoRenderAgent2(data2);
+    _mercadoSetAgentStatus(2, 'done', 'Completado');
+
+    // Agente 3 — Definidor de Objetivos Comerciales
+    _mercadoSetAgentStatus(3, 'running', 'Definiendo objetivos...');
+    var sys3 = 'Eres un Estratega Comercial experto en e-commerce. Con base en el análisis de mercado y evaluación financiera, define objetivos de ventas mensuales realistas y alcanzables. Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin texto adicional.';
+    var usr3 = 'Producto: ' + producto + '\nEvaluación financiera:\n' + JSON.stringify(data2) + '\n\nGenera los objetivos comerciales con este esquema JSON exacto:\n{\n  "monthly_targets": [\n    {\n      "month": "string",\n      "platform": "string",\n      "target_units": number,\n      "target_revenue_mxn": number,\n      "required_ctr_pct": number,\n      "required_conversion_pct": number,\n      "tactics": ["string"]\n    }\n  ],\n  "priority_platforms": ["string"],\n  "revenue_goal_90d_mxn": number,\n  "kpis": [\n    {"metric": "string", "target": "string", "frequency": "string"}\n  ]\n}';
+    var data3 = await _mercadoCallClaude(sys3, usr3, apiKey);
+    _mercadoRenderAgent3(data3);
+    _mercadoSetAgentStatus(3, 'done', 'Completado');
+
+    // Agente 4 — Estratega de Medios y Contenido
+    _mercadoSetAgentStatus(4, 'running', 'Planificando...');
+    var sys4 = 'Eres un Estratega de Medios y Contenido para e-commerce. Con toda la información previa, crea un plan de medios y calendario de contenido accionable. Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin texto adicional.';
+    var usr4 = 'Producto: ' + producto + '\nObjetivos comerciales:\n' + JSON.stringify(data3) + '\n\nGenera el plan de marketing con este esquema JSON exacto:\n{\n  "budget_allocations": [\n    {\n      "channel": "string",\n      "budget_mxn": number,\n      "expected_reach": number,\n      "expected_conversions": number,\n      "content_type": "string"\n    }\n  ],\n  "content_calendar": [\n    {\n      "week": number,\n      "day": "string",\n      "content_type": "string",\n      "platform": "string",\n      "hook": "string",\n      "caption": "string",\n      "hashtags": ["string"],\n      "cta": "string"\n    }\n  ],\n  "total_budget_mxn": number,\n  "creative_themes": ["string"],\n  "primary_cta": "string"\n}';
+    var data4 = await _mercadoCallClaude(sys4, usr4, apiKey);
+    _mercadoRenderAgent4(data4);
+    _mercadoSetAgentStatus(4, 'done', 'Completado');
+
+    // Resumen final
+    _mercadoRenderFinal(producto, data1, data2, data3, data4);
+
+  } catch(e) {
+    console.error('mercadoRunAnalysis error:', e);
+    for (var j = 1; j <= 4; j++) {
+      if (document.getElementById('mercadoAgent' + j + 'Status').classList.contains('running')) {
+        _mercadoSetAgentStatus(j, 'error', 'Error');
+        var eb = document.getElementById('mercadoAgent' + j + 'Body');
+        if (eb) eb.innerHTML = '<p style="color:#ef4444;font-size:12px;padding:8px 0">' + (e.message || 'Error al conectar con la API') + '</p>';
+        break;
+      }
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-microscope"></i> Iniciar Análisis';
+  }
+}
+
+async function _mercadoCallClaude(systemPrompt, userMsg, apiKey) {
+  var resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-7',
+      max_tokens: 4000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  if (!resp.ok) {
+    var err = await resp.json().catch(function(){ return {}; });
+    throw new Error((err.error && err.error.message) || ('API error ' + resp.status));
+  }
+  var result = await resp.json();
+  var text = (result.content && result.content[0] && result.content[0].text) || '{}';
+  text = text.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+  return JSON.parse(text);
+}
+
+function _mercadoSetAgentStatus(num, status, label) {
+  var el = document.getElementById('mercadoAgent' + num + 'Status');
+  if (!el) return;
+  el.className = 'mercado-agent-status' + (status !== 'pending' ? ' ' + status : '');
+  el.textContent = label;
+  var card = document.getElementById('mercadoAgent' + num + 'Card');
+  if (card) {
+    card.classList.remove('running','done','error');
+    if (status !== 'pending') card.classList.add(status);
+  }
+}
+
+function _mercadoFmt(n) {
+  if (typeof n !== 'number') return n;
+  return '$' + n.toLocaleString('es-MX', {maximumFractionDigits:0});
+}
+
+function _mercadoRenderAgent1(d) {
+  var el = document.getElementById('mercadoAgent1Body');
+  if (!el || !d) return;
+  var comps = d.competitors || [];
+  var h = '<div class="mercado-kpi-grid">';
+  h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Tamaño mercado</div><div class="mercado-kpi-val">' + _mercadoFmt(d.market_size_mxn) + '</div></div>';
+  h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Saturación</div><div class="mercado-kpi-val">' + (d.market_saturation_pct || 0) + '%</div></div>';
+  h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Precio rango</div><div class="mercado-kpi-val">' + _mercadoFmt((d.price_range||{}).min) + ' – ' + _mercadoFmt((d.price_range||{}).max) + '</div></div>';
+  h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Competidores</div><div class="mercado-kpi-val">' + comps.length + '</div></div>';
+  h += '</div>';
+  if (comps.length) {
+    h += '<table class="mercado-table"><thead><tr><th>Competidor</th><th>Precio prom.</th><th>Share %</th><th>Rating</th><th>Inversión ads</th></tr></thead><tbody>';
+    comps.forEach(function(c) {
+      h += '<tr><td><strong>' + (c.competitor_name||'') + '</strong></td><td>' + _mercadoFmt(c.avg_price) + '</td><td>' + (c.market_share_pct||0) + '%</td><td>⭐ ' + (c.ratings||0) + '</td><td>' + (c.ad_investment||'') + '</td></tr>';
+    });
+    h += '</tbody></table>';
+  }
+  if (d.top_keywords && d.top_keywords.length) {
+    h += '<div style="margin-top:10px"><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">Keywords clave:</span> ';
+    h += d.top_keywords.map(function(k){ return '<span style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:2px 8px;font-size:11px;margin:2px 2px 0 0;display:inline-block">' + k + '</span>'; }).join('');
+    h += '</div>';
+  }
+  if (d.consumer_trends && d.consumer_trends.length) {
+    h += '<div style="margin-top:8px"><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">Tendencias:</span> <span style="font-size:12px">' + d.consumer_trends.join(' · ') + '</span></div>';
+  }
+  el.innerHTML = h;
+}
+
+function _mercadoRenderAgent2(d) {
+  var el = document.getElementById('mercadoAgent2Body');
+  if (!el || !d) return;
+  var opps = d.opportunities || [];
+  var h = '<div class="mercado-kpi-grid">';
+  h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Potencial total</div><div class="mercado-kpi-val">' + _mercadoFmt(d.total_market_potential_mxn) + '</div></div>';
+  h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Presupuesto recomendado</div><div class="mercado-kpi-val">' + _mercadoFmt(d.recommended_budget_mxn) + '</div></div>';
+  h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Riesgo</div><div class="mercado-kpi-val">' + (d.risk_assessment||'') + '</div></div>';
+  h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Plataforma principal</div><div class="mercado-kpi-val" style="font-size:13px">' + (d.recommended_primary_platform||'') + '</div></div>';
+  h += '</div>';
+  if (opps.length) {
+    h += '<table class="mercado-table"><thead><tr><th>Plataforma</th><th>Rev. mensual est.</th><th>Inversión req.</th><th>ROI %</th><th>Break-even</th><th>Score</th></tr></thead><tbody>';
+    opps.forEach(function(o) {
+      h += '<tr><td><strong>' + (o.platform||'') + '</strong></td><td>' + _mercadoFmt(o.estimated_monthly_revenue) + '</td><td>' + _mercadoFmt(o.required_investment) + '</td><td>' + (o.roi_pct||0) + '%</td><td>' + (o.break_even_months||0) + ' meses</td><td><strong>' + (o.opportunity_score||0) + '/10</strong></td></tr>';
+    });
+    h += '</tbody></table>';
+  }
+  el.innerHTML = h;
+}
+
+function _mercadoRenderAgent3(d) {
+  var el = document.getElementById('mercadoAgent3Body');
+  if (!el || !d) return;
+  var targets = d.monthly_targets || [];
+  var h = '<div class="mercado-kpi-grid">';
+  h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Meta 90 días</div><div class="mercado-kpi-val">' + _mercadoFmt(d.revenue_goal_90d_mxn) + '</div></div>';
+  h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Plataformas prioritarias</div><div class="mercado-kpi-val" style="font-size:12px">' + (d.priority_platforms || []).join(', ') + '</div></div>';
+  h += '</div>';
+  if (targets.length) {
+    h += '<table class="mercado-table"><thead><tr><th>Mes</th><th>Plataforma</th><th>Unidades</th><th>Ingresos</th><th>CTR</th><th>Conversión</th></tr></thead><tbody>';
+    targets.forEach(function(t) {
+      h += '<tr><td>' + (t.month||'') + '</td><td>' + (t.platform||'') + '</td><td>' + (t.target_units||0) + '</td><td>' + _mercadoFmt(t.target_revenue_mxn) + '</td><td>' + (t.required_ctr_pct||0) + '%</td><td>' + (t.required_conversion_pct||0) + '%</td></tr>';
+    });
+    h += '</tbody></table>';
+  }
+  if (d.kpis && d.kpis.length) {
+    h += '<div style="margin-top:10px"><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">KPIs clave:</span><ul style="margin:4px 0 0 0;padding-left:18px;font-size:12px">';
+    d.kpis.forEach(function(k){ h += '<li><strong>' + k.metric + '</strong>: ' + k.target + ' (' + k.frequency + ')</li>'; });
+    h += '</ul></div>';
+  }
+  el.innerHTML = h;
+}
+
+function _mercadoRenderAgent4(d) {
+  var el = document.getElementById('mercadoAgent4Body');
+  if (!el || !d) return;
+  var allocs = d.budget_allocations || [];
+  var cal = d.content_calendar || [];
+  var h = '<div class="mercado-kpi-grid">';
+  h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Presupuesto total</div><div class="mercado-kpi-val">' + _mercadoFmt(d.total_budget_mxn) + '</div></div>';
+  h += '<div class="mercado-kpi"><div class="mercado-kpi-label">CTA principal</div><div class="mercado-kpi-val" style="font-size:12px">' + (d.primary_cta||'') + '</div></div>';
+  h += '</div>';
+  if (allocs.length) {
+    h += '<p style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:8px 0 4px">Distribución de presupuesto</p>';
+    h += '<table class="mercado-table"><thead><tr><th>Canal</th><th>Presupuesto</th><th>Alcance est.</th><th>Conversiones</th><th>Tipo contenido</th></tr></thead><tbody>';
+    allocs.forEach(function(a) {
+      h += '<tr><td>' + (a.channel||'') + '</td><td>' + _mercadoFmt(a.budget_mxn) + '</td><td>' + (a.expected_reach||0).toLocaleString('es-MX') + '</td><td>' + (a.expected_conversions||0) + '</td><td>' + (a.content_type||'') + '</td></tr>';
+    });
+    h += '</tbody></table>';
+  }
+  if (cal.length) {
+    h += '<p style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:10px 0 4px">Calendario de contenido</p>';
+    h += '<table class="mercado-table"><thead><tr><th>Sem.</th><th>Día</th><th>Plataforma</th><th>Tipo</th><th>Hook</th><th>CTA</th></tr></thead><tbody>';
+    cal.slice(0, 12).forEach(function(c) {
+      h += '<tr><td>' + (c.week||'') + '</td><td>' + (c.day||'') + '</td><td>' + (c.platform||'') + '</td><td>' + (c.content_type||'') + '</td><td style="max-width:200px">' + (c.hook||'') + '</td><td>' + (c.cta||'') + '</td></tr>';
+    });
+    h += '</tbody></table>';
+  }
+  if (d.creative_themes && d.creative_themes.length) {
+    h += '<div style="margin-top:8px"><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">Temas creativos:</span> ';
+    h += d.creative_themes.map(function(t){ return '<span style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:2px 8px;font-size:11px;margin:2px 2px 0 0;display:inline-block">' + t + '</span>'; }).join('');
+    h += '</div>';
+  }
+  el.innerHTML = h;
+}
+
+function _mercadoRenderFinal(producto, d1, d2, d3, d4) {
+  var card = document.getElementById('mercadoFinalCard');
+  var body = document.getElementById('mercadoFinalBody');
+  if (!card || !body) return;
+  var h = '<div class="mercado-kpi-grid">';
+  h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Producto</div><div class="mercado-kpi-val" style="font-size:13px">' + producto + '</div></div>';
+  if (d2) h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Potencial de mercado</div><div class="mercado-kpi-val">' + _mercadoFmt(d2.total_market_potential_mxn) + '</div></div>';
+  if (d2) h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Plataforma recomendada</div><div class="mercado-kpi-val" style="font-size:13px">' + (d2.recommended_primary_platform||'') + '</div></div>';
+  if (d3) h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Meta 90 días</div><div class="mercado-kpi-val">' + _mercadoFmt(d3.revenue_goal_90d_mxn) + '</div></div>';
+  if (d4) h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Presupuesto marketing</div><div class="mercado-kpi-val">' + _mercadoFmt(d4.total_budget_mxn) + '</div></div>';
+  if (d2) h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Nivel de riesgo</div><div class="mercado-kpi-val">' + (d2.risk_assessment||'') + '</div></div>';
+  h += '</div>';
+  if (d1 && d1.market_saturation_pct !== undefined) {
+    var sat = d1.market_saturation_pct;
+    var satColor = sat > 70 ? '#ef4444' : sat > 40 ? '#f59e0b' : '#16a34a';
+    h += '<div style="margin-top:8px;padding:10px;background:var(--surface);border-radius:8px;border:1px solid var(--line)">';
+    h += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Saturación del mercado</div>';
+    h += '<div style="background:var(--line);border-radius:4px;height:8px;overflow:hidden"><div style="background:' + satColor + ';width:' + Math.min(sat,100) + '%;height:100%;border-radius:4px"></div></div>';
+    h += '<div style="font-size:11px;margin-top:4px;color:' + satColor + '">' + sat + '% — ' + (sat > 70 ? 'Mercado saturado, diferenciación crítica' : sat > 40 ? 'Mercado moderado, hay oportunidad' : 'Mercado con espacio disponible') + '</div>';
+    h += '</div>';
+  }
+  body.innerHTML = h;
+  card.style.display = 'block';
+}
+/* ── fin Estudios de Mercado ── */
 
 function scSugerirDientes() {
   var forma = parseInt(document.getElementById('scForma').value);
