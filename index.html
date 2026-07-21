@@ -10018,7 +10018,7 @@ async function mercadoRunAnalysis() {
     // Agente 4 — Estratega de Medios y Contenido
     _mercadoSetAgentStatus(4, 'running', 'Planificando...');
     var sys4 = 'Eres un Estratega de Medios y Contenido para e-commerce. Con toda la información previa, crea un plan de medios y calendario de contenido accionable. Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin texto adicional.';
-    var usr4 = 'Producto: ' + producto + '\nObjetivos comerciales:\n' + JSON.stringify(data3) + '\n\nGenera el plan de marketing con este esquema JSON exacto:\n{\n  "budget_allocations": [\n    {\n      "channel": "string",\n      "budget_mxn": number,\n      "expected_reach": number,\n      "expected_conversions": number,\n      "content_type": "string"\n    }\n  ],\n  "content_calendar": [\n    {\n      "week": number,\n      "day": "string",\n      "content_type": "string",\n      "platform": "string",\n      "hook": "string",\n      "caption": "string",\n      "hashtags": ["string"],\n      "cta": "string"\n    }\n  ],\n  "total_budget_mxn": number,\n  "creative_themes": ["string"],\n  "primary_cta": "string"\n}';
+    var usr4 = 'Producto: ' + producto + '\nPlataformas prioritarias: ' + (data3.priority_platforms||[]).join(', ') + '\nMeta 90 días: ' + _mercadoFmt(data3.revenue_goal_90d_mxn) + '\nPresupuesto recomendado: ' + _mercadoFmt((data2||{}).recommended_budget_mxn) + '\n\nGenera el plan de marketing con este esquema JSON exacto (máximo 4 canales y 8 entradas en el calendario):\n{\n  "budget_allocations": [\n    {\n      "channel": "string",\n      "budget_mxn": number,\n      "expected_reach": number,\n      "expected_conversions": number,\n      "content_type": "string",\n      "acos_pct": number\n    }\n  ],\n  "content_calendar": [\n    {\n      "week": number,\n      "day": "string",\n      "content_type": "string",\n      "platform": "string",\n      "hook": "string",\n      "cta": "string"\n    }\n  ],\n  "total_budget_mxn": number,\n  "creative_themes": ["string"],\n  "primary_cta": "string"\n}';
     var data4 = await _mercadoCallClaude(sys4, usr4, apiKey);
     _mercadoRenderAgent4(data4);
     _mercadoSetAgentStatus(4, 'done', 'Completado');
@@ -10064,7 +10064,9 @@ async function _mercadoCallClaude(systemPrompt, userMsg, apiKey) {
   }
   var result = await resp.json();
   var text = (result.content && result.content[0] && result.content[0].text) || '{}';
-  text = text.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+  text = text.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+  var start = text.indexOf('{'), end = text.lastIndexOf('}');
+  if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
   return JSON.parse(text);
 }
 
@@ -10161,15 +10163,23 @@ function _mercadoRenderAgent4(d) {
   if (!el || !d) return;
   var allocs = d.budget_allocations || [];
   var cal = d.content_calendar || [];
+  var avgAcos = allocs.length ? (allocs.reduce(function(s,a){ return s + (a.acos_pct||0); }, 0) / allocs.length).toFixed(1) : null;
   var h = '<div class="mercado-kpi-grid">';
   h += '<div class="mercado-kpi"><div class="mercado-kpi-label">Presupuesto total</div><div class="mercado-kpi-val">' + _mercadoFmt(d.total_budget_mxn) + '</div></div>';
+  if (avgAcos !== null) {
+    var acosAvgNum = parseFloat(avgAcos);
+    var acosAvgColor = acosAvgNum > 30 ? '#ef4444' : acosAvgNum > 15 ? '#f59e0b' : '#16a34a';
+    h += '<div class="mercado-kpi"><div class="mercado-kpi-label">ACOS promedio</div><div class="mercado-kpi-val" style="color:' + acosAvgColor + '">' + avgAcos + '%</div></div>';
+  }
   h += '<div class="mercado-kpi"><div class="mercado-kpi-label">CTA principal</div><div class="mercado-kpi-val" style="font-size:12px">' + (d.primary_cta||'') + '</div></div>';
   h += '</div>';
   if (allocs.length) {
     h += '<p style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:8px 0 4px">Distribución de presupuesto</p>';
-    h += '<table class="mercado-table"><thead><tr><th>Canal</th><th>Presupuesto</th><th>Alcance est.</th><th>Conversiones</th><th>Tipo contenido</th></tr></thead><tbody>';
+    h += '<table class="mercado-table"><thead><tr><th>Canal</th><th>Presupuesto</th><th>Alcance est.</th><th>Conversiones</th><th>ACOS</th><th>Tipo contenido</th></tr></thead><tbody>';
     allocs.forEach(function(a) {
-      h += '<tr><td>' + (a.channel||'') + '</td><td>' + _mercadoFmt(a.budget_mxn) + '</td><td>' + (a.expected_reach||0).toLocaleString('es-MX') + '</td><td>' + (a.expected_conversions||0) + '</td><td>' + (a.content_type||'') + '</td></tr>';
+      var acos = a.acos_pct || 0;
+      var acosColor = acos > 30 ? '#ef4444' : acos > 15 ? '#f59e0b' : '#16a34a';
+      h += '<tr><td>' + (a.channel||'') + '</td><td>' + _mercadoFmt(a.budget_mxn) + '</td><td>' + (a.expected_reach||0).toLocaleString('es-MX') + '</td><td>' + (a.expected_conversions||0) + '</td><td style="font-weight:700;color:' + acosColor + '">' + acos + '%</td><td>' + (a.content_type||'') + '</td></tr>';
     });
     h += '</tbody></table>';
   }
