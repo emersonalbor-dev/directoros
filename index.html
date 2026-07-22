@@ -5396,7 +5396,8 @@ function renderResumenPlat(mes) {
         +'<td class="'+(!isNaN(parseFloat(acos))&&parseFloat(acos)>30?'resumen-val-pesos':'')+'">'+(acos==='—'?'<span class="resumen-val-muted">—</span>':acos)+'</td>'
         +'<td>'+(tacos==='—'?'<span class="resumen-val-muted">—</span>':tacos)+'</td>'
         +'</tr>',
-      vendidos:vendidos, fulfillment:fulfillment, ventasMKT:ventasMKT, inversionT:inversionT, ventasTotal:ventasTotal
+      vendidos:vendidos, fulfillment:fulfillment, ventasMKT:ventasMKT, inversionT:inversionT, ventasTotal:ventasTotal,
+      mejorados:mejorados, skusMKT:skusMKT, dobleCero:(pd.dobleCero != null ? (pd.dobleCero||0) : 0)
     };
   }
 
@@ -5422,7 +5423,7 @@ function renderResumenPlat(mes) {
   }
 
   /* ── Build rows based on filter state ────────────────────────── */
-  var rows = '', totVendidos=0, totFulfill=0, totMKT=0, totInv=0, totVentas=0;
+  var rows = '', totVendidos=0, totFulfill=0, totMKT=0, totInv=0, totVentas=0, totMejorados=0, totSkusMKT=0, totDobleCero=0;
   var col1Hdr = 'Plataforma', skusTotHdr = d.skusTotales, skusExclHdr = d.skusExclusivos;
 
   if (!md || (_resumenMerchFil==='all' && _resumenPlatFil==='all')) {
@@ -5432,7 +5433,7 @@ function renderResumenPlat(mes) {
       var vt  = (v[p.id] && v[p.id].total) ? v[p.id].total : (pd.ventasTotal || 0);
       var r   = buildRow(p.label, p.dot, p.cls, d.skusTotales, d.skusExclusivos, pd, vt);
       rows += r.html;
-      totVendidos+=r.vendidos; totFulfill+=r.fulfillment; totMKT+=r.ventasMKT; totInv+=r.inversionT; totVentas+=r.ventasTotal;
+      totVendidos+=r.vendidos; totFulfill+=r.fulfillment; totMKT+=r.ventasMKT; totInv+=r.inversionT; totVentas+=r.ventasTotal; totMejorados+=r.mejorados; totSkusMKT+=r.skusMKT; totDobleCero+=r.dobleCero;
     });
 
   } else if (_resumenMerchFil!=='all' && _resumenPlatFil==='all') {
@@ -5444,7 +5445,7 @@ function renderResumenPlat(mes) {
       var vt  = pd.ventasTotal || 0;
       var r   = buildRow(p.label, p.dot, p.cls, ms, '—', pd, vt);
       rows += r.html;
-      totVendidos+=r.vendidos; totFulfill+=r.fulfillment; totMKT+=r.ventasMKT; totInv+=r.inversionT; totVentas+=r.ventasTotal;
+      totVendidos+=r.vendidos; totFulfill+=r.fulfillment; totMKT+=r.ventasMKT; totInv+=r.inversionT; totVentas+=r.ventasTotal; totMejorados+=r.mejorados; totSkusMKT+=r.skusMKT; totDobleCero+=r.dobleCero;
     });
 
   } else if (_resumenMerchFil==='all' && _resumenPlatFil!=='all') {
@@ -5458,7 +5459,7 @@ function renderResumenPlat(mes) {
       var vt  = pd.ventasTotal || 0;
       var r   = buildRow(m, MERCH_COLORS[i]||'#666', PLATS[i%PLATS.length].cls, ms2, '—', pd, vt);
       rows += r.html;
-      totVendidos+=r.vendidos; totFulfill+=r.fulfillment; totMKT+=r.ventasMKT; totInv+=r.inversionT; totVentas+=r.ventasTotal;
+      totVendidos+=r.vendidos; totFulfill+=r.fulfillment; totMKT+=r.ventasMKT; totInv+=r.inversionT; totVentas+=r.ventasTotal; totMejorados+=r.mejorados; totSkusMKT+=r.skusMKT; totDobleCero+=r.dobleCero;
     });
 
   } else {
@@ -5473,6 +5474,7 @@ function renderResumenPlat(mes) {
   }
 
   var totTacos = (totInv && totVentas) ? _pct(totInv, totVentas) : '—';
+  var totAcos  = (totInv && totMKT)   ? _pct(totInv, totMKT)   : '—';
 
   el.innerHTML = '<div class="resumen-plat">'
     +'<div class="resumen-plat-title">Resumen Plataformas &middot; '+(MESES_LABEL[mes]||mes)+'</div>'
@@ -5493,11 +5495,12 @@ function renderResumenPlat(mes) {
     +'<td><div class="resumen-plat-plat-name">TOTAL</div></td>'
     +'<td>'+skusTotHdr+'</td><td>'+skusExclHdr+'</td>'
     +'<td>'+totVendidos+'</td><td>—</td><td>—</td>'
-    +'<td>—</td><td>'+totFulfill+'</td>'
+    +'<td>'+totMejorados+'</td><td>'+totFulfill+'</td>'
     +'<td>$'+Math.round(totVentas).toLocaleString('es-MX')+'</td>'
     +'<td>$'+Math.round(totMKT).toLocaleString('es-MX')+'</td>'
     +'<td>$'+Math.round(totInv).toLocaleString('es-MX')+'</td>'
-    +'<td>—</td><td>—</td><td>—</td>'
+    +'<td>'+totSkusMKT+'</td><td>'+totDobleCero+'</td>'
+    +'<td>'+(totAcos==='—'?'<span class="resumen-val-muted">—</span>':totAcos)+'</td>'
     +'<td>'+totTacos+'</td>'
     +'</tr>'
     +'</tbody></table></div></div>';
