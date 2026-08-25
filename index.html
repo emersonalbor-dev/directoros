@@ -945,6 +945,8 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 .mkt-sub-panel{display:none}
 .mkt-sub-panel.active{display:block}
 /* ── Estudios de Mercado ── */
+.mercado-chip{padding:5px 12px;border-radius:20px;border:1.5px solid var(--line);background:var(--bg);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.mercado-chip.active{border-color:var(--maraga,#e65100);background:rgba(230,81,0,.08);color:var(--maraga,#e65100)}
 .mercado-agent-card{background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:14px 16px;transition:border-color .2s}
 .mercado-agent-card.running{border-color:#f59e0b}
 .mercado-agent-card.done{border-color:#16a34a}
@@ -2818,9 +2820,41 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
                 <input id="mercadoPrecioInput" type="text" placeholder="Ej. $4,299 – $8,999" style="width:100%;padding:8px 11px;border:1.5px solid var(--line);border-radius:7px;background:var(--paper);color:var(--text);font-size:12px;box-sizing:border-box">
               </div>
             </div>
+            <!-- Contexto adicional como chips -->
             <div style="margin-bottom:12px">
-              <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Notas adicionales</label>
-              <textarea id="mercadoNotasInput" placeholder="Características especiales, audiencia objetivo, diferenciadores, competidores conocidos, posicionamiento deseado..." style="width:100%;padding:8px 11px;border:1.5px solid var(--line);border-radius:7px;background:var(--paper);color:var(--text);font-size:12px;box-sizing:border-box;resize:vertical;min-height:62px;font-family:inherit"></textarea>
+              <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Contexto adicional</div>
+
+              <div style="font-size:10px;font-weight:600;color:var(--muted);margin-bottom:5px">Objetivo del estudio</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+                <button class="mercado-chip" data-group="objetivo" data-val="Entrar a mercado nuevo">Entrar a mercado nuevo</button>
+                <button class="mercado-chip" data-group="objetivo" data-val="Lanzamiento de producto">Lanzamiento de producto</button>
+                <button class="mercado-chip" data-group="objetivo" data-val="Defender posición actual">Defender posición actual</button>
+                <button class="mercado-chip" data-group="objetivo" data-val="Ampliar categoría">Ampliar categoría</button>
+              </div>
+
+              <div style="font-size:10px;font-weight:600;color:var(--muted);margin-bottom:5px">Audiencia objetivo</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+                <button class="mercado-chip" data-group="audiencia" data-val="Ferreterías independientes">Ferreterías independientes</button>
+                <button class="mercado-chip" data-group="audiencia" data-val="Contratistas y profesionales">Contratistas / profesionales</button>
+                <button class="mercado-chip" data-group="audiencia" data-val="Industria y B2B">Industria / B2B</button>
+                <button class="mercado-chip" data-group="audiencia" data-val="Consumidor final B2C">Consumidor final (B2C)</button>
+              </div>
+
+              <div style="font-size:10px;font-weight:600;color:var(--muted);margin-bottom:5px">Posicionamiento deseado</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+                <button class="mercado-chip" data-group="posicion" data-val="Precio competitivo / volumen alto">Precio competitivo</button>
+                <button class="mercado-chip" data-group="posicion" data-val="Precio premium y calidad superior">Precio premium</button>
+                <button class="mercado-chip" data-group="posicion" data-val="Nicho especializado / técnico">Nicho especializado</button>
+                <button class="mercado-chip" data-group="posicion" data-val="Marca reconocida internacionalmente">Marca reconocida</button>
+              </div>
+
+              <div style="font-size:10px;font-weight:600;color:var(--muted);margin-bottom:5px">Factores del mercado</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <button class="mercado-chip" data-group="factores" data-val="Alta competencia de importados chinos">Competencia de importados</button>
+                <button class="mercado-chip" data-group="factores" data-val="Producto técnico que requiere demostración o video">Requiere demostración / video</button>
+                <button class="mercado-chip" data-group="factores" data-val="Alta estacionalidad en ventas">Alta estacionalidad</button>
+                <button class="mercado-chip" data-group="factores" data-val="Producto con garantía como diferenciador">Garantía como diferenciador</button>
+              </div>
             </div>
             <!-- Ficha Técnica Upload -->
             <div style="margin-bottom:12px">
@@ -10178,6 +10212,20 @@ function switchMktTab(name, el) {
   if (name === 'plan') skuPlanInit();
 }
 
+/* ── Chips contexto adicional ── */
+(function(){
+  document.addEventListener('click', function(e){
+    if (e.target.classList.contains('mercado-chip')) {
+      e.target.classList.toggle('active');
+    }
+  });
+})();
+function _mercadoGetChips() {
+  var selected = [];
+  document.querySelectorAll('.mercado-chip.active').forEach(function(c){ selected.push(c.dataset.val); });
+  return selected;
+}
+
 /* ── Ficha Técnica upload helper ── */
 var _mftData = null; // {type:'text'|'image'|'pdf', content:string, b64:string, mediaType:string}
 function mftHandleFile(file) {
@@ -10217,7 +10265,8 @@ async function mercadoRunAnalysis() {
   var familia  = (document.getElementById('mercadoProductoInput').value || '').trim();
   var skus     = (document.getElementById('mercadoSkuInput').value || '').trim();
   var precio   = (document.getElementById('mercadoPrecioInput').value || '').trim();
-  var notas    = (document.getElementById('mercadoNotasInput').value || '').trim();
+  var chips    = _mercadoGetChips();
+  var notas    = chips.length ? chips.join(', ') : '';
   var platMap  = {ml:'Mercado Libre', amz:'Amazon MX', wmt:'Walmart MX', tkt:'TikTok Shop', web:'Mi Página Web'};
   var plats    = Object.keys(platMap).filter(function(k){ var el = document.getElementById('mercadoPlat_'+k); return el && el.checked; }).map(function(k){ return platMap[k]; });
 
