@@ -1772,6 +1772,9 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
       <button class="nav-item" data-view="catalogo" onclick="switchView('catalogo', this)">
         <i class="ti ti-book-2"></i> Cat&aacute;logo &middot; P1
       </button>
+      <button class="nav-item" data-view="estudio" onclick="switchView('estudio', this)">
+        <i class="ti ti-chart-histogram"></i> Estudio Mercado
+      </button>
       <button class="nav-item" data-view="mercadolibre" onclick="switchView('mercadolibre', this)">
         <i class="ti ti-brand-mercado-libre" style="color:#f59e0b"></i> Mercado Libre
       </button>
@@ -2914,6 +2917,89 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
 
       </div>
 
+
+      <!-- ============ ESTUDIO DE MERCADO ============ -->
+      <div class="view" id="view-estudio">
+        <div class="kanban-toolbar">
+          <div>
+            <h2>Estudio de Mercado &middot; Multi-Agente</h2>
+            <div class="sub">Sube una ficha t&eacute;cnica para analizar posicionamiento, competidores y estrategia</div>
+          </div>
+        </div>
+
+        <!-- Upload card -->
+        <div class="em-card" id="emUploadCard">
+          <div class="em-card-hdr"><i class="ti ti-file-upload"></i>&nbsp; Ficha T&eacute;cnica del Producto</div>
+          <div class="em-drop-zone" id="emDropZone" onclick="document.getElementById('emFileInput').click()">
+            <input type="file" id="emFileInput" accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.csv,.txt" style="display:none" onchange="emHandleFile(this.files[0])">
+            <i class="ti ti-cloud-upload" style="font-size:32px;color:var(--muted)"></i>
+            <p class="em-drop-label">Arrastra o haz clic para subir</p>
+            <p class="em-drop-hint">PDF &nbsp;·&nbsp; Imagen &nbsp;·&nbsp; Excel &nbsp;·&nbsp; TXT &mdash; m&aacute;x 10 MB</p>
+          </div>
+          <div id="emFileInfo" style="display:none">
+            <div class="em-file-row">
+              <i class="ti ti-file-description" style="font-size:20px;color:var(--maraga,#c62828)"></i>
+              <span id="emFileName" style="font-weight:600;font-size:13px"></span>
+              <span id="emFileSize" style="color:var(--muted);font-size:11px"></span>
+              <button class="em-btn" onclick="emClearFile()"><i class="ti ti-x"></i> Quitar</button>
+            </div>
+            <!-- Extracted text preview -->
+            <div id="emTextPreview" style="display:none">
+              <div class="em-preview-hdr">Contenido extra&iacute;do</div>
+              <div id="emTextContent" class="em-preview-box"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Config card -->
+        <div class="em-card" id="emConfigCard">
+          <div class="em-card-hdr"><i class="ti ti-adjustments-horizontal"></i>&nbsp; Par&aacute;metros del Estudio</div>
+          <div class="em-config-grid">
+            <div class="em-field">
+              <label class="em-label">Plataformas</label>
+              <div class="em-chips" id="emPlatforms">
+                <button class="em-chip active" data-val="mercadolibre">MercadoLibre</button>
+                <button class="em-chip active" data-val="amazon">Amazon MX</button>
+                <button class="em-chip active" data-val="walmart">Walmart MX</button>
+                <button class="em-chip" data-val="tiktok">TikTok Shop</button>
+              </div>
+            </div>
+            <div class="em-field">
+              <label class="em-label">M&oacute;dulos de an&aacute;lisis</label>
+              <div class="em-chips" id="emModules">
+                <button class="em-chip active" data-val="competidores">Competidores</button>
+                <button class="em-chip active" data-val="precios">Precios</button>
+                <button class="em-chip active" data-val="keywords">Keywords</button>
+                <button class="em-chip active" data-val="posicionamiento">Posicionamiento</button>
+                <button class="em-chip" data-val="tendencias">Tendencias</button>
+              </div>
+            </div>
+            <div class="em-field">
+              <label class="em-label">Notas adicionales (opcional)</label>
+              <textarea id="emNotes" class="em-textarea" placeholder="Ej: competir contra IRWIN Tools, precio objetivo $250 MXN, enfoque en ferreter&iacute;as independientes..."></textarea>
+            </div>
+          </div>
+          <button class="em-btn primary" id="emRunBtn" onclick="emRunStudy()">
+            <i class="ti ti-sparkles"></i>&nbsp; Ejecutar Estudio de Mercado
+          </button>
+        </div>
+
+        <!-- Results card -->
+        <div class="em-card" id="emResultsCard" style="display:none">
+          <div class="em-card-hdr">
+            <i class="ti ti-report-analytics"></i>&nbsp; Resultados del An&aacute;lisis
+            <button class="em-btn" style="margin-left:auto" onclick="emCopyResults()"><i class="ti ti-copy"></i> Copiar</button>
+            <button class="em-btn" onclick="emNewStudy()"><i class="ti ti-refresh"></i> Nuevo estudio</button>
+          </div>
+          <div id="emResultsBody" class="em-results"></div>
+        </div>
+
+        <!-- Loading -->
+        <div id="emLoading" style="display:none;text-align:center;padding:48px 0">
+          <div class="em-spinner"></div>
+          <p id="emLoadingMsg" style="color:var(--muted);font-size:13px;margin-top:16px">Analizando ficha t&eacute;cnica...</p>
+        </div>
+      </div>
 
       <!-- ============ CATÁLOGO PILAR 1 ============ -->
       <div class="view" id="view-catalogo">
@@ -14747,7 +14833,8 @@ const viewTitles = {
   admin: { title: 'Centro de administración', sub: 'Equipo, empresas, permisos y configuración' },
   tableau: { title: 'Analytics · Tableau', sub: 'Dashboards de ventas e inventarios · Maraga' },
   mercadolibre: { title: 'Mercado Libre', sub: 'Ventas, publicidad y reputación · 2026' },
-  catalogo: { title: 'Catálogo · Pilar 1', sub: 'Merchandiser Ferretero · Handtools LENOX' }
+  catalogo: { title: 'Catálogo · Pilar 1', sub: 'Merchandiser Ferretero · Handtools LENOX' },
+  estudio: { title: 'Estudio de Mercado · Multi-Agente', sub: 'Análisis de competidores, precios y posicionamiento con IA' }
 };
 
 function switchView(name, el) {
@@ -14768,6 +14855,7 @@ function switchView(name, el) {
   if (name === 'kanban'   && _ms365Account) ms365SyncAllTasks();
   if (name === 'mercadolibre') renderMLFull(_mlMesActivo || '2026-06');
   if (name === 'catalogo') renderCatalogo();
+  if (name === 'estudio') emInitView();
 }
 
 function toggleSidebar() {
@@ -15677,6 +15765,237 @@ function renderCatalogo(){
     return '<button class="cht-tab'+(_catSheet===sh?' active':'')+'" data-sh="'+_ce(sh)+'" onclick="_catTab(this.dataset.sh)">'+_ce(sh)+'</button>';
   }).join('');
   _catRender(_catSheet);
+}
+</script>
+
+<style>
+/* ── Estudio de Mercado ── */
+.em-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
+.em-card-hdr{font-size:14px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.em-drop-zone{border:2px dashed var(--line);border-radius:10px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg)}
+.em-drop-zone:hover,.em-drop-zone.drag-over{border-color:var(--maraga,#c62828);background:rgba(198,40,40,.04)}
+.em-drop-label{font-size:14px;font-weight:600;color:var(--ink);margin:10px 0 4px}
+.em-drop-hint{font-size:11px;color:var(--muted);margin:0}
+.em-file-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:8px;border:1px solid var(--line);margin-bottom:12px}
+.em-preview-hdr{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.em-preview-box{font-size:12px;line-height:1.6;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;max-height:180px;overflow-y:auto;white-space:pre-wrap;font-family:monospace}
+.em-config-grid{display:flex;flex-direction:column;gap:14px;margin-bottom:18px}
+.em-field{display:flex;flex-direction:column;gap:6px}
+.em-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.em-chips{display:flex;flex-wrap:wrap;gap:6px}
+.em-chip{padding:5px 13px;border-radius:20px;border:1.5px solid var(--line);background:var(--bg);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.em-chip.active{border-color:var(--maraga,#c62828);background:rgba(198,40,40,.08);color:var(--maraga,#c62828)}
+.em-textarea{width:100%;min-height:72px;padding:10px;border:1.5px solid var(--line);border-radius:8px;font-size:12px;color:var(--text);background:var(--bg);resize:vertical;font-family:inherit;box-sizing:border-box}
+.em-textarea:focus{border-color:var(--maraga,#c62828);outline:none}
+.em-btn{padding:6px 14px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap}
+.em-btn:hover{border-color:var(--maraga,#c62828);color:var(--maraga,#c62828)}
+.em-btn.primary{background:var(--maraga,#c62828);border-color:var(--maraga,#c62828);color:#fff;padding:9px 22px;font-size:13px}
+.em-btn.primary:hover{opacity:.85}
+.em-btn.primary:disabled{opacity:.5;cursor:not-allowed}
+.em-results{font-size:13px;line-height:1.75;color:var(--text)}
+.em-results h3{font-size:14px;font-weight:700;color:var(--ink);margin:20px 0 8px;display:flex;align-items:center;gap:6px}
+.em-results h3:first-child{margin-top:0}
+.em-results p{margin:0 0 8px}
+.em-results ul{margin:0 0 12px;padding-left:20px}
+.em-results li{margin-bottom:4px}
+.em-results strong{color:var(--ink)}
+.em-results code{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace}
+.em-results hr{border:none;border-top:1px solid var(--line);margin:18px 0}
+.em-results .em-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700}
+.em-results .em-badge.green{background:#dcfce7;color:#15803d}
+.em-results .em-badge.yellow{background:#fef9c3;color:#854d0e}
+.em-results .em-badge.red{background:#fee2e2;color:#991b1b}
+.em-spinner{width:36px;height:36px;border:3px solid var(--line);border-top-color:var(--maraga,#c62828);border-radius:50%;animation:em-spin .8s linear infinite;margin:0 auto}
+@keyframes em-spin{to{transform:rotate(360deg)}}
+</style>
+<script>
+/* ── Estudio de Mercado state ── */
+var _emFile = null, _emFileText = '', _emResults = '';
+
+function emInitView() {
+  // drag-and-drop
+  var dz = document.getElementById('emDropZone');
+  if (!dz || dz._emInited) return;
+  dz._emInited = true;
+  dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', function(){ dz.classList.remove('drag-over'); });
+  dz.addEventListener('drop', function(e){
+    e.preventDefault(); dz.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) emHandleFile(e.dataTransfer.files[0]);
+  });
+  // chip toggles
+  document.querySelectorAll('.em-chip').forEach(function(c){
+    c.addEventListener('click', function(){ c.classList.toggle('active'); });
+  });
+}
+
+function emHandleFile(file) {
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { alert('El archivo supera 10 MB.'); return; }
+  _emFile = file;
+  document.getElementById('emDropZone').style.display = 'none';
+  document.getElementById('emFileInfo').style.display = 'block';
+  document.getElementById('emFileName').textContent = file.name;
+  document.getElementById('emFileSize').textContent = (file.size / 1024).toFixed(0) + ' KB';
+
+  var ext = file.name.split('.').pop().toLowerCase();
+  if (['txt','csv'].indexOf(ext) >= 0) {
+    var r = new FileReader();
+    r.onload = function(e){ emShowPreview(e.target.result.substring(0, 3000)); };
+    r.readAsText(file, 'UTF-8');
+  } else if (['png','jpg','jpeg','webp'].indexOf(ext) >= 0) {
+    var r2 = new FileReader();
+    r2.onload = function(e){ _emFileText = e.target.result; emShowPreview('[Imagen lista para análisis con visión]'); };
+    r2.readAsDataURL(file);
+  } else if (ext === 'pdf') {
+    var r3 = new FileReader();
+    r3.onload = function(e){ _emFileText = e.target.result; emShowPreview('[PDF listo · Claude leerá el contenido via base64]'); };
+    r3.readAsDataURL(file);
+  } else {
+    emShowPreview('[Archivo ' + ext.toUpperCase() + ' cargado · el contenido de texto se extraerá]');
+  }
+}
+
+function emShowPreview(text) {
+  _emFileText = text;
+  document.getElementById('emTextPreview').style.display = 'block';
+  document.getElementById('emTextContent').textContent = text.substring(0, 1500) + (text.length > 1500 ? '\n…(truncado)' : '');
+}
+
+function emClearFile() {
+  _emFile = null; _emFileText = '';
+  document.getElementById('emFileInput').value = '';
+  document.getElementById('emDropZone').style.display = '';
+  document.getElementById('emFileInfo').style.display = 'none';
+  document.getElementById('emTextPreview').style.display = 'none';
+}
+
+function emGetSelected(containerId) {
+  return Array.from(document.querySelectorAll('#' + containerId + ' .em-chip.active'))
+    .map(function(c){ return c.dataset.val; });
+}
+
+async function emRunStudy() {
+  var apiKey = localStorage.getItem('directoros_ai_key');
+  if (!apiKey) { alert('Configura tu API key de Claude en Administración primero.'); return; }
+
+  var platforms = emGetSelected('emPlatforms');
+  var modules   = emGetSelected('emModules');
+  var notes     = document.getElementById('emNotes').value.trim();
+
+  if (!platforms.length || !modules.length) { alert('Selecciona al menos una plataforma y un módulo.'); return; }
+
+  var btn = document.getElementById('emRunBtn');
+  btn.disabled = true;
+  document.getElementById('emResultsCard').style.display = 'none';
+  document.getElementById('emLoading').style.display = 'block';
+
+  var msgs = [
+    'Leyendo ficha técnica…',
+    'Analizando competidores…',
+    'Evaluando precios de mercado…',
+    'Identificando keywords clave…',
+    'Generando recomendaciones estratégicas…'
+  ];
+  var mi = 0;
+  var mt = setInterval(function(){
+    if (mi < msgs.length) {
+      document.getElementById('emLoadingMsg').textContent = msgs[mi++];
+    }
+  }, 2200);
+
+  var ext = _emFile ? _emFile.name.split('.').pop().toLowerCase() : '';
+  var isImage = ['png','jpg','jpeg','webp'].indexOf(ext) >= 0;
+  var isPdf   = ext === 'pdf';
+
+  var userContent;
+  if ((isImage || isPdf) && _emFileText && _emFileText.startsWith('data:')) {
+    var mediaType = isPdf ? 'application/pdf' : ('image/' + (ext === 'jpg' ? 'jpeg' : ext));
+    var b64 = _emFileText.split(',')[1];
+    userContent = [
+      { type: isPdf ? 'document' : 'image',
+        source: { type: 'base64', media_type: mediaType, data: b64 } },
+      { type: 'text', text: emBuildPrompt(platforms, modules, notes) }
+    ];
+  } else {
+    var fileCtx = _emFileText
+      ? '\n\n--- FICHA TÉCNICA DEL PRODUCTO ---\n' + _emFileText.substring(0, 6000) + '\n---'
+      : '\n\n(No se subió ficha técnica — realiza el análisis con información general del mercado mexicano.)';
+    userContent = emBuildPrompt(platforms, modules, notes) + fileCtx;
+  }
+
+  try {
+    var body = {
+      model: 'claude-opus-4-7',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: userContent }],
+      system: 'Eres un experto en e-commerce mexicano y estudio de mercado. Responde siempre en español. Usa markdown con encabezados ##, listas y negritas. Sé específico con datos del mercado MX (precios en MXN, plataformas locales, comportamiento del consumidor mexicano). Cuando analices una ficha técnica, extrae: nombre del producto, categoría, características técnicas, y úsalas como base del estudio.'
+    };
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify(body)
+    });
+    var data = await resp.json();
+    clearInterval(mt);
+    document.getElementById('emLoading').style.display = 'none';
+    btn.disabled = false;
+    if (data.error) throw new Error(data.error.message);
+    _emResults = data.content[0].text;
+    emShowResults(_emResults);
+  } catch(err) {
+    clearInterval(mt);
+    document.getElementById('emLoading').style.display = 'none';
+    btn.disabled = false;
+    alert('Error al llamar a Claude: ' + err.message);
+  }
+}
+
+function emBuildPrompt(platforms, modules, notes) {
+  return 'Realiza un estudio de mercado completo para el producto descrito (o inferido de la ficha técnica adjunta).\n\n'
+    + 'PLATAFORMAS: ' + platforms.join(', ') + '\n'
+    + 'MÓDULOS A ANALIZAR: ' + modules.join(', ') + '\n'
+    + (notes ? 'NOTAS / CONTEXTO ADICIONAL: ' + notes + '\n' : '')
+    + '\nEstructura el análisis con una sección por módulo seleccionado. Para cada sección incluye:\n'
+    + '- Situación actual del mercado MX\n'
+    + '- Datos relevantes (rango de precios, top competidores, volumen estimado)\n'
+    + '- Oportunidades y amenazas\n'
+    + '- Recomendaciones accionables concretas\n\n'
+    + 'Al final incluye un resumen ejecutivo con los 3 insights más importantes y el nivel de oportunidad de mercado (Alto/Medio/Bajo).';
+}
+
+function emShowResults(md) {
+  document.getElementById('emResultsCard').style.display = 'block';
+  // Simple markdown → HTML
+  var html = md
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^## (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^### (.+)$/gm,'<h4 style="font-size:13px;font-weight:700;margin:14px 0 6px;color:var(--ink)">$1</h4>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g,'<ul>$&</ul>')
+    .replace(/^---$/gm,'<hr>')
+    .replace(/\n\n/g,'</p><p>')
+    .replace(/\n/g,'<br>');
+  document.getElementById('emResultsBody').innerHTML = '<p>' + html + '</p>';
+  document.getElementById('emResultsCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function emCopyResults() {
+  if (!_emResults) return;
+  navigator.clipboard.writeText(_emResults).then(function(){ showToast && showToast('Copiado al portapapeles','success'); });
+}
+
+function emNewStudy() {
+  emClearFile();
+  document.getElementById('emResultsCard').style.display = 'none';
+  _emResults = '';
 }
 </script>
 </body></html>
