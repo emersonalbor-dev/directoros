@@ -2822,6 +2822,24 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
               <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Notas adicionales</label>
               <textarea id="mercadoNotasInput" placeholder="Características especiales, audiencia objetivo, diferenciadores, competidores conocidos, posicionamiento deseado..." style="width:100%;padding:8px 11px;border:1.5px solid var(--line);border-radius:7px;background:var(--paper);color:var(--text);font-size:12px;box-sizing:border-box;resize:vertical;min-height:62px;font-family:inherit"></textarea>
             </div>
+            <!-- Ficha Técnica Upload -->
+            <div style="margin-bottom:12px">
+              <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Ficha T&eacute;cnica (opcional)</div>
+              <input type="file" id="mftFileInput" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv" style="display:none" onchange="mftHandleFile(this.files[0])">
+              <div id="mftDropZone" onclick="document.getElementById('mftFileInput').click()"
+                style="border:2px dashed var(--line);border-radius:8px;padding:14px 16px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--bg)"
+                ondragover="event.preventDefault();this.style.borderColor='#c62828'" ondragleave="this.style.borderColor=''" ondrop="event.preventDefault();this.style.borderColor='';mftHandleFile(event.dataTransfer.files[0])">
+                <i class="ti ti-file-upload" style="font-size:22px;color:var(--muted)"></i>
+                <div style="font-size:12px;color:var(--muted);margin-top:4px">Arrastra o haz clic &mdash; PDF, imagen, TXT</div>
+              </div>
+              <div id="mftFileRow" style="display:none;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:7px;margin-top:4px">
+                <i class="ti ti-file-description" style="color:var(--maraga,#c62828)"></i>
+                <span id="mftFileName" style="font-size:12px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+                <span id="mftFileSize" style="font-size:10px;color:var(--muted)"></span>
+                <button onclick="mftClear()" style="border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;padding:0 2px" title="Quitar"><i class="ti ti-x"></i></button>
+              </div>
+            </div>
+
             <div style="margin-bottom:14px">
               <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Plataformas objetivo</div>
               <div style="display:flex;flex-wrap:wrap;gap:8px">
@@ -10160,6 +10178,38 @@ function switchMktTab(name, el) {
   if (name === 'plan') skuPlanInit();
 }
 
+/* ── Ficha Técnica upload helper ── */
+var _mftData = null; // {type:'text'|'image'|'pdf', content:string, b64:string, mediaType:string}
+function mftHandleFile(file) {
+  if (!file) return;
+  if (file.size > 10*1024*1024) { alert('El archivo supera 10 MB.'); return; }
+  var ext = file.name.split('.').pop().toLowerCase();
+  var isImg = ['png','jpg','jpeg','webp'].indexOf(ext) >= 0;
+  var isPdf = ext === 'pdf';
+  document.getElementById('mftDropZone').style.display = 'none';
+  document.getElementById('mftFileRow').style.display = 'flex';
+  document.getElementById('mftFileName').textContent = file.name;
+  document.getElementById('mftFileSize').textContent = (file.size/1024).toFixed(0)+' KB';
+  document.getElementById('mftFileInput').value = '';
+  if (isImg || isPdf) {
+    var r = new FileReader();
+    r.onload = function(e){
+      var parts = e.target.result.split(',');
+      _mftData = { type: isPdf ? 'pdf' : 'image', b64: parts[1], mediaType: isPdf ? 'application/pdf' : ('image/'+(ext==='jpg'?'jpeg':ext)) };
+    };
+    r.readAsDataURL(file);
+  } else {
+    var r2 = new FileReader();
+    r2.onload = function(e){ _mftData = { type: 'text', content: e.target.result }; };
+    r2.readAsText(file, 'UTF-8');
+  }
+}
+function mftClear() {
+  _mftData = null;
+  document.getElementById('mftDropZone').style.display = '';
+  document.getElementById('mftFileRow').style.display = 'none';
+}
+
 /* ── Estudios de Mercado — Pipeline 4 Agentes ── */
 var _mercadoLastData = null;
 async function mercadoRunAnalysis() {
@@ -10176,12 +10226,19 @@ async function mercadoRunAnalysis() {
   if (!apiKey) { alert('API key no configurada. Ve a Configuración y agrega tu Claude API key.'); return; }
 
   var producto = (marca ? marca + ' — ' : '') + familia;
+  var fichaCtx = '';
+  if (_mftData && _mftData.type === 'text') {
+    fichaCtx = '\n\n--- FICHA TÉCNICA DEL PRODUCTO ---\n' + (_mftData.content || '').substring(0, 5000) + '\n--- FIN FICHA ---';
+  } else if (_mftData && (_mftData.type === 'image' || _mftData.type === 'pdf')) {
+    fichaCtx = '\n\n[Se adjunta ficha técnica del producto como ' + (_mftData.type === 'pdf' ? 'PDF' : 'imagen') + ' — úsala para enriquecer el análisis]';
+  }
   var contexto = 'Producto / Familia: ' + familia
     + (marca   ? '\nMarca: ' + marca   : '')
     + (skus    ? '\nSKU(s): ' + skus   : '')
     + (precio  ? '\nPrecio o rango: ' + precio : '')
     + (plats.length ? '\nPlataformas objetivo: ' + plats.join(', ') : '')
-    + (notas   ? '\nNotas adicionales: ' + notas : '');
+    + (notas   ? '\nNotas adicionales: ' + notas : '')
+    + fichaCtx;
 
   var btn = document.getElementById('mercadoRunBtn');
   var pipeline = document.getElementById('mercadoPipeline');
@@ -10201,7 +10258,7 @@ async function mercadoRunAnalysis() {
     _mercadoSetAgentStatus(1, 'running', 'Analizando...');
     var sys1 = 'Eres un Analista de Mercado experto en e-commerce mexicano (MercadoLibre, Amazon MX, Walmart MX, TikTok Shop). Tu tarea es investigar competidores y el mercado para el producto indicado. Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin texto adicional.';
     var usr1 = contexto + '\n\nGenera un análisis de mercado con este esquema JSON exacto:\n{\n  "competitors": [\n    {\n      "competitor_name": "string",\n      "market_share_pct": number,\n      "avg_price": number,\n      "ratings": number,\n      "reviews_count": number,\n      "main_keywords": ["string"],\n      "platforms": ["string"],\n      "ad_investment": "Alta|Media|Baja",\n      "strengths": ["string"],\n      "weaknesses": ["string"]\n    }\n  ],\n  "market_size_mxn": number,\n  "top_keywords": ["string"],\n  "consumer_trends": ["string"],\n  "price_range": {"min": number, "max": number},\n  "entry_barriers": ["string"],\n  "market_saturation_pct": number\n}';
-    var data1 = await _mercadoCallClaude(sys1, usr1, apiKey);
+    var data1 = await _mercadoCallClaude(sys1, usr1, apiKey, true);
     _mercadoRenderAgent1(data1);
     _mercadoSetAgentStatus(1, 'done', 'Completado');
 
@@ -10248,7 +10305,18 @@ async function mercadoRunAnalysis() {
   }
 }
 
-async function _mercadoCallClaude(systemPrompt, userMsg, apiKey) {
+async function _mercadoCallClaude(systemPrompt, userMsg, apiKey, withFicha) {
+  // Build content: if ficha is an image/PDF and this is the first agent, send multimodal
+  var msgContent;
+  if (withFicha && _mftData && (_mftData.type === 'image' || _mftData.type === 'pdf')) {
+    var srcType = _mftData.type === 'pdf' ? 'document' : 'image';
+    msgContent = [
+      { type: srcType, source: { type: 'base64', media_type: _mftData.mediaType, data: _mftData.b64 } },
+      { type: 'text', text: userMsg }
+    ];
+  } else {
+    msgContent = userMsg;
+  }
   var resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -10261,7 +10329,7 @@ async function _mercadoCallClaude(systemPrompt, userMsg, apiKey) {
       model: 'claude-opus-4-7',
       max_tokens: 4000,
       system: systemPrompt,
-      messages: [{ role: 'user', content: userMsg }]
+      messages: [{ role: 'user', content: msgContent }]
     })
   });
   if (!resp.ok) {
