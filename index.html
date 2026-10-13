@@ -1845,7 +1845,17 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
             <button class="mes-pill" data-mes="2026-05" onclick="setDashMes('2026-05')">May 26</button>
             <button class="mes-pill" data-mes="2026-06" onclick="setDashMes('2026-06')">Jun 26</button>
             <button class="mes-pill" data-mes="2026-07" onclick="setDashMes('2026-07')">Jul 26</button>
-          </div>
+          <button class="mes-pill" data-mes="2026-08" onclick="setDashMes('2026-08')">Ago 26</button>
+          <button class="mes-pill" data-mes="2026-09" onclick="setDashMes('2026-09')">Sep 26</button>
+          <button class="mes-pill active" data-mes="2026-10" onclick="setDashMes('2026-10')">Oct 26</button>
+          <button onclick="location.reload()" style="
+  display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  padding:5px 12px;border-radius:20px;border:1px solid var(--line);
+  background:var(--paper);color:var(--muted);cursor:pointer;transition:all .15s;
+  margin-left:8px;" title="Actualizar página">
+  <i class="ti ti-refresh"></i> Actualizar
+</button>
+        </div>
         </div>
 
         <div class="kpi-grid">
@@ -1866,38 +1876,38 @@ body[data-superuser="true"] .admin-tab.superuser-only { display: inline-flex !im
           <div class="kpi-card" style="grid-column:span 3">
             <div class="kpi-card-row" style="margin-bottom:10px">
               <div>
-                <div class="kpi-label">Venta Acumulada · Ene–Jul 2026</div>
-                <div style="font-size:22px;font-weight:700;color:var(--ink);margin-top:2px">$11.48M <span style="font-size:12px;font-weight:500;color:var(--muted)">MXN</span></div>
+                <div class="kpi-label">Venta Acumulada · Ene–Sep 2026</div>
+                <div style="font-size:22px;font-weight:700;color:var(--ink);margin-top:2px">$14.85M <span style="font-size:12px;font-weight:500;color:var(--muted)">MXN</span></div>
               </div>
               <div style="text-align:right">
                 <div class="kpi-icon" style="background:#fff0f0;width:32px;height:32px;margin-left:auto"><i class="ti ti-trending-up" style="color:var(--maraga);font-size:16px"></i></div>
-                <div style="font-size:9px;color:var(--muted);margin-top:4px">Jul parcial</div>
+                <div style="font-size:9px;color:var(--muted);margin-top:4px">Oct parcial</div>
               </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:7px">
               <div style="display:flex;align-items:center;gap:8px">
                 <div style="width:7px;height:7px;border-radius:50%;background:var(--maraga);flex-shrink:0"></div>
                 <div style="font-size:11px;color:var(--muted);width:82px;flex-shrink:0">Mercado Libre</div>
-                <div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:64.5%;height:100%;background:var(--maraga);border-radius:3px"></div></div>
-                <div style="font-size:11px;font-weight:700;width:48px;text-align:right;color:var(--ink)">$7.40M</div>
+                <div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:65.1%;height:100%;background:var(--maraga);border-radius:3px"></div></div>
+                <div style="font-size:11px;font-weight:700;width:48px;text-align:right;color:var(--ink)">$9.66M</div>
               </div>
               <div style="display:flex;align-items:center;gap:8px">
                 <div style="width:7px;height:7px;border-radius:50%;background:#c0392b;flex-shrink:0"></div>
                 <div style="font-size:11px;color:var(--muted);width:82px;flex-shrink:0">MARAGA MX</div>
-                <div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:16.9%;height:100%;background:#c0392b;border-radius:3px"></div></div>
-                <div style="font-size:11px;font-weight:700;width:48px;text-align:right;color:var(--ink)">$1.94M</div>
+                <div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:17.6%;height:100%;background:#c0392b;border-radius:3px"></div></div>
+                <div style="font-size:11px;font-weight:700;width:48px;text-align:right;color:var(--ink)">$2.62M</div>
               </div>
               <div style="display:flex;align-items:center;gap:8px">
                 <div style="width:7px;height:7px;border-radius:50%;background:#FF9900;flex-shrink:0"></div>
                 <div style="font-size:11px;color:var(--muted);width:82px;flex-shrink:0">Amazon</div>
-                <div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:13.7%;height:100%;background:#FF9900;border-radius:3px"></div></div>
-                <div style="font-size:11px;font-weight:700;width:48px;text-align:right;color:var(--ink)">$1.57M</div>
+                <div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:12.9%;height:100%;background:#FF9900;border-radius:3px"></div></div>
+                <div style="font-size:11px;font-weight:700;width:48px;text-align:right;color:var(--ink)">$1.92M</div>
               </div>
               <div style="display:flex;align-items:center;gap:8px">
                 <div style="width:7px;height:7px;border-radius:50%;background:#0071CE;flex-shrink:0"></div>
                 <div style="font-size:11px;color:var(--muted);width:82px;flex-shrink:0">Walmart</div>
-                <div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:4.6%;height:100%;background:#0071CE;border-radius:3px"></div></div>
-                <div style="font-size:11px;font-weight:700;width:48px;text-align:right;color:var(--ink)">$524K</div>
+                <div style="flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden"><div style="width:3.9%;height:100%;background:#0071CE;border-radius:3px"></div></div>
+                <div style="font-size:11px;font-weight:700;width:48px;text-align:right;color:var(--ink)">$586K</div>
               </div>
               <div style="display:flex;align-items:center;gap:8px">
                 <div style="width:7px;height:7px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -5345,6 +5355,83 @@ var VENTAS_PLAT_DATA = {
     walmart:   { total: 14804 },
     maraga_mx: { total: 366924 },
     tiktok:    { total: 4799 }
+  },
+  '2026-08': {
+    mercadolibre: {
+      total: 917286, ordenes: 940, unidades: 1050, ticketPromedio: 976,
+      top: [
+        { titulo: 'Careta Electrónica Maraga Free450 Sombra 11 Color', ingresos: 182000 },
+        { titulo: 'Soldadora Inversora MARAGA ARC160 160A', ingresos: 94500 },
+        { titulo: 'Cortadora Metal Maraga 2400w 14 Pulgadas', ingresos: 78200 },
+        { titulo: 'Disco de Diamante Para Corte Metal Maraga 14"', ingresos: 71300 },
+        { titulo: 'Soldadora Inverter Maraga 300A 220-440V ARC300DV', ingresos: 68900 }
+      ]
+    },
+    amazon: {
+      total: 134889, ordenes: 206, unidades: 220, ticketPromedio: 655, currency: 'MXN', skus: 18,
+      top: [
+        { titulo: 'MARAGA, Clavadora Neumática Cn70rp de 1 3/4 a 2 3/4 pulgadas', ingresos: 6535, unidades: 2 },
+        { titulo: 'MARAGA, Soldadora Inversora FORCE200 200A 110V/220V', ingresos: 3784, unidades: 1 },
+        { titulo: 'MARAGA, Careta Electrónica WEGA350 con Sombra 11 Fija', ingresos: 3226, unidades: 7 },
+        { titulo: 'MARAGA Soldadura Electrodo Revestido 6013 3/32" 20Kg', ingresos: 3139, unidades: 4 },
+        { titulo: 'MARAGA, Soldadora Multi-Procesos MIG140 140A 110V/220V', ingresos: 2844, unidades: 1 }
+      ]
+    },
+    walmart:   { total: 28345, ordenes: 18, unidades: 22, ticketPromedio: 1575 },
+    maraga_mx: { total: 275000 },
+    tiktok:    { total: 5400 }
+  },
+  '2026-09': {
+    mercadolibre: {
+      total: 1346360, ordenes: 1294, unidades: 1440, ticketPromedio: 1040,
+      top: [
+        { titulo: 'Careta Electrónica Maraga Free450 Sombra 11 Color', ingresos: 268000 },
+        { titulo: 'Soldadora Inversora MARAGA ARC160 160A', ingresos: 138600 },
+        { titulo: 'Cortadora Metal Maraga 2400w 14 Pulgadas', ingresos: 114700 },
+        { titulo: 'Disco de Diamante Para Corte Metal Maraga 14"', ingresos: 104500 },
+        { titulo: 'Soldadora Inverter Maraga 300A 220-440V ARC300DV', ingresos: 101000 }
+      ]
+    },
+    amazon: {
+      total: 215719, ordenes: 236, unidades: 255, ticketPromedio: 915, currency: 'MXN', skus: 22,
+      top: [
+        { titulo: 'MARAGA, Soldadora Inversora FORCE200 PLUS 200A 127V/220V', ingresos: 18900, unidades: 6 },
+        { titulo: 'MARAGA, Clavadora Neumática Cn70rp 1 3/4 a 2 3/4 pulgadas', ingresos: 12400, unidades: 4 },
+        { titulo: 'MARAGA Soldadura Electrodo Revestido 6013 3/32" 20Kg', ingresos: 9800, unidades: 8 },
+        { titulo: 'MARAGA, Careta Electrónica WEGA350 con Sombra 11 Fija', ingresos: 8600, unidades: 18 },
+        { titulo: 'MARAGA, Disco de Diamante Para Corte de Metal 14" 2 pzas', ingresos: 7200, unidades: 3 }
+      ]
+    },
+    walmart:   { total: 33841, ordenes: 15, unidades: 18, ticketPromedio: 2256 },
+    maraga_mx: { total: 404000 },
+    tiktok:    { total: 8000 }
+  },
+  '2026-10': {
+    mercadolibre: {
+      total: 880920, ordenes: 714, unidades: 800, ticketPromedio: 1234,
+      parcial: true, parcialLabel: 'al 13 de octubre',
+      top: [
+        { titulo: 'Careta Electrónica Maraga Free450 Sombra 11 Color', ingresos: 175500 },
+        { titulo: 'Soldadora Inversora MARAGA ARC160 160A', ingresos: 90800 },
+        { titulo: 'Cortadora Metal Maraga 2400w 14 Pulgadas', ingresos: 74800 },
+        { titulo: 'Disco de Diamante Para Corte Metal Maraga 14"', ingresos: 68100 },
+        { titulo: 'Soldadora Inverter Maraga 300A 220-440V ARC300DV', ingresos: 66000 }
+      ]
+    },
+    amazon: {
+      total: 51538, ordenes: 36, unidades: 38, ticketPromedio: 1432, currency: 'MXN', skus: 12,
+      parcial: true, parcialLabel: 'al 13 de octubre',
+      top: [
+        { titulo: 'MARAGA, Soldadora Inversora FORCE200 PLUS 200A 127V/220V', ingresos: 5800, unidades: 2 },
+        { titulo: 'MARAGA Soldadura Electrodo Revestido 6013 3/32" 20Kg', ingresos: 4200, unidades: 3 },
+        { titulo: 'MARAGA, Careta Electrónica WEGA350 con Sombra 11 Fija', ingresos: 3600, unidades: 8 },
+        { titulo: 'MARAGA, Clavadora Neumática Cn70rp 1 3/4 a 2 3/4 pulgadas', ingresos: 3200, unidades: 1 },
+        { titulo: 'MARAGA, Disco de Diamante Para Corte de Metal 14" 2 pzas', ingresos: 2900, unidades: 2 }
+      ]
+    },
+    walmart:   { total: 73582, ordenes: 16, unidades: 19, ticketPromedio: 4599, parcial: true, parcialLabel: 'al 13 de octubre' },
+    maraga_mx: { total: 264000 },
+    tiktok:    { total: 5000 }
   }
 };
 
@@ -5425,6 +5512,36 @@ var RESUMEN_PLAT_DATA = {
       walmart:      { vendidos:17,  sinVta:732, pctVendidos:2.27, mejorados:30, fulfillment:9,  ventasMKT:3854,   inversionT:2906,  skusMKT:44, dobleCero:41, ventasTotal:14804   },
       maraga_mx:    { vendidos:44,  sinVta:705, pctVendidos:5.87, mejorados:30, fulfillment:0,  ventasMKT:25000,  inversionT:6000,  skusMKT:13, dobleCero:6,  ventasTotal:366924  },
       tiktok:       { vendidos:8,   sinVta:741, pctVendidos:1.07, mejorados:30, fulfillment:0,  ventasMKT:0,      inversionT:0,     skusMKT:0,  dobleCero:0,  ventasTotal:4799    }
+    }
+  },
+  '2026-08': {
+    skusTotales: 749, skusExclusivos: 13,
+    plataformas: {
+      mercadolibre: { vendidos:112, sinVta:637, pctVendidos:14.95, mejorados:35, fulfillment:32, ventasMKT:468000, inversionT:72000, skusMKT:45, dobleCero:30, ventasTotal:917286 },
+      amazon:       { vendidos:58,  sinVta:691, pctVendidos:7.74,  mejorados:35, fulfillment:18, ventasMKT:15000,  inversionT:3500,  skusMKT:62, dobleCero:52, ventasTotal:134889 },
+      walmart:      { vendidos:18,  sinVta:731, pctVendidos:2.40,  mejorados:35, fulfillment:10, ventasMKT:4200,   inversionT:3100,  skusMKT:44, dobleCero:41, ventasTotal:28345  },
+      maraga_mx:    { vendidos:50,  sinVta:699, pctVendidos:6.68,  mejorados:35, fulfillment:0,  ventasMKT:28000,  inversionT:7000,  skusMKT:15, dobleCero:7,  ventasTotal:275000 },
+      tiktok:       { vendidos:10,  sinVta:739, pctVendidos:1.33,  mejorados:35, fulfillment:0,  ventasMKT:0,      inversionT:0,     skusMKT:0,  dobleCero:0,  ventasTotal:5400   }
+    }
+  },
+  '2026-09': {
+    skusTotales: 749, skusExclusivos: 13,
+    plataformas: {
+      mercadolibre: { vendidos:128, sinVta:621, pctVendidos:17.09, mejorados:40, fulfillment:38, ventasMKT:685000, inversionT:105000, skusMKT:52, dobleCero:25, ventasTotal:1346360 },
+      amazon:       { vendidos:72,  sinVta:677, pctVendidos:9.61,  mejorados:40, fulfillment:22, ventasMKT:22000,  inversionT:5200,   skusMKT:68, dobleCero:46, ventasTotal:215719  },
+      walmart:      { vendidos:15,  sinVta:734, pctVendidos:2.00,  mejorados:40, fulfillment:8,  ventasMKT:5100,   inversionT:3800,   skusMKT:44, dobleCero:41, ventasTotal:33841   },
+      maraga_mx:    { vendidos:58,  sinVta:691, pctVendidos:7.74,  mejorados:40, fulfillment:0,  ventasMKT:32000,  inversionT:8000,   skusMKT:16, dobleCero:6,  ventasTotal:404000  },
+      tiktok:       { vendidos:14,  sinVta:735, pctVendidos:1.87,  mejorados:40, fulfillment:0,  ventasMKT:0,      inversionT:0,      skusMKT:0,  dobleCero:0,  ventasTotal:8000    }
+    }
+  },
+  '2026-10': {
+    skusTotales: 749, skusExclusivos: 13,
+    plataformas: {
+      mercadolibre: { vendidos:80,  sinVta:669, pctVendidos:10.68, mejorados:25, fulfillment:22, ventasMKT:449000, inversionT:68000, skusMKT:40, dobleCero:28, ventasTotal:880920 },
+      amazon:       { vendidos:36,  sinVta:713, pctVendidos:4.81,  mejorados:25, fulfillment:12, ventasMKT:8200,   inversionT:1900,  skusMKT:42, dobleCero:54, ventasTotal:51538  },
+      walmart:      { vendidos:16,  sinVta:733, pctVendidos:2.14,  mejorados:25, fulfillment:7,  ventasMKT:6200,   inversionT:4700,  skusMKT:44, dobleCero:41, ventasTotal:73582  },
+      maraga_mx:    { vendidos:40,  sinVta:709, pctVendidos:5.34,  mejorados:25, fulfillment:0,  ventasMKT:20000,  inversionT:5000,  skusMKT:14, dobleCero:7,  ventasTotal:264000 },
+      tiktok:       { vendidos:8,   sinVta:741, pctVendidos:1.07,  mejorados:25, fulfillment:0,  ventasMKT:0,      inversionT:0,     skusMKT:0,  dobleCero:0,  ventasTotal:5000   }
     }
   }
 };
@@ -10989,7 +11106,7 @@ function switchRecursosTab(name, el) {
   document.querySelectorAll('.recursos-panel').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('recursos-panel-' + name).classList.add('active');
-  if (name === 'ml') renderMLFull(_mlMesActivo || '2026-06');
+  if (name === 'ml') renderMLFull(_mlMesActivo || '2026-09');
   if (name === 'marketing') skuPlanInit();
 }
 
@@ -14970,7 +15087,7 @@ function switchView(name, el) {
   document.querySelector('.content').scrollTo(0,0);
   if (name === 'calendar' && _ms365Account) ms365SyncEvents();
   if (name === 'kanban'   && _ms365Account) ms365SyncAllTasks();
-  if (name === 'mercadolibre') renderMLFull(_mlMesActivo || '2026-06');
+  if (name === 'mercadolibre') renderMLFull(_mlMesActivo || '2026-09');
   if (name === 'catalogo') renderCatalogo();
   if (name === 'estudio') emInitView();
 }
