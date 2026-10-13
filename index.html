@@ -5352,7 +5352,7 @@ var VENTAS_PLAT_DATA = {
         { titulo: 'MARAGA, Disco de Diamante Para Corte de Metal 14", 2 piezas', ingresos: 1990.0, unidades: 1 }
       ]
     },
-    walmart:   { total: 14804 },
+    walmart:   { total: 14804, ordenes: 9, unidades: 10, ticketPromedio: 1645, parcial: true, parcialLabel: "al 21 de julio" },
     maraga_mx: { total: 366924 },
     tiktok:    { total: 4799 }
   },
@@ -5918,8 +5918,8 @@ function renderVentasPlat(mes) {
         '<div class="ventas-plat-total" style="font-size:22px">' + fmtPesos(wmt.total) + '</div>' +
         '<div class="ventas-plat-sub">en ventas — ' + (MESES_LABEL[mes]||mes) + '</div>' +
         '<div class="ventas-plat-stats">' +
-          '<div class="ventas-plat-stat"><strong>' + wmt.ordenes.toLocaleString() + '</strong>Órdenes</div>' +
-          '<div class="ventas-plat-stat"><strong>' + wmt.unidades.toLocaleString() + '</strong>Unidades</div>' +
+          '<div class="ventas-plat-stat"><strong>' + (wmt.ordenes||0).toLocaleString() + '</strong>Órdenes</div>' +
+          '<div class="ventas-plat-stat"><strong>' + (wmt.unidades||0).toLocaleString() + '</strong>Unidades</div>' +
           (wmt.skus != null ? '<div class="ventas-plat-stat"><strong>' + wmt.skus + '</strong>SKUs</div>' : '') +
           '<div class="ventas-plat-stat"><strong>' + fmtPesos(wmt.ticketPromedio) + '</strong>Ticket</div>' +
         '</div>' +
